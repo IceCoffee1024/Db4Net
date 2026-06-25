@@ -30,7 +30,7 @@ public sealed class SelectQueryBuilderTests
             .Page(2, 10)
             .ToCommand();
 
-        Assert.Equal("""SELECT * FROM "Users" WHERE "Name" LIKE @p0 ORDER BY "Id" DESC LIMIT @p1 OFFSET @p2""", command.Sql);
+        Assert.Equal("""SELECT "Id", "Name" FROM "Users" WHERE "Name" LIKE @p0 ORDER BY "Id" DESC LIMIT @p1 OFFSET @p2""", command.Sql);
         Assert.Equal("A%", command.Parameters.Get<string>("p0"));
         Assert.Equal(10, command.Parameters.Get<int>("p1"));
         Assert.Equal(10, command.Parameters.Get<int>("p2"));
@@ -69,6 +69,17 @@ public sealed class SelectQueryBuilderTests
             .ToCommand();
 
         Assert.Equal("SELECT \"display_name\" AS \"DisplayName\" FROM \"app_users\"", command.Sql);
+    }
+
+    [Fact]
+    public void Select_from_type_renders_all_mapped_member_columns()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<MappedUser>()
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [display_name] AS [DisplayName] FROM [app_users]", command.Sql);
     }
 
     [Fact]
@@ -117,7 +128,7 @@ public sealed class SelectQueryBuilderTests
             .Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [Users] WHERE [Id] IN (@p0, @p1, @p2)", command.Sql);
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Id] IN (@p0, @p1, @p2)", command.Sql);
         Assert.Equal(1, command.Parameters.Get<int>("p0"));
         Assert.Equal(2, command.Parameters.Get<int>("p1"));
         Assert.Equal(3, command.Parameters.Get<int>("p2"));
@@ -133,7 +144,7 @@ public sealed class SelectQueryBuilderTests
             .OrWhere(u => u.Name, Op.Eq, "Alice")
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [Users] WHERE [Id] = @p0 OR [Name] = @p1", command.Sql);
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0 OR [Name] = @p1", command.Sql);
         Assert.Equal(1, command.Parameters.Get<int>("p0"));
         Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
     }
@@ -153,5 +164,8 @@ public sealed class SelectQueryBuilderTests
 
         [Column("display_name")]
         public string DisplayName { get; set; } = "";
+
+        [NotMapped]
+        public string Ignored { get; set; } = "";
     }
 }

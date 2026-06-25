@@ -25,6 +25,16 @@ internal static class ModelMetadataProvider
         return new ColumnMetadata(member.Name, GetColumnName(member));
     }
 
+    public static IReadOnlyList<ColumnMetadata> GetColumnMetadata(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return type
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(IsMappedProperty)
+            .Select(property => new ColumnMetadata(property.Name, GetColumnName(property)))
+            .ToArray();
+    }
+
     private static string GetColumnName(MemberInfo member)
     {
         return member.GetCustomAttribute<ColumnAttribute>()?.Name ?? member.Name;
@@ -45,6 +55,14 @@ internal static class ModelMetadataProvider
         }
 
         return memberExpression.Member;
+    }
+
+    private static bool IsMappedProperty(PropertyInfo property)
+    {
+        return property.GetCustomAttribute<NotMappedAttribute>() is null
+            && property.GetMethod is not null
+            && property.SetMethod is not null
+            && property.GetIndexParameters().Length == 0;
     }
 }
 

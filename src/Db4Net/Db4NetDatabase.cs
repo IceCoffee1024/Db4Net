@@ -74,7 +74,7 @@ public sealed class Db4NetDatabase
     /// <returns>A typed select query builder.</returns>
     public SelectQueryBuilder<T> SelectFrom<T>()
     {
-        return new SelectQueryBuilder<T>(_options, _connection).From<T>();
+        return new SelectQueryBuilder<T>(_options, _connection).From<T>().SelectAllMappedColumns();
     }
 
     /// <summary>

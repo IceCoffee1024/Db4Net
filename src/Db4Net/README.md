@@ -17,7 +17,8 @@ var user = await connection
 
 - Typed and string-based `SELECT` builders.
 - Typed selected-column entry via `Select<T>(...)`.
-- Column aliases for typed selected columns so Dapper maps `[Column]` members correctly.
+- `SelectFrom<T>()` expands mapped properties and excludes `[NotMapped]`.
+- Column aliases for typed projections so Dapper maps `[Column]` members correctly.
 - SQL Server and SQLite rendering.
 - Parameterized `Where` clauses.
 - Ordering and basic paging.

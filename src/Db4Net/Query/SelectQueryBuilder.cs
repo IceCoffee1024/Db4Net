@@ -313,6 +313,11 @@ public class SelectQueryBuilder
         return this;
     }
 
+    internal void ClearSelectColumns()
+    {
+        _model.Columns.Clear();
+    }
+
     private static void EnsureValueFreeOperator(Op op)
     {
         if (op is not (Op.IsNull or Op.IsNotNull))
@@ -349,9 +354,23 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     public SelectQueryBuilder<T> Select(params Expression<Func<T, object?>>[] memberSelectors)
     {
         ArgumentNullException.ThrowIfNull(memberSelectors);
+        base.ClearSelectColumns();
+
         foreach (var memberSelector in memberSelectors)
         {
             var column = ModelMetadataProvider.GetColumnMetadata(memberSelector);
+            base.AddSelectColumn(column.ColumnName, column.PropertyName);
+        }
+
+        return this;
+    }
+
+    internal SelectQueryBuilder<T> SelectAllMappedColumns()
+    {
+        base.ClearSelectColumns();
+
+        foreach (var column in ModelMetadataProvider.GetColumnMetadata(typeof(T)))
+        {
             base.AddSelectColumn(column.ColumnName, column.PropertyName);
         }
 

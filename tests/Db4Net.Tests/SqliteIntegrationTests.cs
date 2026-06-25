@@ -146,6 +146,36 @@ public sealed class SqliteIntegrationTests
         Assert.Equal("Alice", user.DisplayName);
     }
 
+    [Fact]
+    public void Select_from_type_with_column_attribute_maps_result_to_property()
+    {
+        using var connection = CreateOpenMappedConnection();
+
+        var user = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<MappedUser>()
+            .QuerySingleOrDefault<MappedUser>();
+
+        Assert.NotNull(user);
+        Assert.Equal(1, user.Id);
+        Assert.Equal("Alice", user.DisplayName);
+        Assert.Equal("", user.Ignored);
+    }
+
+    [Fact]
+    public void Select_from_type_excludes_not_mapped_property_even_when_table_has_matching_column()
+    {
+        using var connection = CreateOpenMappedConnection();
+
+        var user = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<MappedUser>()
+            .QuerySingleOrDefault<MappedUser>();
+
+        Assert.NotNull(user);
+        Assert.Equal("", user.Ignored);
+    }
+
     private static SqliteConnection CreateOpenConnection()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
@@ -166,8 +196,8 @@ public sealed class SqliteIntegrationTests
         connection.Open();
         using var setup = connection.CreateCommand();
         setup.CommandText = """
-            create table app_users (Id integer primary key, display_name text not null);
-            insert into app_users (Id, display_name) values (1, 'Alice');
+            create table app_users (Id integer primary key, display_name text not null, Ignored text not null);
+            insert into app_users (Id, display_name, Ignored) values (1, 'Alice', 'should-not-map');
             """;
         setup.ExecuteNonQuery();
         return connection;
@@ -188,5 +218,8 @@ public sealed class SqliteIntegrationTests
 
         [Column("display_name")]
         public string DisplayName { get; set; } = "";
+
+        [NotMapped]
+        public string Ignored { get; set; } = "";
     }
 }

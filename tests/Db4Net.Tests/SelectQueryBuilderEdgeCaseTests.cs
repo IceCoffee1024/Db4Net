@@ -30,7 +30,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
             .Where(u => u.Id, Op.Eq, 1)
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [PlainUser] WHERE [Id] = @p0", command.Sql);
+        Assert.Equal("SELECT [Id] FROM [PlainUser] WHERE [Id] = @p0", command.Sql);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
             .Limit(10)
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [Users] ORDER BY [Id] OFFSET @p0 ROWS FETCH NEXT @p1 ROWS ONLY", command.Sql);
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] ORDER BY [Id] OFFSET @p0 ROWS FETCH NEXT @p1 ROWS ONLY", command.Sql);
         Assert.Equal(20, command.Parameters.Get<int>("p0"));
         Assert.Equal(10, command.Parameters.Get<int>("p1"));
     }
@@ -86,7 +86,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
             .Where(u => u.DisplayName, Op.Eq, "Alice")
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [app_users] WHERE [display_name] = @p0", command.Sql);
+        Assert.Equal("SELECT [Id], [display_name] AS [DisplayName] FROM [app_users] WHERE [display_name] = @p0", command.Sql);
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
     }
 
@@ -104,7 +104,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
             .Where(u => u.Id, op, 5)
             .ToCommand();
 
-        Assert.Equal($"SELECT * FROM [Users] WHERE [Id] {sqlOperator} @p0", command.Sql);
+        Assert.Equal($"SELECT [Id], [Name] FROM [Users] WHERE [Id] {sqlOperator} @p0", command.Sql);
         Assert.Equal(5, command.Parameters.Get<int>("p0"));
     }
 
@@ -121,7 +121,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
             .Where(u => u.Name, op, null)
             .ToCommand();
 
-        Assert.Equal($"SELECT * FROM [Users] WHERE [Name] {expectedOperator}", command.Sql);
+        Assert.Equal($"SELECT [Id], [Name] FROM [Users] WHERE [Name] {expectedOperator}", command.Sql);
         Assert.Empty(command.Parameters.ParameterNames);
     }
 
@@ -147,7 +147,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
             .Where(u => u.Name, Op.IsNotNull)
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [Users] WHERE [Name] IS NOT NULL", command.Sql);
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Name] IS NOT NULL", command.Sql);
         Assert.Empty(command.Parameters.ParameterNames);
     }
 
@@ -161,7 +161,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
             .OrWhere(u => u.Name, Op.IsNull)
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [Users] WHERE [Id] = @p0 OR [Name] IS NULL", command.Sql);
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0 OR [Name] IS NULL", command.Sql);
     }
 
     [Fact]
