@@ -64,7 +64,7 @@ public sealed class Db4NetDatabase
     /// <returns>A typed select query builder.</returns>
     public SelectQueryBuilder<T> Select<T>(params Expression<Func<T, object?>>[] memberSelectors)
     {
-        return SelectFrom<T>().Select(memberSelectors);
+        return new SelectQueryBuilder(_options, _connection).From<T>().Select(memberSelectors);
     }
 
     /// <summary>
@@ -74,7 +74,7 @@ public sealed class Db4NetDatabase
     /// <returns>A typed select query builder.</returns>
     public SelectQueryBuilder<T> SelectFrom<T>()
     {
-        return new SelectQueryBuilder<T>(_options, _connection).From<T>().SelectAllMappedColumns();
+        return new SelectQueryBuilder(_options, _connection).From<T>().SelectAllMappedColumns();
     }
 
     /// <summary>
