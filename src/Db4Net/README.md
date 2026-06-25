@@ -1,26 +1,148 @@
 # Db4Net
 
-Db4Net is a lightweight fluent SQL builder for Dapper.
+Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, parameterized `SELECT` queries while leaving execution and object mapping to Dapper.
 
-## Async Example
+## Install
+
+```bash
+dotnet add package Db4Net --prerelease
+```
+
+## Quick Start
 
 ```csharp
+using Db4Net;
+
 var user = await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .Select<User>(u => u.Id, u => u.Name)
+    .SelectFrom<User>()
     .Where(u => u.Id, Op.Eq, 1)
-    .Where(u => u.Name, Op.IsNotNull)
     .QuerySingleOrDefaultAsync<User>();
 ```
 
-## Current Scope
+## Recommended APIs
 
-- Typed and string-based `SELECT` builders.
-- Typed selected-column entry via `Select<T>(...)`.
-- `SelectFrom<T>()` expands mapped properties and excludes `[NotMapped]`.
-- Column aliases for typed projections so Dapper maps `[Column]` members correctly.
-- SQL Server and SQLite rendering.
-- Parameterized `Where` clauses.
-- Ordering and basic paging.
-- `ToCommand()` for SQL inspection.
-- Sync and async Dapper terminal methods.
+Use `SelectFrom<T>()` when querying a whole mapped entity:
+
+```csharp
+var users = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .Where(u => u.Name, Op.Like, "A%")
+    .OrderBy(u => u.Id)
+    .Query<User>();
+```
+
+Use `Select<T>(...)` when querying specific mapped properties:
+
+```csharp
+var users = connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .Select<User>(u => u.Id, u => u.Name)
+    .Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
+    .Query<User>();
+```
+
+Use string-based `Select(...).From(...)` for dynamic query scenarios:
+
+```csharp
+var rows = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .Select("Users.Id", "Users.Name")
+    .From("Users")
+    .Where("Users.Name", Op.IsNotNull)
+    .Query<dynamic>();
+```
+
+String table and column identifiers are validated and quoted by the configured dialect. Values are always passed as Dapper parameters.
+
+## Mapping
+
+Db4Net supports standard mapping attributes:
+
+```csharp
+using System.ComponentModel.DataAnnotations.Schema;
+
+[Table("app_users")]
+public sealed class User
+{
+    public int Id { get; set; }
+
+    [Column("display_name")]
+    public string Name { get; set; } = "";
+
+    [NotMapped]
+    public string DisplayOnly { get; set; } = "";
+}
+```
+
+Typed projections alias mapped columns so Dapper can map results back to property names:
+
+```sql
+SELECT [Id], [display_name] AS [Name] FROM [app_users]
+```
+
+`[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, and `OrderBy` member selectors.
+
+## Filters
+
+```csharp
+.Where(u => u.Id, Op.Eq, 1)
+.Where(u => u.Name, Op.Like, "A%")
+.Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
+.Where(u => u.DeletedAt, Op.IsNull)
+.Where(u => u.Name, Op.IsNotNull)
+```
+
+`Op.Eq` with `null` renders `IS NULL`, and `Op.NotEq` with `null` renders `IS NOT NULL`. Prefer `Op.IsNull` and `Op.IsNotNull` when no value is needed.
+
+## Paging
+
+```csharp
+var page = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .OrderBy(u => u.Id)
+    .Page(pageNumber: 2, pageSize: 20)
+    .Query<User>();
+```
+
+Db4Net renders paging through the configured dialect:
+
+- SQL Server: `OFFSET ... ROWS FETCH NEXT ... ROWS ONLY`
+- SQLite: `LIMIT ... OFFSET ...`
+
+## Inspect SQL
+
+```csharp
+var command = Db4NetDatabase
+    .Create(Db4NetOptions.SqlServer)
+    .Select<User>(u => u.Id, u => u.Name)
+    .Where(u => u.Id, Op.Eq, 1)
+    .ToCommand();
+
+Console.WriteLine(command.Sql);
+```
+
+Output:
+
+```sql
+SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0
+```
+
+## Terminal Methods
+
+Db4Net provides Dapper-style terminal methods:
+
+- `Query<T>()`
+- `QueryFirstOrDefault<T>()`
+- `QuerySingleOrDefault<T>()`
+- `Execute()`
+- `QueryAsync<T>()`
+- `QueryFirstOrDefaultAsync<T>()`
+- `QuerySingleOrDefaultAsync<T>()`
+- `ExecuteAsync()`
+
+## Scope
+
+Current scope is focused on typed and string-based `SELECT` builders for SQL Server and SQLite. Joins, inserts, updates, deletes, and full predicate expression translation are intentionally out of scope for this early version.

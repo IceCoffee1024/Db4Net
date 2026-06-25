@@ -297,6 +297,74 @@ public sealed class SelectQueryBuilderEdgeCaseTests
     }
 
     [Fact]
+    public void Typed_select_entry_rejects_empty_member_selector_list()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Select<User>()
+                .ToCommand());
+
+        Assert.Contains("At least one member selector is required.", ex.Message);
+    }
+
+    [Fact]
+    public void Select_from_type_rejects_types_without_mapped_properties()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<NoMappedProperties>()
+                .ToCommand());
+
+        Assert.Contains("does not have any mapped columns", ex.Message);
+    }
+
+    [Fact]
+    public void Typed_member_selector_rejects_nested_member_access()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<UserWithProfile>()
+                .Where(u => u.Profile.DisplayName, Op.Eq, "Alice")
+                .ToCommand());
+
+        Assert.Contains("Only direct member selectors are supported", ex.Message);
+    }
+
+    [Fact]
+    public void Typed_member_selector_rejects_fields()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<UserWithField>()
+                .Where(u => u.Id, Op.Eq, 1)
+                .ToCommand());
+
+        Assert.Contains("Only property selectors are supported", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(".Name")]
+    [InlineData("Users.")]
+    [InlineData("Users..Name")]
+    public void String_column_identifiers_reject_invalid_boundaries(string column)
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom("Users")
+                .Where(column, Op.Eq, 1)
+                .ToCommand());
+
+        Assert.Contains("Invalid SQL identifier", ex.Message);
+    }
+
+    [Fact]
     public void Dapper_execution_requires_bound_connection()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -320,6 +388,35 @@ public sealed class SelectQueryBuilderEdgeCaseTests
     private sealed class PlainUser
     {
         public int Id { get; set; }
+    }
+
+    private sealed class NoMappedProperties
+    {
+        [NotMapped]
+        public string Ignored { get; set; } = "";
+    }
+
+    [Table("Users")]
+    private sealed class UserWithProfile
+    {
+        public int Id { get; set; }
+
+        public Profile Profile { get; set; } = new();
+    }
+
+    private sealed class Profile
+    {
+        public string DisplayName { get; set; } = "";
+    }
+
+    [Table("Users")]
+    private sealed class UserWithField
+    {
+#pragma warning disable CS0649
+        public int Id;
+#pragma warning restore CS0649
+
+        public string Name { get; set; } = "";
     }
 
     [Table("app_users")]

@@ -65,7 +65,17 @@ internal static class ModelMetadataProvider
             throw new ArgumentException("Only simple member selectors are supported, for example u => u.Id.", nameof(memberSelector));
         }
 
-        return memberExpression.Member;
+        if (memberExpression.Expression is not ParameterExpression)
+        {
+            throw new ArgumentException("Only direct member selectors are supported, for example u => u.Id.", nameof(memberSelector));
+        }
+
+        if (memberExpression.Member is not PropertyInfo property)
+        {
+            throw new ArgumentException("Only property selectors are supported, for example u => u.Id.", nameof(memberSelector));
+        }
+
+        return property;
     }
 
     private static bool IsMappedProperty(PropertyInfo property)

@@ -354,6 +354,11 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     public SelectQueryBuilder<T> Select(params Expression<Func<T, object?>>[] memberSelectors)
     {
         ArgumentNullException.ThrowIfNull(memberSelectors);
+        if (memberSelectors.Length == 0)
+        {
+            throw new ArgumentException("At least one member selector is required.", nameof(memberSelectors));
+        }
+
         base.ClearSelectColumns();
 
         foreach (var memberSelector in memberSelectors)
@@ -367,6 +372,11 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
 
     internal SelectQueryBuilder<T> SelectAllMappedColumns()
     {
+        if (ModelMetadata<T>.Columns.Count == 0)
+        {
+            throw new InvalidOperationException($"Type '{typeof(T).Name}' does not have any mapped columns.");
+        }
+
         base.ClearSelectColumns();
 
         foreach (var column in ModelMetadata<T>.Columns)

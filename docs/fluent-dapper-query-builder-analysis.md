@@ -68,6 +68,8 @@ db.Select(["Id", "Name"])
 - `Query<T>()`、`QueryFirstOrDefault<T>()`、`QuerySingleOrDefault<T>()` 与 Dapper 的命名习惯一致，并提供对应 async 终止方法。
 - `GetList()` 和 `GetSingleOrDefault()` 可以作为可选别名后续再加。
 
+v1 先固定上述三条主线，不增加 `SelectFrom<T>(...)` 指定字段重载，避免 `SelectFrom` 同时承担整实体和指定字段两种含义。
+
 操作符示例：
 
 ```csharp
@@ -102,8 +104,8 @@ db.Select(["Id", "Name"])
 
 验证状态：
 
-- `dotnet test`：57 个测试全部通过。
-- 覆盖率：行覆盖率 `93.58%`，分支覆盖率 `89.03%`。
+- `dotnet test`：66 个测试全部通过。
+- 覆盖率：行覆盖率 `94.19%`，分支覆盖率 `91.30%`。
 - `dotnet build -c Release`：0 warning，0 error。
 - `dotnet pack src/Db4Net/Db4Net.csproj -c Release --no-build`：可生成 `Db4Net.0.1.0-alpha.1.nupkg`。
 
