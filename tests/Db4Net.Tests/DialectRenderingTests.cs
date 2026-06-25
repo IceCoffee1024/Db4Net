@@ -36,6 +36,36 @@ public sealed class DialectRenderingTests
     }
 
     [Fact]
+    public void Postgre_sql_quotes_string_identifiers_in_select_from_where_and_order_by()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.PostgreSql)
+            .Select("Users.Id", "Users.Name")
+            .From("Users")
+            .Where("Users.Name", Op.Eq, "Alice")
+            .OrderByDescending("Users.Id")
+            .ToCommand();
+
+        Assert.Equal("""SELECT "Users"."Id", "Users"."Name" FROM "Users" WHERE "Users"."Name" = @p0 ORDER BY "Users"."Id" DESC""", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void My_sql_quotes_string_identifiers_in_select_from_where_and_order_by()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.MySql)
+            .Select("Users.Id", "Users.Name")
+            .From("Users")
+            .Where("Users.Name", Op.Eq, "Alice")
+            .OrderByDescending("Users.Id")
+            .ToCommand();
+
+        Assert.Equal("SELECT `Users`.`Id`, `Users`.`Name` FROM `Users` WHERE `Users`.`Name` = @p0 ORDER BY `Users`.`Id` DESC", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
     public void Sql_server_quotes_mapped_columns_and_aliases()
     {
         var command = Db4NetDatabase
@@ -55,6 +85,28 @@ public sealed class DialectRenderingTests
             .ToCommand();
 
         Assert.Equal("SELECT \"Id\", \"display_name\" AS \"DisplayName\" FROM \"app_users\"", command.Sql);
+    }
+
+    [Fact]
+    public void Postgre_sql_quotes_mapped_columns_and_aliases()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.PostgreSql)
+            .SelectFrom<MappedUser>()
+            .ToCommand();
+
+        Assert.Equal("SELECT \"Id\", \"display_name\" AS \"DisplayName\" FROM \"app_users\"", command.Sql);
+    }
+
+    [Fact]
+    public void My_sql_quotes_mapped_columns_and_aliases()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.MySql)
+            .SelectFrom<MappedUser>()
+            .ToCommand();
+
+        Assert.Equal("SELECT `Id`, `display_name` AS `DisplayName` FROM `app_users`", command.Sql);
     }
 
     [Fact]
@@ -90,6 +142,44 @@ public sealed class DialectRenderingTests
             .ToCommand();
 
         Assert.Equal("""SELECT "Id" FROM "Users" WHERE "Name" LIKE @p0 ORDER BY "Id" LIMIT @p1 OFFSET @p2""", command.Sql);
+        Assert.Equal("A%", command.Parameters.Get<string>("p0"));
+        Assert.Equal(10, command.Parameters.Get<int>("p1"));
+        Assert.Equal(20, command.Parameters.Get<int>("p2"));
+    }
+
+    [Fact]
+    public void Postgre_sql_paging_uses_limit_before_offset_parameter_order()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.PostgreSql)
+            .Select("Id")
+            .From("Users")
+            .Where("Name", Op.Like, "A%")
+            .OrderBy("Id")
+            .Offset(20)
+            .Limit(10)
+            .ToCommand();
+
+        Assert.Equal("""SELECT "Id" FROM "Users" WHERE "Name" LIKE @p0 ORDER BY "Id" LIMIT @p1 OFFSET @p2""", command.Sql);
+        Assert.Equal("A%", command.Parameters.Get<string>("p0"));
+        Assert.Equal(10, command.Parameters.Get<int>("p1"));
+        Assert.Equal(20, command.Parameters.Get<int>("p2"));
+    }
+
+    [Fact]
+    public void My_sql_paging_uses_limit_before_offset_parameter_order()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.MySql)
+            .Select("Id")
+            .From("Users")
+            .Where("Name", Op.Like, "A%")
+            .OrderBy("Id")
+            .Offset(20)
+            .Limit(10)
+            .ToCommand();
+
+        Assert.Equal("SELECT `Id` FROM `Users` WHERE `Name` LIKE @p0 ORDER BY `Id` LIMIT @p1 OFFSET @p2", command.Sql);
         Assert.Equal("A%", command.Parameters.Get<string>("p0"));
         Assert.Equal(10, command.Parameters.Get<int>("p1"));
         Assert.Equal(20, command.Parameters.Get<int>("p2"));

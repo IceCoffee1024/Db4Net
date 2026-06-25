@@ -111,6 +111,8 @@ Db4Net renders paging through the configured dialect:
 
 - SQL Server: `OFFSET ... ROWS FETCH NEXT ... ROWS ONLY`
 - SQLite: `LIMIT ... OFFSET ...`
+- PostgreSQL: `LIMIT ... OFFSET ...`
+- MySQL: `LIMIT ... OFFSET ...`
 
 ## Inspect SQL
 
@@ -174,4 +176,4 @@ var users = await connection
 
 ## Scope
 
-Current scope is focused on typed and string-based `SELECT` builders for SQL Server and SQLite. Joins, inserts, updates, deletes, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed and string-based `SELECT` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Joins, inserts, updates, deletes, and full predicate expression translation are intentionally out of scope for this early version.

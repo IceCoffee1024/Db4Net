@@ -23,4 +23,14 @@ public sealed class Db4NetOptions
     /// Uses SQLite identifier quoting and paging syntax.
     /// </summary>
     public static Db4NetOptions Sqlite { get; } = new(new SqliteDialect());
+
+    /// <summary>
+    /// Uses PostgreSQL identifier quoting and paging syntax.
+    /// </summary>
+    public static Db4NetOptions PostgreSql { get; } = new(new PostgreSqlDialect());
+
+    /// <summary>
+    /// Uses MySQL identifier quoting and paging syntax.
+    /// </summary>
+    public static Db4NetOptions MySql { get; } = new(new MySqlDialect());
 }
