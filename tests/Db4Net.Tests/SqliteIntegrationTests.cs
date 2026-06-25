@@ -132,6 +132,20 @@ public sealed class SqliteIntegrationTests
         Assert.Equal(-1, affected);
     }
 
+    [Fact]
+    public void Typed_select_with_column_attribute_maps_result_to_property()
+    {
+        using var connection = CreateOpenMappedConnection();
+
+        var user = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .Select<MappedUser>(u => u.DisplayName)
+            .QuerySingleOrDefault<MappedUser>();
+
+        Assert.NotNull(user);
+        Assert.Equal("Alice", user.DisplayName);
+    }
+
     private static SqliteConnection CreateOpenConnection()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
@@ -146,11 +160,33 @@ public sealed class SqliteIntegrationTests
         return connection;
     }
 
+    private static SqliteConnection CreateOpenMappedConnection()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using var setup = connection.CreateCommand();
+        setup.CommandText = """
+            create table app_users (Id integer primary key, display_name text not null);
+            insert into app_users (Id, display_name) values (1, 'Alice');
+            """;
+        setup.ExecuteNonQuery();
+        return connection;
+    }
+
     [Table("Users")]
     private sealed class User
     {
         public int Id { get; set; }
 
         public string Name { get; set; } = "";
+    }
+
+    [Table("app_users")]
+    private sealed class MappedUser
+    {
+        public int Id { get; set; }
+
+        [Column("display_name")]
+        public string DisplayName { get; set; } = "";
     }
 }

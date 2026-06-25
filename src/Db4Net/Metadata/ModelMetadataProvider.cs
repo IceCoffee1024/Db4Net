@@ -18,6 +18,13 @@ internal static class ModelMetadataProvider
         return GetColumnName(GetMemberInfo(memberSelector));
     }
 
+    public static ColumnMetadata GetColumnMetadata<T, TValue>(Expression<Func<T, TValue>> memberSelector)
+    {
+        ArgumentNullException.ThrowIfNull(memberSelector);
+        var member = GetMemberInfo(memberSelector);
+        return new ColumnMetadata(member.Name, GetColumnName(member));
+    }
+
     private static string GetColumnName(MemberInfo member)
     {
         return member.GetCustomAttribute<ColumnAttribute>()?.Name ?? member.Name;
@@ -40,3 +47,5 @@ internal static class ModelMetadataProvider
         return memberExpression.Member;
     }
 }
+
+internal sealed record ColumnMetadata(string PropertyName, string ColumnName);

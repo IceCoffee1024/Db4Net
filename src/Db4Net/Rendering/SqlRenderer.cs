@@ -44,7 +44,18 @@ internal sealed class SqlRenderer
             return "*";
         }
 
-        return string.Join(", ", model.Columns.Select(_dialect.QuoteIdentifier));
+        return string.Join(", ", model.Columns.Select(RenderColumn));
+    }
+
+    private string RenderColumn(SelectColumn column)
+    {
+        var renderedColumn = _dialect.QuoteIdentifier(column.Column);
+        if (column.Alias is null || column.Alias == column.Column)
+        {
+            return renderedColumn;
+        }
+
+        return $"{renderedColumn} AS {_dialect.QuoteIdentifier(column.Alias)}";
     }
 
     private void RenderFilters(StringBuilder sql, QueryModel model)

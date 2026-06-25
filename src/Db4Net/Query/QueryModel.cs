@@ -2,7 +2,7 @@ namespace Db4Net.Query;
 
 internal sealed class QueryModel
 {
-    public List<string> Columns { get; } = [];
+    public List<SelectColumn> Columns { get; } = [];
 
     public string? Table { get; set; }
 
@@ -14,6 +14,8 @@ internal sealed class QueryModel
 
     public int? Offset { get; set; }
 }
+
+internal sealed record SelectColumn(string Column, string? Alias = null);
 
 internal sealed record FilterClause(string BooleanOperator, string Column, Op Operator, object? Value);
 

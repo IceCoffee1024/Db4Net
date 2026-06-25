@@ -30,7 +30,11 @@ public class SelectQueryBuilder
     public SelectQueryBuilder Select(params string[] columns)
     {
         ArgumentNullException.ThrowIfNull(columns);
-        _model.Columns.AddRange(columns);
+        foreach (var column in columns)
+        {
+            AddSelectColumn(column);
+        }
+
         return this;
     }
 
@@ -42,7 +46,11 @@ public class SelectQueryBuilder
     public SelectQueryBuilder Select(IEnumerable<string> columns)
     {
         ArgumentNullException.ThrowIfNull(columns);
-        _model.Columns.AddRange(columns);
+        foreach (var column in columns)
+        {
+            AddSelectColumn(column);
+        }
+
         return this;
     }
 
@@ -299,6 +307,12 @@ public class SelectQueryBuilder
         return _connection ?? throw new InvalidOperationException("Dapper execution requires an IDbConnection. Use connection.UseDb4Net(options) to create the database facade.");
     }
 
+    internal SelectQueryBuilder AddSelectColumn(string column, string? alias = null)
+    {
+        _model.Columns.Add(new SelectColumn(column, alias));
+        return this;
+    }
+
     private static void EnsureValueFreeOperator(Op op)
     {
         if (op is not (Op.IsNull or Op.IsNotNull))
@@ -335,7 +349,12 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     public SelectQueryBuilder<T> Select(params Expression<Func<T, object?>>[] memberSelectors)
     {
         ArgumentNullException.ThrowIfNull(memberSelectors);
-        base.Select(memberSelectors.Select(ModelMetadataProvider.GetColumnName));
+        foreach (var memberSelector in memberSelectors)
+        {
+            var column = ModelMetadataProvider.GetColumnMetadata(memberSelector);
+            base.AddSelectColumn(column.ColumnName, column.PropertyName);
+        }
+
         return this;
     }
 

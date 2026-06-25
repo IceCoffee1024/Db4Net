@@ -57,7 +57,18 @@ public sealed class SelectQueryBuilderTests
             .Select<MappedUser>(u => u.DisplayName)
             .ToCommand();
 
-        Assert.Equal("SELECT [display_name] FROM [app_users]", command.Sql);
+        Assert.Equal("SELECT [display_name] AS [DisplayName] FROM [app_users]", command.Sql);
+    }
+
+    [Fact]
+    public void Typed_select_entry_renders_sqlite_column_alias()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .Select<MappedUser>(u => u.DisplayName)
+            .ToCommand();
+
+        Assert.Equal("SELECT \"display_name\" AS \"DisplayName\" FROM \"app_users\"", command.Sql);
     }
 
     [Fact]
