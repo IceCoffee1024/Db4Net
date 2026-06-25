@@ -220,6 +220,17 @@ public class SelectQueryBuilder
     }
 
     /// <summary>
+    /// Asynchronously executes the query through Dapper and returns all rows.
+    /// </summary>
+    /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
+    /// <returns>The materialized rows.</returns>
+    public Task<IEnumerable<TResult>> QueryAsync<TResult>()
+    {
+        var command = ToCommand();
+        return RequireConnection().QueryAsync<TResult>(command.Sql, command.Parameters);
+    }
+
+    /// <summary>
     /// Executes the query through Dapper and returns the first row, or the default value if no row exists.
     /// </summary>
     /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
@@ -228,6 +239,17 @@ public class SelectQueryBuilder
     {
         var command = ToCommand();
         return RequireConnection().QueryFirstOrDefault<TResult>(command.Sql, command.Parameters);
+    }
+
+    /// <summary>
+    /// Asynchronously executes the query through Dapper and returns the first row, or the default value if no row exists.
+    /// </summary>
+    /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
+    /// <returns>The first materialized row, or the default value.</returns>
+    public Task<TResult?> QueryFirstOrDefaultAsync<TResult>()
+    {
+        var command = ToCommand();
+        return RequireConnection().QueryFirstOrDefaultAsync<TResult>(command.Sql, command.Parameters);
     }
 
     /// <summary>
@@ -242,6 +264,17 @@ public class SelectQueryBuilder
     }
 
     /// <summary>
+    /// Asynchronously executes the query through Dapper and returns a single row, or the default value if no row exists.
+    /// </summary>
+    /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
+    /// <returns>The single materialized row, or the default value.</returns>
+    public Task<TResult?> QuerySingleOrDefaultAsync<TResult>()
+    {
+        var command = ToCommand();
+        return RequireConnection().QuerySingleOrDefaultAsync<TResult>(command.Sql, command.Parameters);
+    }
+
+    /// <summary>
     /// Executes the rendered command through Dapper and returns the affected row count.
     /// </summary>
     /// <returns>The affected row count returned by Dapper.</returns>
@@ -249,6 +282,16 @@ public class SelectQueryBuilder
     {
         var command = ToCommand();
         return RequireConnection().Execute(command.Sql, command.Parameters);
+    }
+
+    /// <summary>
+    /// Asynchronously executes the rendered command through Dapper and returns the affected row count.
+    /// </summary>
+    /// <returns>The affected row count returned by Dapper.</returns>
+    public Task<int> ExecuteAsync()
+    {
+        var command = ToCommand();
+        return RequireConnection().ExecuteAsync(command.Sql, command.Parameters);
     }
 
     private IDbConnection RequireConnection()

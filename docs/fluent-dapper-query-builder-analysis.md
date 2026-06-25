@@ -39,7 +39,7 @@ db.Select("Id", "Name")
 
 db.SelectFrom<User>()
   .Where(u => u.Id, Op.Eq, 1)
-  .Query<User>();
+  .QueryAsync<User>();
 
 db.SelectFrom("Users")
   .Where("Id", Op.Eq, 1)
@@ -60,7 +60,7 @@ db.Select(["Id", "Name"])
 - `Select("Id", "Name")` 兼容性更好，也更自然。
 - `SelectFrom<User>()` 是推荐的类型化快捷入口。
 - `SelectFrom("Users")` 可以覆盖报表、历史库、动态表名等场景。
-- `Query<T>()`、`QueryFirstOrDefault<T>()`、`QuerySingleOrDefault<T>()` 与 Dapper 的命名习惯一致。
+- `Query<T>()`、`QueryFirstOrDefault<T>()`、`QuerySingleOrDefault<T>()` 与 Dapper 的命名习惯一致，并提供对应 async 终止方法。
 - `GetList()` 和 `GetSingleOrDefault()` 可以作为可选别名后续再加。
 
 操作符示例：
@@ -88,6 +88,7 @@ db.Select(["Id", "Name"])
 - `Limit(...)`、`Offset(...)`、`Page(pageNumber, pageSize)`
 - `ToCommand()`
 - `Query<T>()`、`QueryFirstOrDefault<T>()`、`QuerySingleOrDefault<T>()`、`Execute()`
+- `QueryAsync<T>()`、`QueryFirstOrDefaultAsync<T>()`、`QuerySingleOrDefaultAsync<T>()`、`ExecuteAsync()`
 - SQL Server 和 SQLite 方言
 - `[Table]`、`[Column]` 映射
 - 字符串标识符校验
@@ -96,8 +97,8 @@ db.Select(["Id", "Name"])
 
 验证状态：
 
-- `dotnet test`：41 个测试全部通过。
-- 覆盖率：行覆盖率 `93.95%`，分支覆盖率 `87.02%`。
+- `dotnet test`：45 个测试全部通过。
+- 覆盖率：行覆盖率 `94.14%`，分支覆盖率 `87.02%`。
 - `dotnet build -c Release`：0 warning，0 error。
 - `dotnet pack src/Db4Net/Db4Net.csproj -c Release --no-build`：可生成 `Db4Net.0.1.0-alpha.1.nupkg`。
 
