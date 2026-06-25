@@ -51,7 +51,7 @@ internal static class ModelMetadataProvider
         return member.GetCustomAttribute<ColumnAttribute>()?.Name ?? member.Name;
     }
 
-    private static MemberInfo GetMemberInfo<T, TValue>(Expression<Func<T, TValue>> memberSelector)
+    private static PropertyInfo GetMemberInfo<T, TValue>(Expression<Func<T, TValue>> memberSelector)
     {
         Expression expression = memberSelector.Body;
 
