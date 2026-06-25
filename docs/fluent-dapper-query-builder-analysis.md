@@ -32,8 +32,7 @@ SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0
 主 API 使用接近 Dapper 的终止方法名称：
 
 ```csharp
-db.Select("Id", "Name")
-  .From<User>()
+db.Select<User>(u => u.Id, u => u.Name)
   .Where(u => u.Id, Op.Eq, 1)
   .QuerySingleOrDefault<User>();
 
@@ -44,6 +43,11 @@ db.SelectFrom<User>()
 db.SelectFrom("Users")
   .Where("Id", Op.Eq, 1)
   .QuerySingleOrDefault<dynamic>();
+
+db.Select("Id", "Name")
+  .From<User>()
+  .Where(u => u.Id, Op.Eq, 1)
+  .QuerySingleOrDefault<User>();
 ```
 
 同时支持现代 C# 的集合表达式：
@@ -57,8 +61,9 @@ db.Select(["Id", "Name"])
 
 这样设计的原因：
 
-- `Select("Id", "Name")` 兼容性更好，也更自然。
-- `SelectFrom<User>()` 是推荐的类型化快捷入口。
+- `Select<T>(...)` 是推荐的类型化指定字段入口，会自动使用 `T` 的表映射。
+- `SelectFrom<T>()` 是推荐的类型化整表入口，对应 `SELECT * FROM ...`。
+- `Select("Id", "Name").From<User>()` 兼容字符串字段场景。
 - `SelectFrom("Users")` 可以覆盖报表、历史库、动态表名等场景。
 - `Query<T>()`、`QueryFirstOrDefault<T>()`、`QuerySingleOrDefault<T>()` 与 Dapper 的命名习惯一致，并提供对应 async 终止方法。
 - `GetList()` 和 `GetSingleOrDefault()` 可以作为可选别名后续再加。
@@ -81,7 +86,7 @@ db.Select(["Id", "Name"])
 
 已实现：
 
-- `Select(...)`、`SelectFrom<T>()`、`SelectFrom(string)`
+- `Select<T>(...)`、`Select(...)`、`SelectFrom<T>()`、`SelectFrom(string)`
 - `From<T>()`、`From(string)`
 - `Where(...)`、`OrWhere(...)`
 - `OrderBy(...)`、`OrderByDescending(...)`
@@ -97,8 +102,8 @@ db.Select(["Id", "Name"])
 
 验证状态：
 
-- `dotnet test`：45 个测试全部通过。
-- 覆盖率：行覆盖率 `94.14%`，分支覆盖率 `87.02%`。
+- `dotnet test`：49 个测试全部通过。
+- 覆盖率：行覆盖率 `95.38%`，分支覆盖率 `88.72%`。
 - `dotnet build -c Release`：0 warning，0 error。
 - `dotnet pack src/Db4Net/Db4Net.csproj -c Release --no-build`：可生成 `Db4Net.0.1.0-alpha.1.nupkg`。
 

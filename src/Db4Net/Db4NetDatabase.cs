@@ -1,4 +1,5 @@
 using System.Data;
+using System.Linq.Expressions;
 using Db4Net.Query;
 
 namespace Db4Net;
@@ -53,6 +54,17 @@ public sealed class Db4NetDatabase
     public SelectQueryBuilder Select(IEnumerable<string> columns)
     {
         return new SelectQueryBuilder(_options, _connection).Select(columns);
+    }
+
+    /// <summary>
+    /// Starts a typed select query with explicit columns from member selectors.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="memberSelectors">Simple member selectors for the columns to include in the SELECT list.</param>
+    /// <returns>A typed select query builder.</returns>
+    public SelectQueryBuilder<T> Select<T>(params Expression<Func<T, object?>>[] memberSelectors)
+    {
+        return SelectFrom<T>().Select(memberSelectors);
     }
 
     /// <summary>

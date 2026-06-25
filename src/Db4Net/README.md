@@ -7,7 +7,7 @@ Db4Net is a lightweight fluent SQL builder for Dapper.
 ```csharp
 var user = await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .SelectFrom<User>()
+    .Select<User>(u => u.Id, u => u.Name)
     .Where(u => u.Id, Op.Eq, 1)
     .Where(u => u.Name, Op.IsNotNull)
     .QuerySingleOrDefaultAsync<User>();
@@ -16,6 +16,7 @@ var user = await connection
 ## Current Scope
 
 - Typed and string-based `SELECT` builders.
+- Typed selected-column entry via `Select<T>(...)`.
 - SQL Server and SQLite rendering.
 - Parameterized `Where` clauses.
 - Ordering and basic paging.

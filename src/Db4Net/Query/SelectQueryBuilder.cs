@@ -328,6 +328,18 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds explicit columns to the SELECT list using typed member selectors.
+    /// </summary>
+    /// <param name="memberSelectors">Simple member selectors for the columns to include in the SELECT list.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> Select(params Expression<Func<T, object?>>[] memberSelectors)
+    {
+        ArgumentNullException.ThrowIfNull(memberSelectors);
+        base.Select(memberSelectors.Select(ModelMetadataProvider.GetColumnName));
+        return this;
+    }
+
+    /// <summary>
     /// Adds an AND filter using a typed member selector.
     /// </summary>
     /// <typeparam name="TValue">The selected member value type.</typeparam>

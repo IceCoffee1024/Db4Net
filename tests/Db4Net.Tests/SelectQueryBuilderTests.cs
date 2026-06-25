@@ -37,6 +37,54 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
+    public void Typed_select_entry_renders_selected_member_columns()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Select<User>(u => u.Id, u => u.Name)
+            .Where(u => u.Id, Op.Eq, 1)
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+    }
+
+    [Fact]
+    public void Typed_select_entry_uses_column_attribute()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Select<MappedUser>(u => u.DisplayName)
+            .ToCommand();
+
+        Assert.Equal("SELECT [display_name] FROM [app_users]", command.Sql);
+    }
+
+    [Fact]
+    public void Typed_select_entry_requires_simple_member_selectors()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Select<User>(u => u.Id + 1)
+                .ToCommand());
+
+        Assert.Contains("Only simple member selectors are supported", ex.Message);
+    }
+
+    [Fact]
+    public void Select_from_type_can_add_selected_member_columns()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .Select(u => u.Id, u => u.Name)
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users]", command.Sql);
+    }
+
+    [Fact]
     public void String_table_and_column_identifiers_are_validated()
     {
         var db = Db4NetDatabase.Create(Db4NetOptions.Sqlite);
@@ -85,5 +133,14 @@ public sealed class SelectQueryBuilderTests
         public int Id { get; set; }
 
         public string Name { get; set; } = "";
+    }
+
+    [Table("app_users")]
+    private sealed class MappedUser
+    {
+        public int Id { get; set; }
+
+        [Column("display_name")]
+        public string DisplayName { get; set; } = "";
     }
 }
