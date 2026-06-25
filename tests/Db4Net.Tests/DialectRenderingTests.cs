@@ -10,13 +10,13 @@ public sealed class DialectRenderingTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
-            .Select("Users.Id", "Users.Name")
-            .From("Users")
-            .Where("Users.Name", Op.Eq, "Alice")
-            .OrderByDescending("Users.Id")
+            .Select("Id", "Name")
+            .From<User>("Users")
+            .Where("Name", Op.Eq, "Alice")
+            .OrderByDescending("Id")
             .ToCommand();
 
-        Assert.Equal("SELECT [Users].[Id], [Users].[Name] FROM [Users] WHERE [Users].[Name] = @p0 ORDER BY [Users].[Id] DESC", command.Sql);
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Name] = @p0 ORDER BY [Id] DESC", command.Sql);
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
     }
 
@@ -25,13 +25,13 @@ public sealed class DialectRenderingTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.Sqlite)
-            .Select("Users.Id", "Users.Name")
-            .From("Users")
-            .Where("Users.Name", Op.Eq, "Alice")
-            .OrderByDescending("Users.Id")
+            .Select("Id", "Name")
+            .From<User>("Users")
+            .Where("Name", Op.Eq, "Alice")
+            .OrderByDescending("Id")
             .ToCommand();
 
-        Assert.Equal("""SELECT "Users"."Id", "Users"."Name" FROM "Users" WHERE "Users"."Name" = @p0 ORDER BY "Users"."Id" DESC""", command.Sql);
+        Assert.Equal("""SELECT "Id", "Name" FROM "Users" WHERE "Name" = @p0 ORDER BY "Id" DESC""", command.Sql);
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
     }
 
@@ -40,13 +40,13 @@ public sealed class DialectRenderingTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.PostgreSql)
-            .Select("Users.Id", "Users.Name")
-            .From("Users")
-            .Where("Users.Name", Op.Eq, "Alice")
-            .OrderByDescending("Users.Id")
+            .Select("Id", "Name")
+            .From<User>("Users")
+            .Where("Name", Op.Eq, "Alice")
+            .OrderByDescending("Id")
             .ToCommand();
 
-        Assert.Equal("""SELECT "Users"."Id", "Users"."Name" FROM "Users" WHERE "Users"."Name" = @p0 ORDER BY "Users"."Id" DESC""", command.Sql);
+        Assert.Equal("""SELECT "Id", "Name" FROM "Users" WHERE "Name" = @p0 ORDER BY "Id" DESC""", command.Sql);
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
     }
 
@@ -55,13 +55,13 @@ public sealed class DialectRenderingTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.MySql)
-            .Select("Users.Id", "Users.Name")
-            .From("Users")
-            .Where("Users.Name", Op.Eq, "Alice")
-            .OrderByDescending("Users.Id")
+            .Select("Id", "Name")
+            .From<User>("Users")
+            .Where("Name", Op.Eq, "Alice")
+            .OrderByDescending("Id")
             .ToCommand();
 
-        Assert.Equal("SELECT `Users`.`Id`, `Users`.`Name` FROM `Users` WHERE `Users`.`Name` = @p0 ORDER BY `Users`.`Id` DESC", command.Sql);
+        Assert.Equal("SELECT `Id`, `Name` FROM `Users` WHERE `Name` = @p0 ORDER BY `Id` DESC", command.Sql);
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
     }
 
@@ -115,7 +115,7 @@ public sealed class DialectRenderingTests
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
             .Select("Id")
-            .From("Users")
+            .From<User>("Users")
             .Where("Name", Op.Like, "A%")
             .OrderBy("Id")
             .Offset(20)
@@ -134,7 +134,7 @@ public sealed class DialectRenderingTests
         var command = Db4NetDatabase
             .Create(Db4NetOptions.Sqlite)
             .Select("Id")
-            .From("Users")
+            .From<User>("Users")
             .Where("Name", Op.Like, "A%")
             .OrderBy("Id")
             .Offset(20)
@@ -153,7 +153,7 @@ public sealed class DialectRenderingTests
         var command = Db4NetDatabase
             .Create(Db4NetOptions.PostgreSql)
             .Select("Id")
-            .From("Users")
+            .From<User>("Users")
             .Where("Name", Op.Like, "A%")
             .OrderBy("Id")
             .Offset(20)
@@ -172,7 +172,7 @@ public sealed class DialectRenderingTests
         var command = Db4NetDatabase
             .Create(Db4NetOptions.MySql)
             .Select("Id")
-            .From("Users")
+            .From<User>("Users")
             .Where("Name", Op.Like, "A%")
             .OrderBy("Id")
             .Offset(20)
@@ -192,5 +192,13 @@ public sealed class DialectRenderingTests
 
         [Column("display_name")]
         public string DisplayName { get; set; } = "";
+    }
+
+    [Table("Users")]
+    private sealed class User
+    {
+        public int Id { get; set; }
+
+        public string Name { get; set; } = "";
     }
 }

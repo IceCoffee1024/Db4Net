@@ -57,24 +57,26 @@ public class SelectQueryBuilder
 
     /// <summary>
     /// Sets the query table from the mapping for <typeparamref name="T"/>.
+    /// Existing string-based member references are interpreted as CLR property names for <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
     /// <returns>A typed query builder for <typeparamref name="T"/>.</returns>
     public SelectQueryBuilder<T> From<T>()
     {
-        _model.Table = ModelMetadata<T>.TableName;
+        BindToModel<T>(ModelMetadata<T>.TableName);
         return new SelectQueryBuilder<T>(_options, _connection, _model);
     }
 
     /// <summary>
-    /// Sets the query table from an explicit table identifier.
+    /// Sets the query table or view from an explicit identifier while using <typeparamref name="T"/> for member mapping.
     /// </summary>
-    /// <param name="table">The table identifier. It is validated and quoted by the configured SQL dialect.</param>
-    /// <returns>The current query builder.</returns>
-    public SelectQueryBuilder From(string table)
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="table">The table or view identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>A typed query builder for <typeparamref name="T"/>.</returns>
+    public SelectQueryBuilder<T> From<T>(string table)
     {
-        _model.Table = table;
-        return this;
+        BindToModel<T>(table);
+        return new SelectQueryBuilder<T>(_options, _connection, _model);
     }
 
     /// <summary>
@@ -338,6 +340,44 @@ public class SelectQueryBuilder
             throw new ArgumentException($"Operator {op} does not accept a value.", nameof(value));
         }
     }
+
+    private void BindToModel<T>(string table)
+    {
+        _model.Table = table;
+
+        for (var index = 0; index < _model.Columns.Count; index++)
+        {
+            _model.Columns[index] = MapSelectColumn<T>(_model.Columns[index]);
+        }
+
+        for (var index = 0; index < _model.Filters.Count; index++)
+        {
+            var filter = _model.Filters[index];
+            _model.Filters[index] = filter with { Column = MapPropertyName<T>(filter.Column) };
+        }
+
+        for (var index = 0; index < _model.Orders.Count; index++)
+        {
+            var order = _model.Orders[index];
+            _model.Orders[index] = order with { Column = MapPropertyName<T>(order.Column) };
+        }
+    }
+
+    private static SelectColumn MapSelectColumn<T>(SelectColumn column)
+    {
+        if (column.Alias is not null)
+        {
+            return column;
+        }
+
+        var metadata = ModelMetadata<T>.GetColumn(column.Column);
+        return new SelectColumn(metadata.ColumnName, metadata.PropertyName);
+    }
+
+    private static string MapPropertyName<T>(string propertyName)
+    {
+        return ModelMetadata<T>.GetColumn(propertyName).ColumnName;
+    }
 }
 
 /// <summary>
@@ -349,6 +389,42 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     internal SelectQueryBuilder(Db4NetOptions options, IDbConnection? connection, QueryModel? model = null)
         : base(options, connection, model)
     {
+    }
+
+    /// <summary>
+    /// Sets the SELECT list using CLR property names from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyNames">CLR property names to include in the SELECT list.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> Select(params string[] propertyNames)
+    {
+        ArgumentNullException.ThrowIfNull(propertyNames);
+        ClearSelectColumns();
+
+        foreach (var propertyName in propertyNames)
+        {
+            AddMappedSelectColumn(propertyName);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the SELECT list using CLR property names from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyNames">CLR property names to include in the SELECT list.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> Select(IEnumerable<string> propertyNames)
+    {
+        ArgumentNullException.ThrowIfNull(propertyNames);
+        ClearSelectColumns();
+
+        foreach (var propertyName in propertyNames)
+        {
+            AddMappedSelectColumn(propertyName);
+        }
+
+        return this;
     }
 
     /// <summary>
@@ -389,6 +465,31 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
             base.AddSelectColumn(column.ColumnName, column.PropertyName);
         }
 
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND filter using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> Where(string propertyName, Op op, object? value)
+    {
+        base.Where(ModelMetadata<T>.GetColumn(propertyName).ColumnName, op, value);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND null-check filter using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> Where(string propertyName, Op op)
+    {
+        base.Where(ModelMetadata<T>.GetColumn(propertyName).ColumnName, op);
         return this;
     }
 
@@ -447,6 +548,31 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds an OR filter using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrWhere(string propertyName, Op op, object? value)
+    {
+        base.OrWhere(ModelMetadata<T>.GetColumn(propertyName).ColumnName, op, value);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR null-check filter using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrWhere(string propertyName, Op op)
+    {
+        base.OrWhere(ModelMetadata<T>.GetColumn(propertyName).ColumnName, op);
+        return this;
+    }
+
+    /// <summary>
     /// Adds an ascending ORDER BY clause using a typed member selector.
     /// </summary>
     /// <typeparam name="TValue">The selected member value type.</typeparam>
@@ -459,6 +585,17 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds an ascending ORDER BY clause using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to order by.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrderBy(string propertyName)
+    {
+        base.OrderBy(ModelMetadata<T>.GetColumn(propertyName).ColumnName);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a descending ORDER BY clause using a typed member selector.
     /// </summary>
     /// <typeparam name="TValue">The selected member value type.</typeparam>
@@ -467,6 +604,17 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     public SelectQueryBuilder<T> OrderByDescending<TValue>(Expression<Func<T, TValue>> memberSelector)
     {
         base.OrderByDescending(ModelMetadataProvider.GetColumnName(memberSelector));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a descending ORDER BY clause using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to order by.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrderByDescending(string propertyName)
+    {
+        base.OrderByDescending(ModelMetadata<T>.GetColumn(propertyName).ColumnName);
         return this;
     }
 
@@ -502,5 +650,11 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     {
         base.Page(pageNumber, pageSize);
         return this;
+    }
+
+    private void AddMappedSelectColumn(string propertyName)
+    {
+        var column = ModelMetadata<T>.GetColumn(propertyName);
+        AddSelectColumn(column.ColumnName, column.PropertyName);
     }
 }

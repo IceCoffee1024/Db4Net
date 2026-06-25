@@ -10,14 +10,14 @@ public sealed class SelectQueryBuilderEdgeCaseTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.Sqlite)
-            .Select(new[] { "Users.Id", "Users.Name" })
-            .From("Users")
-            .Where("Users.Name", Op.NotEq, null)
-            .OrderBy("Users.Id")
+            .Select(new[] { "Id", "Name" })
+            .From<User>("Users")
+            .Where("Name", Op.NotEq, null)
+            .OrderBy("Id")
             .Limit(5)
             .ToCommand();
 
-        Assert.Equal("""SELECT "Users"."Id", "Users"."Name" FROM "Users" WHERE "Users"."Name" IS NOT NULL ORDER BY "Users"."Id" LIMIT @p0""", command.Sql);
+        Assert.Equal("""SELECT "Id", "Name" FROM "Users" WHERE "Name" IS NOT NULL ORDER BY "Id" LIMIT @p0""", command.Sql);
         Assert.Equal(5, command.Parameters.Get<int>("p0"));
     }
 
@@ -39,11 +39,11 @@ public sealed class SelectQueryBuilderEdgeCaseTests
         var ex = Assert.Throws<ArgumentException>(() =>
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
-                .SelectFrom("Users")
+                .SelectFrom<User>()
                 .Where("Id] DROP TABLE Users", Op.Eq, 1)
                 .ToCommand());
 
-        Assert.Contains("Invalid SQL identifier", ex.Message);
+        Assert.Contains("is not a mapped column", ex.Message);
     }
 
     [Fact]
@@ -130,11 +130,11 @@ public sealed class SelectQueryBuilderEdgeCaseTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
-            .SelectFrom("Users")
+            .SelectFrom<User>("Users")
             .Where("Name", Op.IsNull)
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [Users] WHERE [Name] IS NULL", command.Sql);
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Name] IS NULL", command.Sql);
         Assert.Empty(command.Parameters.ParameterNames);
     }
 
@@ -169,12 +169,12 @@ public sealed class SelectQueryBuilderEdgeCaseTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
-            .SelectFrom("Users")
+            .SelectFrom<User>("Users")
             .Where("Id", Op.Eq, 1)
             .OrWhere("Name", Op.IsNotNull)
             .ToCommand();
 
-        Assert.Equal("SELECT * FROM [Users] WHERE [Id] = @p0 OR [Name] IS NOT NULL", command.Sql);
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0 OR [Name] IS NOT NULL", command.Sql);
     }
 
     [Fact]
@@ -352,16 +352,16 @@ public sealed class SelectQueryBuilderEdgeCaseTests
     [InlineData(".Name")]
     [InlineData("Users.")]
     [InlineData("Users..Name")]
-    public void String_column_identifiers_reject_invalid_boundaries(string column)
+    public void String_property_names_reject_invalid_boundaries(string column)
     {
         var ex = Assert.Throws<ArgumentException>(() =>
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
-                .SelectFrom("Users")
+                .SelectFrom<User>()
                 .Where(column, Op.Eq, 1)
                 .ToCommand());
 
-        Assert.Contains("Invalid SQL identifier", ex.Message);
+        Assert.Contains("is not a mapped column", ex.Message);
     }
 
     [Fact]

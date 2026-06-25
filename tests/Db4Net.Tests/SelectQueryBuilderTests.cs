@@ -83,6 +83,60 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
+    public void String_select_with_typed_from_uses_property_names_and_column_attribute()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Select("DisplayName")
+            .From<MappedUser>()
+            .Where("DisplayName", Op.Eq, "Alice")
+            .OrderByDescending("DisplayName")
+            .ToCommand();
+
+        Assert.Equal("SELECT [display_name] AS [DisplayName] FROM [app_users] WHERE [display_name] = @p0 ORDER BY [display_name] DESC", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void String_select_with_typed_from_rejects_column_attribute_names()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Select("display_name")
+                .From<MappedUser>()
+                .ToCommand());
+
+        Assert.Contains("is not a mapped column", ex.Message);
+    }
+
+    [Fact]
+    public void String_where_with_typed_builder_rejects_column_attribute_names()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<MappedUser>()
+                .Where("display_name", Op.Eq, "Alice")
+                .ToCommand());
+
+        Assert.Contains("is not a mapped column", ex.Message);
+    }
+
+    [Fact]
+    public void Select_from_type_can_override_table_or_view_name()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<MappedUser>("app_users_view")
+            .Where("DisplayName", Op.Eq, "Alice")
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [display_name] AS [DisplayName] FROM [app_users_view] WHERE [display_name] = @p0", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
     public void Typed_select_entry_requires_simple_member_selectors()
     {
         var ex = Assert.Throws<ArgumentException>(() =>
@@ -145,12 +199,12 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
-    public void String_table_and_column_identifiers_are_validated()
+    public void String_table_identifiers_are_validated()
     {
         var db = Db4NetDatabase.Create(Db4NetOptions.Sqlite);
 
         var ex = Assert.Throws<ArgumentException>(() =>
-            db.SelectFrom("Users;drop table Users")
+            db.SelectFrom<User>("Users;drop table Users")
               .Where("Id", Op.Eq, 1)
               .ToCommand());
 

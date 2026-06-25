@@ -78,12 +78,13 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
-    /// Starts a select query using an explicit table name.
+    /// Starts a typed select query using an explicit table or view name while mapping columns from <typeparamref name="T"/>.
     /// </summary>
-    /// <param name="table">The table identifier. It is validated and quoted by the configured SQL dialect.</param>
-    /// <returns>A select query builder.</returns>
-    public SelectQueryBuilder SelectFrom(string table)
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="table">The table or view identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>A typed select query builder.</returns>
+    public SelectQueryBuilder<T> SelectFrom<T>(string table)
     {
-        return new SelectQueryBuilder(_options, _connection).From(table);
+        return new SelectQueryBuilder(_options, _connection).From<T>(table).SelectAllMappedColumns();
     }
 }

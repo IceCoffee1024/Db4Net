@@ -43,18 +43,18 @@ var users = connection
     .Query<User>();
 ```
 
-Use string-based `Select(...).From(...)` for dynamic query scenarios:
+Use string property names when the column set is dynamic but the result model is known:
 
 ```csharp
 var rows = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
-    .Select("Users.Id", "Users.Name")
-    .From("Users")
-    .Where("Users.Name", Op.IsNotNull)
-    .Query<dynamic>();
+    .Select("Id", "Name")
+    .From<User>()
+    .Where("Name", Op.IsNotNull)
+    .Query<User>();
 ```
 
-String table and column identifiers are validated and quoted by the configured dialect. Values are always passed as Dapper parameters.
+String property names are validated against the mapped CLR model and converted to database column names. Table or view names can be overridden with `SelectFrom<T>("view_name")` or `From<T>("view_name")`; those identifiers are validated and quoted by the configured dialect. Values are always passed as Dapper parameters.
 
 ## Mapping
 
@@ -176,4 +176,4 @@ var users = await connection
 
 ## Scope
 
-Current scope is focused on typed and string-based `SELECT` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Joins, inserts, updates, deletes, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed `SELECT` builders and dynamic property-name projection for SQL Server, SQLite, PostgreSQL, and MySQL. Joins, inserts, updates, deletes, and full predicate expression translation are intentionally out of scope for this early version.
