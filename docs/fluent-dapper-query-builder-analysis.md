@@ -102,8 +102,8 @@ db.Select(["Id", "Name"])
 
 验证状态：
 
-- `dotnet test`：54 个测试全部通过。
-- 覆盖率：行覆盖率 `94.77%`，分支覆盖率 `88.74%`。
+- `dotnet test`：57 个测试全部通过。
+- 覆盖率：行覆盖率 `93.58%`，分支覆盖率 `89.03%`。
 - `dotnet build -c Release`：0 warning，0 error。
 - `dotnet pack src/Db4Net/Db4Net.csproj -c Release --no-build`：可生成 `Db4Net.0.1.0-alpha.1.nupkg`。
 

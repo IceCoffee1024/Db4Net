@@ -61,7 +61,7 @@ public class SelectQueryBuilder
     /// <returns>A typed query builder for <typeparamref name="T"/>.</returns>
     public SelectQueryBuilder<T> From<T>()
     {
-        _model.Table = ModelMetadataProvider.GetTableName(typeof(T));
+        _model.Table = ModelMetadata<T>.TableName;
         return new SelectQueryBuilder<T>(_options, _connection, _model);
     }
 
@@ -369,7 +369,7 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     {
         base.ClearSelectColumns();
 
-        foreach (var column in ModelMetadataProvider.GetColumnMetadata(typeof(T)))
+        foreach (var column in ModelMetadata<T>.Columns)
         {
             base.AddSelectColumn(column.ColumnName, column.PropertyName);
         }

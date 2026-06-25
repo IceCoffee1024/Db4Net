@@ -9,25 +9,36 @@ internal static class ModelMetadataProvider
     public static string GetTableName(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return type.GetCustomAttribute<TableAttribute>()?.Name ?? type.Name;
+        return BuildTableName(type);
     }
 
     public static string GetColumnName<T, TValue>(Expression<Func<T, TValue>> memberSelector)
     {
         ArgumentNullException.ThrowIfNull(memberSelector);
-        return GetColumnName(GetMemberInfo(memberSelector));
+        var member = GetMemberInfo(memberSelector);
+        return ModelMetadata<T>.GetColumn(member.Name).ColumnName;
     }
 
     public static ColumnMetadata GetColumnMetadata<T, TValue>(Expression<Func<T, TValue>> memberSelector)
     {
         ArgumentNullException.ThrowIfNull(memberSelector);
         var member = GetMemberInfo(memberSelector);
-        return new ColumnMetadata(member.Name, GetColumnName(member));
+        return ModelMetadata<T>.GetColumn(member.Name);
     }
 
     public static IReadOnlyList<ColumnMetadata> GetColumnMetadata(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
+        return BuildColumnMetadata(type);
+    }
+
+    internal static string BuildTableName(Type type)
+    {
+        return type.GetCustomAttribute<TableAttribute>()?.Name ?? type.Name;
+    }
+
+    internal static ColumnMetadata[] BuildColumnMetadata(Type type)
+    {
         return type
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .Where(IsMappedProperty)
@@ -63,6 +74,26 @@ internal static class ModelMetadataProvider
             && property.GetMethod is not null
             && property.SetMethod is not null
             && property.GetIndexParameters().Length == 0;
+    }
+}
+
+internal static class ModelMetadata<T>
+{
+    public static readonly string TableName = ModelMetadataProvider.BuildTableName(typeof(T));
+
+    public static readonly IReadOnlyList<ColumnMetadata> Columns = ModelMetadataProvider.BuildColumnMetadata(typeof(T));
+
+    public static ColumnMetadata GetColumn(string propertyName)
+    {
+        foreach (var column in Columns)
+        {
+            if (column.PropertyName == propertyName)
+            {
+                return column;
+            }
+        }
+
+        throw new ArgumentException($"Member '{typeof(T).Name}.{propertyName}' is not a mapped column.");
     }
 }
 

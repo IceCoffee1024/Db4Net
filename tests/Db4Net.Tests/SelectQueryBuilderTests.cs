@@ -95,6 +95,44 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
+    public void Typed_select_entry_rejects_not_mapped_member_selectors()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Select<MappedUser>(u => u.Ignored)
+                .ToCommand());
+
+        Assert.Contains("is not a mapped column", ex.Message);
+    }
+
+    [Fact]
+    public void Typed_where_rejects_not_mapped_member_selectors()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<MappedUser>()
+                .Where(u => u.Ignored, Op.Eq, "value")
+                .ToCommand());
+
+        Assert.Contains("is not a mapped column", ex.Message);
+    }
+
+    [Fact]
+    public void Typed_order_by_rejects_not_mapped_member_selectors()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<MappedUser>()
+                .OrderBy(u => u.Ignored)
+                .ToCommand());
+
+        Assert.Contains("is not a mapped column", ex.Message);
+    }
+
+    [Fact]
     public void Select_from_type_can_add_selected_member_columns()
     {
         var command = Db4NetDatabase
