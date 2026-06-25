@@ -126,6 +126,84 @@ public sealed class SelectQueryBuilderEdgeCaseTests
     }
 
     [Fact]
+    public void Is_null_operator_has_value_free_string_overload()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom("Users")
+            .Where("Name", Op.IsNull)
+            .ToCommand();
+
+        Assert.Equal("SELECT * FROM [Users] WHERE [Name] IS NULL", command.Sql);
+        Assert.Empty(command.Parameters.ParameterNames);
+    }
+
+    [Fact]
+    public void Is_not_null_operator_has_value_free_typed_overload()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .Where(u => u.Name, Op.IsNotNull)
+            .ToCommand();
+
+        Assert.Equal("SELECT * FROM [Users] WHERE [Name] IS NOT NULL", command.Sql);
+        Assert.Empty(command.Parameters.ParameterNames);
+    }
+
+    [Fact]
+    public void Or_where_supports_value_free_null_operator()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .OrWhere(u => u.Name, Op.IsNull)
+            .ToCommand();
+
+        Assert.Equal("SELECT * FROM [Users] WHERE [Id] = @p0 OR [Name] IS NULL", command.Sql);
+    }
+
+    [Fact]
+    public void String_based_or_where_supports_value_free_null_operator()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom("Users")
+            .Where("Id", Op.Eq, 1)
+            .OrWhere("Name", Op.IsNotNull)
+            .ToCommand();
+
+        Assert.Equal("SELECT * FROM [Users] WHERE [Id] = @p0 OR [Name] IS NOT NULL", command.Sql);
+    }
+
+    [Fact]
+    public void Value_free_where_rejects_non_null_operator()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<User>()
+                .Where(u => u.Name, Op.Eq)
+                .ToCommand());
+
+        Assert.Contains("requires a value", ex.Message);
+    }
+
+    [Fact]
+    public void Is_not_null_rejects_non_null_value()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<User>()
+                .Where(u => u.Name, Op.IsNotNull, "Alice")
+                .ToCommand());
+
+        Assert.Contains("does not accept a value", ex.Message);
+    }
+
+    [Fact]
     public void To_command_requires_table()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>

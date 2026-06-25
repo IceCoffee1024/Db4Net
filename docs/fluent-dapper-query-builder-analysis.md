@@ -69,7 +69,11 @@ db.Select(["Id", "Name"])
 .Where(u => u.Id, Op.Eq, 1)
 .Where(u => u.Name, Op.Like, "A%")
 .Where(u => u.Id, Op.In, [1, 2, 3])
+.Where(u => u.DeletedAt, Op.IsNull)
+.Where(u => u.Name, Op.IsNotNull)
 ```
+
+`Eq null` 和 `NotEq null` 仍然兼容，分别渲染为 `IS NULL` 和 `IS NOT NULL`。但推荐业务代码优先使用 `Op.IsNull`、`Op.IsNotNull` 的无值重载，可读性更明确，也避免传入第三个 `null` 参数。
 
 ## 当前实现状态
 
@@ -92,8 +96,8 @@ db.Select(["Id", "Name"])
 
 验证状态：
 
-- `dotnet test`：35 个测试全部通过。
-- 覆盖率：行覆盖率 `93.56%`，分支覆盖率 `85.95%`。
+- `dotnet test`：41 个测试全部通过。
+- 覆盖率：行覆盖率 `93.95%`，分支覆盖率 `87.02%`。
 - `dotnet build -c Release`：0 warning，0 error。
 - `dotnet pack src/Db4Net/Db4Net.csproj -c Release --no-build`：可生成 `Db4Net.0.1.0-alpha.1.nupkg`。
 

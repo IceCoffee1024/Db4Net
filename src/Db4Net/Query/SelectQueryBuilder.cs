@@ -77,7 +77,21 @@ public class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder Where(string column, Op op, object? value)
     {
+        EnsureValidOperatorValue(op, value);
         _model.Filters.Add(new FilterClause("AND", column, op, value));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND null-check filter using a string-based column identifier.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder Where(string column, Op op)
+    {
+        EnsureValueFreeOperator(op);
+        _model.Filters.Add(new FilterClause("AND", column, op, null));
         return this;
     }
 
@@ -90,7 +104,21 @@ public class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder OrWhere(string column, Op op, object? value)
     {
+        EnsureValidOperatorValue(op, value);
         _model.Filters.Add(new FilterClause("OR", column, op, value));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR null-check filter using a string-based column identifier.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrWhere(string column, Op op)
+    {
+        EnsureValueFreeOperator(op);
+        _model.Filters.Add(new FilterClause("OR", column, op, null));
         return this;
     }
 
@@ -227,6 +255,22 @@ public class SelectQueryBuilder
     {
         return _connection ?? throw new InvalidOperationException("Dapper execution requires an IDbConnection. Use connection.UseDb4Net(options) to create the database facade.");
     }
+
+    private static void EnsureValueFreeOperator(Op op)
+    {
+        if (op is not (Op.IsNull or Op.IsNotNull))
+        {
+            throw new ArgumentException($"Operator {op} requires a value.", nameof(op));
+        }
+    }
+
+    private static void EnsureValidOperatorValue(Op op, object? value)
+    {
+        if (op is (Op.IsNull or Op.IsNotNull) && value is not null)
+        {
+            throw new ArgumentException($"Operator {op} does not accept a value.", nameof(value));
+        }
+    }
 }
 
 /// <summary>
@@ -255,6 +299,19 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds an AND null-check filter using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
+    {
+        base.Where(ModelMetadataProvider.GetColumnName(memberSelector), op);
+        return this;
+    }
+
+    /// <summary>
     /// Adds an OR filter using a typed member selector.
     /// </summary>
     /// <typeparam name="TValue">The selected member value type.</typeparam>
@@ -265,6 +322,19 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     public SelectQueryBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
         base.OrWhere(ModelMetadataProvider.GetColumnName(memberSelector), op, value);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR null-check filter using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
+    {
+        base.OrWhere(ModelMetadataProvider.GetColumnName(memberSelector), op);
         return this;
     }
 

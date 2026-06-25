@@ -9,6 +9,7 @@ var user = connection
     .UseDb4Net(Db4NetOptions.Sqlite)
     .SelectFrom<User>()
     .Where(u => u.Id, Op.Eq, 1)
+    .Where(u => u.Name, Op.IsNotNull)
     .QuerySingleOrDefault<User>();
 ```
 
@@ -20,4 +21,3 @@ var user = connection
 - Ordering and basic paging.
 - `ToCommand()` for SQL inspection.
 - Dapper terminal methods.
-
