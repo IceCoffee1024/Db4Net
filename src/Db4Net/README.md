@@ -143,6 +143,35 @@ Db4Net provides Dapper-style terminal methods:
 - `QuerySingleOrDefaultAsync<T>()`
 - `ExecuteAsync()`
 
+## Execution Options
+
+Pass `Db4NetCommandOptions` when you need a transaction, command timeout, or command type:
+
+```csharp
+using var transaction = connection.BeginTransaction();
+
+var users = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .Where(u => u.Id, Op.Gt, 0)
+    .Query<User>(new Db4NetCommandOptions
+    {
+        Transaction = transaction,
+        CommandTimeout = 30
+    });
+```
+
+Async terminal methods also accept a `CancellationToken`:
+
+```csharp
+var users = await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .SelectFrom<User>()
+    .QueryAsync<User>(
+        new Db4NetCommandOptions { CommandTimeout = 30 },
+        cancellationToken);
+```
+
 ## Scope
 
 Current scope is focused on typed and string-based `SELECT` builders for SQL Server and SQLite. Joins, inserts, updates, deletes, and full predicate expression translation are intentionally out of scope for this early version.

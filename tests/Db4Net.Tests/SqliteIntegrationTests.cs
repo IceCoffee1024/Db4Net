@@ -1,6 +1,8 @@
 using Db4Net;
 using Microsoft.Data.Sqlite;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Db4Net.Tests;
 
@@ -74,6 +76,69 @@ public sealed class SqliteIntegrationTests
             users,
             user => Assert.Equal("Alice", user.Name),
             user => Assert.Equal("Bob", user.Name));
+    }
+
+    [Fact]
+    public void Query_uses_transaction_from_command_options()
+    {
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using var insert = connection.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = "insert into Users (Id, Name) values (3, 'Charlie');";
+        insert.ExecuteNonQuery();
+
+        var user = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault<User>(new Db4NetCommandOptions { Transaction = transaction });
+
+        Assert.NotNull(user);
+        Assert.Equal("Charlie", user.Name);
+
+        transaction.Rollback();
+
+        var afterRollback = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault<User>();
+
+        Assert.Null(afterRollback);
+    }
+
+    [Fact]
+    public async Task Query_async_uses_cancellation_token()
+    {
+        await using var connection = CreateOpenConnection();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectFrom<User>()
+                .QueryAsync<User>(cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public async Task Query_async_accepts_command_options_and_cancellation_token()
+    {
+        await using var connection = CreateOpenConnection();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        var user = await connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .QuerySingleOrDefaultAsync<User>(
+                new Db4NetCommandOptions { Transaction = transaction },
+                CancellationToken.None);
+
+        Assert.NotNull(user);
+        Assert.Equal("Alice", user.Name);
     }
 
     [Fact]
