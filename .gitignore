@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+
+# Test output
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage.cobertura.xml
+
+# NuGet packages
+*.nupkg
+*.snupkg
+
+# IDE and user files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# CodeGraph local index
+.codegraph/

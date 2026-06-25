@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Db4Net/Db4Net.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Db4Net.Tests/Db4Net.Tests.csproj" />
+  </Folder>
+</Solution>
