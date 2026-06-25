@@ -83,14 +83,14 @@ internal static class ModelMetadata<T>
 
     public static readonly IReadOnlyList<ColumnMetadata> Columns = ModelMetadataProvider.BuildColumnMetadata(typeof(T));
 
+    private static readonly Dictionary<string, ColumnMetadata> ColumnsByPropertyName =
+        Columns.ToDictionary(column => column.PropertyName, StringComparer.Ordinal);
+
     public static ColumnMetadata GetColumn(string propertyName)
     {
-        foreach (var column in Columns)
+        if (ColumnsByPropertyName.TryGetValue(propertyName, out var column))
         {
-            if (column.PropertyName == propertyName)
-            {
-                return column;
-            }
+            return column;
         }
 
         throw new ArgumentException($"Member '{typeof(T).Name}.{propertyName}' is not a mapped column.");
