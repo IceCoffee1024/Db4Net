@@ -138,7 +138,12 @@ internal sealed class SqlRenderer
         string limitParameter;
         string? offsetParameter = null;
 
-        if (model.Offset is null)
+        if (model.Offset is null && _dialect.RenderOffsetBeforeLimit)
+        {
+            offsetParameter = AddParameter(0);
+            limitParameter = AddParameter(model.Limit.Value);
+        }
+        else if (model.Offset is null)
         {
             limitParameter = AddParameter(model.Limit.Value);
         }

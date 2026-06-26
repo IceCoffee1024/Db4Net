@@ -11,6 +11,10 @@
     <Description>Lightweight fluent SQL builder and Dapper execution helpers.</Description>
     <PackageTags>dapper;sql;fluent;query-builder</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/IceCoffee1024/Db4Net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/IceCoffee1024/Db4Net.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
