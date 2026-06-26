@@ -172,13 +172,17 @@ Db4Net 长期定位为安全、轻量、可预测的单表/视图 SQL builder，
 
 - Join、CTE、子查询、聚合查询
 - Insert/update/delete builder
-- 完整谓词表达式翻译
 - 关系加载和 Dapper multi-mapping 辅助能力
 - 显式 raw SQL 片段 API，例如 `RawSql.Fragment(...)`
 
+明确不做：
+
+- `Where(u => u.Id == 1)` 这类谓词表达式翻译
+- 完整 LINQ Provider
+
 ## 关键风险
 
-表达式支持很容易失控。v1 应继续限制在成员选择器。
+表达式支持很容易失控。Db4Net 应继续使用 `Where(u => u.Id, Op.Eq, 1)` 这种成员选择器 + 显式操作符 + 参数值的形式，不实现 `Where(u => u.Id == 1)` 这类谓词表达式翻译，避免演变成 LINQ Provider。
 
 标识符注入是主要安全风险。参数只能保护值，不能保护表名和列名。
 
