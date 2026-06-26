@@ -17,7 +17,7 @@ public sealed class PackageMetadataTests
         Assert.Equal("dapper;sql;fluent;query-builder", properties["PackageTags"]);
         Assert.Equal("README.md", properties["PackageReadmeFile"]);
         Assert.Equal("MIT", properties["PackageLicenseExpression"]);
-        Assert.Equal("https://github.com/IceCoffee1024/Db4Net", properties["PackageProjectUrl"]);
+        Assert.Equal("https://dotnet.db4.dev", properties["PackageProjectUrl"]);
         Assert.Equal("https://github.com/IceCoffee1024/Db4Net.git", properties["RepositoryUrl"]);
         Assert.Equal("git", properties["RepositoryType"]);
         Assert.Equal("true", properties["GenerateDocumentationFile"]);

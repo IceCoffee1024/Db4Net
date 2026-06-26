@@ -188,7 +188,7 @@ SQL 渲染和 Dapper 执行保持分离。
 - `PackageTags`: `dapper;sql;fluent;query-builder`
 - `PackageReadmeFile`: `README.md`
 - `PackageLicenseExpression`: `MIT`
-- `PackageProjectUrl`: `https://github.com/IceCoffee1024/Db4Net`
+- `PackageProjectUrl`: `https://dotnet.db4.dev`
 - `RepositoryUrl`: `https://github.com/IceCoffee1024/Db4Net.git`
 - `RepositoryType`: `git`
 - `GenerateDocumentationFile`: `true`
