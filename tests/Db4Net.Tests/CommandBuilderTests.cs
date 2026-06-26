@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Db4Net;
 
@@ -53,6 +54,19 @@ public sealed class CommandBuilderTests
 
         Assert.Equal("DELETE FROM [users_2026] WHERE [Id] = @p0", command.Sql);
         Assert.Equal(1, command.Parameters.Get<int>("p0"));
+    }
+
+    [Fact]
+    public void Delete_from_type_with_table_override_rejects_invalid_table_identifier()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .DeleteFrom<User>("users;drop table Users")
+                .Where(u => u.Id, Op.Eq, 1)
+                .ToCommand());
+
+        Assert.Contains("Invalid SQL identifier", ex.Message);
     }
 
     [Fact]
@@ -303,6 +317,72 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Insert_into_type_can_expand_entity_values()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertInto<User>()
+            .Values(new User { Id = 1, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [Users] ([Id], [Name]) VALUES (@p0, @p1)", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Insert_into_entity_entry_point_expands_values()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Insert(new User { Id = 1, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [Users] ([Id], [Name]) VALUES (@p0, @p1)", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Insert_into_type_skips_database_generated_key_values_from_entity()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertInto<GeneratedKeyUser>()
+            .Values(new GeneratedKeyUser { Id = 1, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [generated_users] ([Name]) VALUES (@p0)", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void Insert_into_type_skips_database_generated_non_key_values_from_entity()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertInto<GeneratedAuditUser>()
+            .Values(new GeneratedAuditUser { Id = 1, Name = "Alice", UpdatedAt = DateTime.UtcNow })
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [generated_audit_users] ([Id], [Name]) VALUES (@p0, @p1)", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Insert_entity_entry_point_skips_database_generated_key_values()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Insert(new GeneratedKeyUser { Id = 1, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [generated_users] ([Name]) VALUES (@p0)", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
     public void Insert_into_type_can_override_target_table()
     {
         var command = Db4NetDatabase
@@ -313,6 +393,19 @@ public sealed class CommandBuilderTests
 
         Assert.Equal("INSERT INTO [users_staging] ([display_name]) VALUES (@p0)", command.Sql);
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void Insert_into_type_with_table_override_rejects_invalid_table_identifier()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .InsertInto<User>("users;drop table Users")
+                .Value(u => u.Id, 1)
+                .ToCommand());
+
+        Assert.Contains("Invalid SQL identifier", ex.Message);
     }
 
     [Fact]
@@ -379,6 +472,173 @@ public sealed class CommandBuilderTests
         Assert.Contains("is not a mapped column", ex.Message);
     }
 
+    [Fact]
+    public void Update_type_can_set_entity_values_and_where_key_by_convention()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Update<User>()
+            .Set(new User { Id = 1, Name = "Alice" })
+            .WhereKey(new User { Id = 1, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("UPDATE [Users] SET [Name] = @p0 WHERE [Id] = @p1", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal(1, command.Parameters.Get<int>("p1"));
+    }
+
+    [Fact]
+    public void Update_entity_entry_point_sets_non_key_values_and_filters_by_key()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Update(new User { Id = 1, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("UPDATE [Users] SET [Name] = @p0 WHERE [Id] = @p1", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal(1, command.Parameters.Get<int>("p1"));
+    }
+
+    [Fact]
+    public void Delete_entity_entry_point_filters_by_key()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Delete(new User { Id = 1, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("DELETE FROM [Users] WHERE [Id] = @p0", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+    }
+
+    [Fact]
+    public void Delete_from_type_where_key_filters_by_convention()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .DeleteFrom<User>()
+            .WhereKey(new User { Id = 1, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("DELETE FROM [Users] WHERE [Id] = @p0", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+    }
+
+    [Fact]
+    public void Where_key_uses_key_attribute_before_name_convention()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Update<KeyedUser>()
+            .Set(new KeyedUser { TenantUserId = 42, Id = 7, Name = "Alice" })
+            .WhereKey(new KeyedUser { TenantUserId = 42, Id = 7, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("UPDATE [tenant_users] SET [Id] = @p0, [Name] = @p1 WHERE [tenant_user_id] = @p2", command.Sql);
+        Assert.Equal(7, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+        Assert.Equal(42, command.Parameters.Get<int>("p2"));
+    }
+
+    [Fact]
+    public void Where_key_rejects_missing_key_metadata()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Update<NoKeyUser>()
+                .Set(new NoKeyUser { Name = "Alice" })
+                .WhereKey(new NoKeyUser { Name = "Alice" })
+                .ToCommand());
+
+        Assert.Contains("does not have a key", ex.Message);
+    }
+
+    [Fact]
+    public void Where_key_rejects_composite_key_metadata()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Update<CompositeKeyUser>()
+                .Set(new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" })
+                .WhereKey(new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" })
+                .ToCommand());
+
+        Assert.Contains("Composite keys are not supported", ex.Message);
+    }
+
+    [Fact]
+    public void Where_key_uses_type_name_id_convention()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Update<ConventionUser>()
+            .Set(new ConventionUser { ConventionUserId = 5, Name = "Alice" })
+            .WhereKey(new ConventionUser { ConventionUserId = 5, Name = "Alice" })
+            .ToCommand();
+
+        Assert.Equal("UPDATE [ConventionUser] SET [Name] = @p0 WHERE [ConventionUserId] = @p1", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal(5, command.Parameters.Get<int>("p1"));
+    }
+
+    [Fact]
+    public void Entity_command_entry_points_reject_primitive_values()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var insertEx = Assert.Throws<ArgumentException>(() => database.Insert<string>(entity: "Users").ToCommand());
+        var updateEx = Assert.Throws<ArgumentException>(() => database.Update<string>(entity: "Users").ToCommand());
+        var deleteEx = Assert.Throws<ArgumentException>(() => database.Delete<string>(entity: "Users").ToCommand());
+
+        Assert.Contains("does not have any mapped columns", insertEx.Message);
+        Assert.Contains("does not have any mapped columns", updateEx.Message);
+        Assert.Contains("does not have any mapped columns", deleteEx.Message);
+    }
+
+    [Fact]
+    public void Where_key_rejects_default_key_value()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Update<User>()
+                .Set(new User { Id = 0, Name = "Alice" })
+                .WhereKey(new User { Id = 0, Name = "Alice" })
+                .ToCommand());
+
+        Assert.Contains("default key value", ex.Message);
+    }
+
+    [Fact]
+    public void Delete_where_key_rejects_default_key_value()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .DeleteFrom<User>()
+                .WhereKey(new User { Id = 0, Name = "Alice" })
+                .ToCommand());
+
+        Assert.Contains("default key value", ex.Message);
+    }
+
+    [Fact]
+    public void Entity_value_methods_reject_null_entity()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        Assert.Throws<ArgumentNullException>(() => database.InsertInto<User>().Values(null!));
+        Assert.Throws<ArgumentNullException>(() => database.Update<User>().Set(null!));
+        Assert.Throws<ArgumentNullException>(() => database.Update<User>().WhereKey(null!));
+        Assert.Throws<ArgumentNullException>(() => database.DeleteFrom<User>().WhereKey(null!));
+        Assert.Throws<ArgumentNullException>(() => database.Insert<User>(null!));
+        Assert.Throws<ArgumentNullException>(() => database.Update<User>(entity: null!));
+        Assert.Throws<ArgumentNullException>(() => database.Delete<User>(null!));
+    }
+
     [Table("Users")]
     private sealed class User
     {
@@ -397,5 +657,61 @@ public sealed class CommandBuilderTests
 
         [NotMapped]
         public string Ignored { get; set; } = "";
+    }
+
+    [Table("tenant_users")]
+    private sealed class KeyedUser
+    {
+        [Key]
+        [Column("tenant_user_id")]
+        public int TenantUserId { get; set; }
+
+        public int Id { get; set; }
+
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class NoKeyUser
+    {
+        public string Name { get; set; } = "";
+    }
+
+    [Table("generated_users")]
+    private sealed class GeneratedKeyUser
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
+
+        public string Name { get; set; } = "";
+    }
+
+    [Table("generated_audit_users")]
+    private sealed class GeneratedAuditUser
+    {
+        public int Id { get; set; }
+
+        public string Name { get; set; } = "";
+
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    private sealed class CompositeKeyUser
+    {
+        [Key]
+        public int TenantId { get; set; }
+
+        [Key]
+        public int UserId { get; set; }
+
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class ConventionUser
+    {
+        public int ConventionUserId { get; set; }
+
+        public string Name { get; set; } = "";
     }
 }

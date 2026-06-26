@@ -77,6 +77,25 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     }
 
     /// <summary>
+    /// Adds AND filters for the key properties of an entity instance.
+    /// </summary>
+    /// <param name="entity">The entity instance to read key values from.</param>
+    /// <returns>The current command builder.</returns>
+    public DeleteCommandBuilder<T> WhereKey(T entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        foreach (var column in ModelMetadata<T>.RequireKeyColumns())
+        {
+            var value = column.GetValue(entity);
+            EnsureNonDefaultKeyValue(column, value);
+            _filters.Add("AND", () => column.ColumnName, Op.Eq, value);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds an OR filter using a CLR property name from <typeparamref name="T"/>.
     /// </summary>
     /// <param name="propertyName">The mapped CLR property name to filter by.</param>
@@ -147,6 +166,19 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     private static string MapPropertyName(string propertyName)
     {
         return ModelMetadata<T>.GetColumn(propertyName).ColumnName;
+    }
+
+    private static void EnsureNonDefaultKeyValue(ColumnMetadata column, object? value)
+    {
+        if (value is null || value.Equals(GetDefaultValue(column.Property.PropertyType)))
+        {
+            throw new InvalidOperationException($"Key '{typeof(T).Name}.{column.PropertyName}' has the default key value.");
+        }
+    }
+
+    private static object? GetDefaultValue(Type type)
+    {
+        return type.IsValueType ? Activator.CreateInstance(type) : null;
     }
 
 }

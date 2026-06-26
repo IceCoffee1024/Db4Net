@@ -237,6 +237,42 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Entity_command_conveniences_execute_parameterized_sql_with_dapper()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var inserted = db
+            .Insert(new User { Id = 3, Name = "Charlie" })
+            .Execute();
+
+        var updated = db
+            .Update(new User { Id = 3, Name = "Charles" })
+            .Execute();
+
+        var user = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        var deleted = db
+            .Delete(new User { Id = 3, Name = "Charles" })
+            .Execute();
+
+        var afterDelete = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1, inserted);
+        Assert.Equal(1, updated);
+        Assert.NotNull(user);
+        Assert.Equal("Charles", user.Name);
+        Assert.Equal(1, deleted);
+        Assert.Null(afterDelete);
+    }
+
+    [Fact]
     public void Command_table_overrides_execute_against_explicit_tables_with_model_mapping()
     {
         using var connection = CreateOpenShardedConnection();

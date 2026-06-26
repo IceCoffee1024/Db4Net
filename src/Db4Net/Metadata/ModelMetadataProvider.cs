@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -39,10 +40,25 @@ internal static class ModelMetadataProvider
 
     internal static ColumnMetadata[] BuildColumnMetadata(Type type)
     {
+        if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal))
+        {
+            throw new ArgumentException($"Type '{type.Name}' does not have any mapped columns.");
+        }
+
+        var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        var explicitKeyProperties = properties
+            .Where(property => property.GetCustomAttribute<KeyAttribute>() is not null)
+            .ToHashSet();
+
         return type
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .Where(IsMappedProperty)
-            .Select(property => new ColumnMetadata(property.Name, GetColumnName(property)))
+            .Select(property => new ColumnMetadata(
+                property.Name,
+                GetColumnName(property),
+                property,
+                IsKeyProperty(type, property, explicitKeyProperties),
+                IsDatabaseGenerated(property)))
             .ToArray();
     }
 
@@ -85,6 +101,23 @@ internal static class ModelMetadataProvider
             && property.SetMethod is not null
             && property.GetIndexParameters().Length == 0;
     }
+
+    private static bool IsKeyProperty(Type type, PropertyInfo property, IReadOnlySet<PropertyInfo> explicitKeyProperties)
+    {
+        if (explicitKeyProperties.Count > 0)
+        {
+            return explicitKeyProperties.Contains(property);
+        }
+
+        return property.Name == "Id"
+            || property.Name == $"{type.Name}Id";
+    }
+
+    private static bool IsDatabaseGenerated(PropertyInfo property)
+    {
+        var attribute = property.GetCustomAttribute<DatabaseGeneratedAttribute>();
+        return attribute?.DatabaseGeneratedOption is DatabaseGeneratedOption.Identity or DatabaseGeneratedOption.Computed;
+    }
 }
 
 internal static class ModelMetadata<T>
@@ -92,6 +125,12 @@ internal static class ModelMetadata<T>
     public static readonly string TableName = ModelMetadataProvider.BuildTableName(typeof(T));
 
     public static readonly IReadOnlyList<ColumnMetadata> Columns = ModelMetadataProvider.BuildColumnMetadata(typeof(T));
+
+    public static readonly IReadOnlyList<ColumnMetadata> KeyColumns = Columns.Where(column => column.IsKey).ToArray();
+
+    public static readonly IReadOnlyList<ColumnMetadata> NonKeyColumns = Columns.Where(column => !column.IsKey).ToArray();
+
+    public static readonly IReadOnlyList<ColumnMetadata> InsertColumns = Columns.Where(column => !column.IsDatabaseGenerated).ToArray();
 
     private static readonly Dictionary<string, ColumnMetadata> ColumnsByPropertyName =
         Columns.ToDictionary(column => column.PropertyName, StringComparer.Ordinal);
@@ -105,6 +144,27 @@ internal static class ModelMetadata<T>
 
         throw new ArgumentException($"Member '{typeof(T).Name}.{propertyName}' is not a mapped column.");
     }
+
+    public static IReadOnlyList<ColumnMetadata> RequireKeyColumns()
+    {
+        if (KeyColumns.Count == 0)
+        {
+            throw new InvalidOperationException($"Type '{typeof(T).Name}' does not have a key. Add [Key] or an Id/{typeof(T).Name}Id property.");
+        }
+
+        if (KeyColumns.Count > 1)
+        {
+            throw new InvalidOperationException($"Composite keys are not supported for type '{typeof(T).Name}'. Use explicit Where clauses instead.");
+        }
+
+        return KeyColumns;
+    }
 }
 
-internal sealed record ColumnMetadata(string PropertyName, string ColumnName);
+internal sealed record ColumnMetadata(string PropertyName, string ColumnName, PropertyInfo Property, bool IsKey, bool IsDatabaseGenerated)
+{
+    public object? GetValue(object entity)
+    {
+        return Property.GetValue(entity);
+    }
+}

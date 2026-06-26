@@ -112,6 +112,19 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Starts an INSERT command for an entity instance using the table mapped from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entity">The entity instance to insert.</param>
+    /// <returns>An insert command builder.</returns>
+    public InsertCommandBuilder<T> Insert<T>(T entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
+        return InsertInto<T>().Values(entity);
+    }
+
+    /// <summary>
     /// Starts an UPDATE command using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
@@ -133,6 +146,19 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Starts an UPDATE command for an entity instance using key properties for the WHERE clause.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entity">The entity instance to update.</param>
+    /// <returns>An update command builder.</returns>
+    public UpdateCommandBuilder<T> Update<T>(T entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
+        return Update<T>().Set(entity).WhereKey(entity);
+    }
+
+    /// <summary>
     /// Starts a DELETE command using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
@@ -151,5 +177,27 @@ public sealed class Db4NetDatabase
     public DeleteCommandBuilder<T> DeleteFrom<T>(string table)
     {
         return new DeleteCommandBuilder<T>(_options, _connection, table);
+    }
+
+    /// <summary>
+    /// Starts a DELETE command for an entity instance using key properties for the WHERE clause.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entity">The entity instance to delete.</param>
+    /// <returns>A delete command builder.</returns>
+    public DeleteCommandBuilder<T> Delete<T>(T entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
+        return DeleteFrom<T>().WhereKey(entity);
+    }
+
+    private static void EnsureEntityType<T>()
+    {
+        var type = typeof(T);
+        if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal))
+        {
+            throw new ArgumentException($"Type '{type.Name}' does not have any mapped columns.");
+        }
     }
 }

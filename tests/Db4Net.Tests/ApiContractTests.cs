@@ -82,19 +82,46 @@ public sealed class ApiContractTests
     [Fact]
     public void Insert_command_builder_exposes_command_api()
     {
-        AssertPublicInstanceMethods(typeof(InsertCommandBuilder<>), "Value", "ToCommand", "Execute", "ExecuteAsync");
+        AssertPublicInstanceMethods(typeof(InsertCommandBuilder<>), "Value", "Values", "ToCommand", "Execute", "ExecuteAsync");
+        AssertBuilderEntityMethodSignature(typeof(InsertCommandBuilder<>), "Values");
     }
 
     [Fact]
     public void Update_command_builder_exposes_update_api()
     {
-        AssertPublicInstanceMethods(typeof(UpdateCommandBuilder<>), "Set", "Where", "AllowAllRows");
+        AssertPublicInstanceMethods(typeof(UpdateCommandBuilder<>), "Set", "Where", "WhereKey", "AllowAllRows");
+        AssertBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "Set");
+        AssertBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "WhereKey");
     }
 
     [Fact]
     public void Delete_command_builder_exposes_delete_api()
     {
-        AssertPublicInstanceMethods(typeof(DeleteCommandBuilder<>), "Where", "AllowAllRows");
+        AssertPublicInstanceMethods(typeof(DeleteCommandBuilder<>), "Where", "WhereKey", "AllowAllRows");
+        AssertBuilderEntityMethodSignature(typeof(DeleteCommandBuilder<>), "WhereKey");
+    }
+
+    [Fact]
+    public void Database_exposes_entity_command_convenience_entry_points()
+    {
+        AssertPublicInstanceMethods(typeof(Db4NetDatabase), "Insert", "Update", "Delete");
+
+        AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Insert", typeof(InsertCommandBuilder<>));
+        AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Update", typeof(UpdateCommandBuilder<>));
+        AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Delete", typeof(DeleteCommandBuilder<>));
+    }
+
+    [Fact]
+    public void Database_exposes_sql_shaped_command_builder_entry_points()
+    {
+        AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
+        AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
+
+        AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "Update", typeof(UpdateCommandBuilder<>));
+        AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "Update", typeof(UpdateCommandBuilder<>));
+
+        AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "DeleteFrom", typeof(DeleteCommandBuilder<>));
+        AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "DeleteFrom", typeof(DeleteCommandBuilder<>));
     }
 
     [Fact]
@@ -136,6 +163,54 @@ public sealed class ApiContractTests
     private static MethodInfo[] PublicInstanceMethods(Type type)
     {
         return type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+    }
+
+    private static void AssertGenericParameterlessMethodSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
+    {
+        Assert.Single(
+            PublicInstanceMethods(declaringType),
+            candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
+                && candidate.GetParameters().Length == 0);
+    }
+
+    private static void AssertGenericStringMethodSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
+    {
+        Assert.Single(
+            PublicInstanceMethods(declaringType),
+            candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
+                && candidate.GetParameters() is [{ ParameterType: var parameterType }]
+                && parameterType == typeof(string));
+    }
+
+    private static void AssertGenericEntityMethodSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
+    {
+        var method = Assert.Single(
+            PublicInstanceMethods(declaringType),
+            candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
+                && candidate.GetParameters() is [{ ParameterType: var parameterType }]
+                && parameterType == candidate.GetGenericArguments()[0]);
+
+        Assert.Equal(method.GetGenericArguments()[0], method.GetParameters()[0].ParameterType);
+    }
+
+    private static void AssertBuilderEntityMethodSignature(Type builderType, string methodName)
+    {
+        var modelType = builderType.GetGenericArguments()[0];
+        var method = Assert.Single(
+            PublicInstanceMethods(builderType),
+            candidate => candidate.Name == methodName
+                && candidate.GetParameters() is [{ ParameterType: var parameterType }]
+                && parameterType == modelType);
+
+        Assert.Equal(builderType, method.ReturnType);
+    }
+
+    private static bool IsGenericMethodWithReturn(MethodInfo method, string methodName, Type genericReturnTypeDefinition)
+    {
+        return method.Name == methodName
+            && method.IsGenericMethodDefinition
+            && method.ReturnType.IsGenericType
+            && method.ReturnType.GetGenericTypeDefinition() == genericReturnTypeDefinition;
     }
 
     private static bool IsNonGenericStringOnlyCommandEntryPoint(MethodInfo method)

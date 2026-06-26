@@ -46,6 +46,23 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
         return this;
     }
 
+    /// <summary>
+    /// Adds INSERT values for all mapped properties from an entity instance.
+    /// </summary>
+    /// <param name="entity">The entity instance to read values from.</param>
+    /// <returns>The current command builder.</returns>
+    public InsertCommandBuilder<T> Values(T entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        foreach (var column in ModelMetadata<T>.InsertColumns)
+        {
+            _model.Values.Add(new AssignmentClause(column.ColumnName, column.GetValue(entity)));
+        }
+
+        return this;
+    }
+
     /// <inheritdoc />
     public override RenderedSqlCommand ToCommand()
     {

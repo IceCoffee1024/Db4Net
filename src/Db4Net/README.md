@@ -109,6 +109,39 @@ var affected = connection
 
 Use `SelectFrom<T>("view_or_table")` or `Select(...).From<T>("view_or_table")` when the SELECT target is a view, tenant table, or time-partitioned table but the column mapping still comes from `T`.
 
+Use entity command conveniences for common single-row commands while keeping the same SQL-shaped builder model. Here, entity means a mapped CLR object used as a value source, not a tracked ORM entity:
+
+```csharp
+await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .InsertInto<User>()
+    .Values(user)
+    .ExecuteAsync();
+
+var affected = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .Update<User>()
+    .Set(user)
+    .WhereKey(user)
+    .Execute();
+
+await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .DeleteFrom<User>()
+    .WhereKey(user)
+    .ExecuteAsync();
+```
+
+`Insert(user)`, `Update(user)`, and `Delete(user)` are short convenience entry points over the same builders:
+
+```csharp
+db.Insert(user); // InsertInto<User>().Values(user)
+db.Update(user); // Update<User>().Set(user).WhereKey(user)
+db.Delete(user); // DeleteFrom<User>().WhereKey(user)
+```
+
+They still generate inspectable SQL and do not add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
+
 ## Mapping
 
 Db4Net supports standard mapping attributes:
@@ -119,6 +152,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 [Table("app_users")]
 public sealed class User
 {
+    [Key]
     public int Id { get; set; }
 
     [Column("display_name")]
@@ -136,6 +170,8 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 ```
 
 `[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, `OrderBy`, `Value`, and `Set` member selectors.
+
+`[Key]` and the `Id` / `<TypeName>Id` convention are used only by entity command conveniences such as `WhereKey(user)` and short `Update(user)` / `Delete(user)` entry points. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)` and `Insert(entity)`. Explicit `.Value(...)` calls remain caller-controlled.
 
 ## Filters
 
@@ -255,6 +291,6 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides are supported for safe SQL-shaped APIs, but joins, bulk operations, relationship loading, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides and entity command conveniences are supported for safe SQL-shaped APIs, but joins, bulk operations, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
 
 For complex joins or database-specific SQL, use Dapper raw SQL directly or expose stable read models through database views.
