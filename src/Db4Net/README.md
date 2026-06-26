@@ -174,6 +174,14 @@ var users = await connection
         cancellationToken);
 ```
 
+## Tests
+
+SQLite integration tests run by default with an in-memory database. PostgreSQL, MySQL, and SQL Server integration tests are opt-in and skipped unless these environment variables are set:
+
+- `DB4NET_POSTGRESQL_CONNECTION_STRING`
+- `DB4NET_MYSQL_CONNECTION_STRING`
+- `DB4NET_SQLSERVER_CONNECTION_STRING`
+
 ## Scope
 
 Current scope is focused on typed `SELECT` builders and dynamic property-name projection for SQL Server, SQLite, PostgreSQL, and MySQL. Joins, inserts, updates, deletes, and full predicate expression translation are intentionally out of scope for this early version.
