@@ -13,6 +13,7 @@ namespace Db4Net.Query;
 public class SelectQueryBuilder
 {
     private readonly IDbConnection? _connection;
+    private readonly FilterBuilder _filters;
     private readonly QueryModel _model;
     private readonly Db4NetOptions _options;
 
@@ -21,6 +22,7 @@ public class SelectQueryBuilder
         _options = options;
         _connection = connection;
         _model = model ?? new QueryModel();
+        _filters = new FilterBuilder(_model.Filters);
     }
 
     /// <summary>
@@ -88,8 +90,7 @@ public class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder Where(string column, Op op, object? value)
     {
-        EnsureValidOperatorValue(op, value);
-        _model.Filters.Add(new FilterClause("AND", column, op, value));
+        _filters.Add("AND", column, op, value);
         return this;
     }
 
@@ -101,8 +102,7 @@ public class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder Where(string column, Op op)
     {
-        EnsureValueFreeOperator(op);
-        _model.Filters.Add(new FilterClause("AND", column, op, null));
+        _filters.AddValueFree("AND", column, op);
         return this;
     }
 
@@ -115,8 +115,7 @@ public class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder OrWhere(string column, Op op, object? value)
     {
-        EnsureValidOperatorValue(op, value);
-        _model.Filters.Add(new FilterClause("OR", column, op, value));
+        _filters.Add("OR", column, op, value);
         return this;
     }
 
@@ -128,8 +127,7 @@ public class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder OrWhere(string column, Op op)
     {
-        EnsureValueFreeOperator(op);
-        _model.Filters.Add(new FilterClause("OR", column, op, null));
+        _filters.AddValueFree("OR", column, op);
         return this;
     }
 
@@ -305,22 +303,6 @@ public class SelectQueryBuilder
     internal void ClearSelectColumns()
     {
         _model.Columns.Clear();
-    }
-
-    private static void EnsureValueFreeOperator(Op op)
-    {
-        if (op is not (Op.IsNull or Op.IsNotNull))
-        {
-            throw new ArgumentException($"Operator {op} requires a value.", nameof(op));
-        }
-    }
-
-    private static void EnsureValidOperatorValue(Op op, object? value)
-    {
-        if (op is (Op.IsNull or Op.IsNotNull) && value is not null)
-        {
-            throw new ArgumentException($"Operator {op} does not accept a value.", nameof(value));
-        }
     }
 
     private void BindToModel<T>(string table)

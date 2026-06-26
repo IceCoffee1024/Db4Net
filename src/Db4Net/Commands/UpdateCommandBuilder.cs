@@ -13,6 +13,7 @@ namespace Db4Net.Commands;
 public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
 {
     private readonly UpdateCommandModel _model;
+    private readonly FilterBuilder _filters;
     private readonly Db4NetOptions _options;
 
     internal UpdateCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table)
@@ -20,6 +21,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     {
         _options = options;
         _model = new UpdateCommandModel { Table = table };
+        _filters = new FilterBuilder(_model.Filters);
     }
 
     /// <summary>
@@ -45,8 +47,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     /// </summary>
     public UpdateCommandBuilder<T> Where(string propertyName, Op op, object? value)
     {
-        EnsureValidOperatorValue(op, value);
-        _model.Filters.Add(new FilterClause("AND", MapPropertyName(propertyName), op, value));
+        _filters.Add("AND", () => MapPropertyName(propertyName), op, value);
         return this;
     }
 
@@ -55,8 +56,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     /// </summary>
     public UpdateCommandBuilder<T> Where(string propertyName, Op op)
     {
-        EnsureValueFreeOperator(op);
-        _model.Filters.Add(new FilterClause("AND", MapPropertyName(propertyName), op, null));
+        _filters.AddValueFree("AND", () => MapPropertyName(propertyName), op);
         return this;
     }
 
@@ -65,8 +65,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     /// </summary>
     public UpdateCommandBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
-        EnsureValidOperatorValue(op, value);
-        _model.Filters.Add(new FilterClause("AND", ModelMetadataProvider.GetColumnName(memberSelector), op, value));
+        _filters.Add("AND", () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
         return this;
     }
 
@@ -75,8 +74,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     /// </summary>
     public UpdateCommandBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
-        EnsureValueFreeOperator(op);
-        _model.Filters.Add(new FilterClause("AND", ModelMetadataProvider.GetColumnName(memberSelector), op, null));
+        _filters.AddValueFree("AND", () => ModelMetadataProvider.GetColumnName(memberSelector), op);
         return this;
     }
 
@@ -85,8 +83,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     /// </summary>
     public UpdateCommandBuilder<T> OrWhere(string propertyName, Op op, object? value)
     {
-        EnsureValidOperatorValue(op, value);
-        _model.Filters.Add(new FilterClause("OR", MapPropertyName(propertyName), op, value));
+        _filters.Add("OR", () => MapPropertyName(propertyName), op, value);
         return this;
     }
 
@@ -95,8 +92,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     /// </summary>
     public UpdateCommandBuilder<T> OrWhere(string propertyName, Op op)
     {
-        EnsureValueFreeOperator(op);
-        _model.Filters.Add(new FilterClause("OR", MapPropertyName(propertyName), op, null));
+        _filters.AddValueFree("OR", () => MapPropertyName(propertyName), op);
         return this;
     }
 
@@ -105,8 +101,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     /// </summary>
     public UpdateCommandBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
-        EnsureValidOperatorValue(op, value);
-        _model.Filters.Add(new FilterClause("OR", ModelMetadataProvider.GetColumnName(memberSelector), op, value));
+        _filters.Add("OR", () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
         return this;
     }
 
@@ -115,8 +110,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     /// </summary>
     public UpdateCommandBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
-        EnsureValueFreeOperator(op);
-        _model.Filters.Add(new FilterClause("OR", ModelMetadataProvider.GetColumnName(memberSelector), op, null));
+        _filters.AddValueFree("OR", () => ModelMetadataProvider.GetColumnName(memberSelector), op);
         return this;
     }
 
@@ -140,19 +134,4 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
         return ModelMetadata<T>.GetColumn(propertyName).ColumnName;
     }
 
-    private static void EnsureValueFreeOperator(Op op)
-    {
-        if (op is not (Op.IsNull or Op.IsNotNull))
-        {
-            throw new ArgumentException($"Operator {op} requires a value.", nameof(op));
-        }
-    }
-
-    private static void EnsureValidOperatorValue(Op op, object? value)
-    {
-        if (op is (Op.IsNull or Op.IsNotNull) && value is not null)
-        {
-            throw new ArgumentException($"Operator {op} does not accept a value.", nameof(value));
-        }
-    }
 }
