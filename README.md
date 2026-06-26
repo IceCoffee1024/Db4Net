@@ -102,30 +102,27 @@ Entity-based command conveniences are available for common single-row commands. 
 ```csharp
 await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .InsertInto<User>()
-    .Values(user)
+    .Insert(user)
     .ExecuteAsync();
 
 var affected = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
-    .Update<User>()
-    .Set(user)
-    .WhereKey(user)
+    .Update(user, table: "users_2026")
     .Execute();
 
 await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .DeleteFrom<User>()
-    .WhereKey(user)
+    .Delete(user)
     .ExecuteAsync();
 ```
 
-Short entry points such as `Insert(user)`, `Update(user)`, and `Delete(user)` are convenience aliases over those SQL-shaped builders:
+Use the SQL-shaped command builders when you need explicit fields or predicates:
 
 ```csharp
-db.Insert(user); // InsertInto<User>().Values(user)
-db.Update(user); // Update<User>().Set(user).WhereKey(user)
-db.Delete(user); // DeleteFrom<User>().WhereKey(user)
+db.Update<User>()
+  .Set(u => u.Name, "Alice")
+  .Where(u => u.Id, Op.Eq, user.Id)
+  .Execute();
 ```
 
 They still support `ToCommand()` and do not add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
@@ -175,7 +172,7 @@ Typed projections alias mapped columns so Dapper can map results back to propert
 SELECT [Id], [display_name] AS [Name] FROM [app_users]
 ```
 
-`[Key]` and the `Id` / `<TypeName>Id` convention are used only by entity command conveniences such as `WhereKey(user)` and short `Update(user)` / `Delete(user)` entry points. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)` and `Insert(entity)`. Explicit `.Value(...)` calls remain caller-controlled.
+`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `Delete(user)`, and `WhereKey(user)`. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)` and `Insert(entity)`. Explicit `.Value(...)` calls remain caller-controlled.
 
 ## Supported Dialects
 
@@ -193,7 +190,7 @@ Included in the current alpha:
 - Typed `SELECT` builders
 - Typed `INSERT`, `UPDATE`, and `DELETE` builders
 - SQL-shaped command target overrides such as `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")`
-- Entity command conveniences such as `Values(entity)`, `Set(entity)`, `WhereKey(entity)`, `Insert(entity)`, `Update(entity)`, and `Delete(entity)`
+- Entity command conveniences such as `Values(entity)`, `WhereKey(entity)`, `Insert(entity)`, `Insert(entity, table)`, `Update(entity)`, `Update(entity, table)`, `Delete(entity)`, and `Delete(entity, table)`
 - Dynamic property-name projection with model validation
 - `Where`, `OrWhere`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders

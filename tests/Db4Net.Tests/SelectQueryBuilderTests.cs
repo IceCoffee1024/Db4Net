@@ -137,6 +137,19 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
+    public void Select_from_type_supports_named_table_argument()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<MappedUser>(table: "app_users_view")
+            .Where("DisplayName", Op.Eq, "Alice")
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [display_name] AS [DisplayName] FROM [app_users_view] WHERE [display_name] = @p0", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
     public void Typed_select_entry_requires_simple_member_selectors()
     {
         var ex = Assert.Throws<ArgumentException>(() =>

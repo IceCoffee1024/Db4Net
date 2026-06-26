@@ -90,7 +90,7 @@ public sealed class ApiContractTests
     public void Update_command_builder_exposes_update_api()
     {
         AssertPublicInstanceMethods(typeof(UpdateCommandBuilder<>), "Set", "Where", "WhereKey", "AllowAllRows");
-        AssertBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "Set");
+        AssertNoBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "Set");
         AssertBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "WhereKey");
     }
 
@@ -107,8 +107,11 @@ public sealed class ApiContractTests
         AssertPublicInstanceMethods(typeof(Db4NetDatabase), "Insert", "Update", "Delete");
 
         AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Insert", typeof(InsertCommandBuilder<>));
+        AssertGenericEntityWithTableMethodSignature(typeof(Db4NetDatabase), "Insert", typeof(InsertCommandBuilder<>));
         AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Update", typeof(UpdateCommandBuilder<>));
+        AssertGenericEntityWithTableMethodSignature(typeof(Db4NetDatabase), "Update", typeof(UpdateCommandBuilder<>));
         AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Delete", typeof(DeleteCommandBuilder<>));
+        AssertGenericEntityWithTableMethodSignature(typeof(Db4NetDatabase), "Delete", typeof(DeleteCommandBuilder<>));
     }
 
     [Fact]
@@ -203,6 +206,28 @@ public sealed class ApiContractTests
                 && parameterType == modelType);
 
         Assert.Equal(builderType, method.ReturnType);
+    }
+
+    private static void AssertNoBuilderEntityMethodSignature(Type builderType, string methodName)
+    {
+        var modelType = builderType.GetGenericArguments()[0];
+        Assert.DoesNotContain(
+            PublicInstanceMethods(builderType),
+            candidate => candidate.Name == methodName
+                && candidate.GetParameters() is [{ ParameterType: var parameterType }]
+                && parameterType == modelType);
+    }
+
+    private static void AssertGenericEntityWithTableMethodSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
+    {
+        var method = Assert.Single(
+            PublicInstanceMethods(declaringType),
+            candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
+                && candidate.GetParameters() is [{ ParameterType: var entityParameterType }, { ParameterType: var tableParameterType }]
+                && entityParameterType == candidate.GetGenericArguments()[0]
+                && tableParameterType == typeof(string));
+
+        Assert.Equal("table", method.GetParameters()[1].Name);
     }
 
     private static bool IsGenericMethodWithReturn(MethodInfo method, string methodName, Type genericReturnTypeDefinition)

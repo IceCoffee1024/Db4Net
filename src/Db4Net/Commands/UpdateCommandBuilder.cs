@@ -49,12 +49,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
         return this;
     }
 
-    /// <summary>
-    /// Adds SET assignments for all mapped non-key properties from an entity instance.
-    /// </summary>
-    /// <param name="entity">The entity instance to read values from.</param>
-    /// <returns>The current command builder.</returns>
-    public UpdateCommandBuilder<T> Set(T entity)
+    internal UpdateCommandBuilder<T> SetEntityValues(T entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 

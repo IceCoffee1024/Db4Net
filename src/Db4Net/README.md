@@ -114,30 +114,27 @@ Use entity command conveniences for common single-row commands while keeping the
 ```csharp
 await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .InsertInto<User>()
-    .Values(user)
+    .Insert(user)
     .ExecuteAsync();
 
 var affected = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
-    .Update<User>()
-    .Set(user)
-    .WhereKey(user)
+    .Update(user, table: "users_2026")
     .Execute();
 
 await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .DeleteFrom<User>()
-    .WhereKey(user)
+    .Delete(user)
     .ExecuteAsync();
 ```
 
-`Insert(user)`, `Update(user)`, and `Delete(user)` are short convenience entry points over the same builders:
+Use the SQL-shaped command builders when you need explicit fields or predicates:
 
 ```csharp
-db.Insert(user); // InsertInto<User>().Values(user)
-db.Update(user); // Update<User>().Set(user).WhereKey(user)
-db.Delete(user); // DeleteFrom<User>().WhereKey(user)
+db.Update<User>()
+  .Set(u => u.Name, "Alice")
+  .Where(u => u.Id, Op.Eq, user.Id)
+  .Execute();
 ```
 
 They still generate inspectable SQL and do not add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
@@ -171,7 +168,7 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 `[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, `OrderBy`, `Value`, and `Set` member selectors.
 
-`[Key]` and the `Id` / `<TypeName>Id` convention are used only by entity command conveniences such as `WhereKey(user)` and short `Update(user)` / `Delete(user)` entry points. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)` and `Insert(entity)`. Explicit `.Value(...)` calls remain caller-controlled.
+`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `Delete(user)`, and `WhereKey(user)`. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)` and `Insert(entity)`. Explicit `.Value(...)` calls remain caller-controlled.
 
 ## Filters
 

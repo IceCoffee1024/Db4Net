@@ -57,6 +57,21 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Delete_from_type_supports_named_table_argument()
+    {
+        var user = new User { Id = 1, Name = "Alice" };
+
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .DeleteFrom<User>(table: "users_2026")
+            .Where(u => u.Id, Op.Eq, user.Id)
+            .ToCommand();
+
+        Assert.Equal("DELETE FROM [users_2026] WHERE [Id] = @p0", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+    }
+
+    [Fact]
     public void Delete_from_type_with_table_override_rejects_invalid_table_identifier()
     {
         var ex = Assert.Throws<ArgumentException>(() =>
@@ -218,6 +233,23 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Update_type_supports_named_table_argument()
+    {
+        var user = new User { Id = 1, Name = "Alice" };
+
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Update<User>(table: "users_2026")
+            .Set(u => u.Name, "Alice")
+            .Where(u => u.Id, Op.Eq, user.Id)
+            .ToCommand();
+
+        Assert.Equal("UPDATE [users_2026] SET [Name] = @p0 WHERE [Id] = @p1", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal(1, command.Parameters.Get<int>("p1"));
+    }
+
+    [Fact]
     public void Update_type_with_table_override_still_rejects_missing_where_by_default()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -344,6 +376,19 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Insert_entity_entry_point_can_override_target_table()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Insert(new User { Id = 1, Name = "Alice" }, table: "users_staging")
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [users_staging] ([Id], [Name]) VALUES (@p0, @p1)", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
     public void Insert_into_type_skips_database_generated_key_values_from_entity()
     {
         var command = Db4NetDatabase
@@ -393,6 +438,21 @@ public sealed class CommandBuilderTests
 
         Assert.Equal("INSERT INTO [users_staging] ([display_name]) VALUES (@p0)", command.Sql);
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void Insert_into_type_supports_named_table_argument()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertInto<User>(table: "users_staging")
+            .Value(u => u.Id, 1)
+            .Value(u => u.Name, "Alice")
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [users_staging] ([Id], [Name]) VALUES (@p0, @p1)", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
     }
 
     [Fact]
@@ -473,21 +533,6 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
-    public void Update_type_can_set_entity_values_and_where_key_by_convention()
-    {
-        var command = Db4NetDatabase
-            .Create(Db4NetOptions.SqlServer)
-            .Update<User>()
-            .Set(new User { Id = 1, Name = "Alice" })
-            .WhereKey(new User { Id = 1, Name = "Alice" })
-            .ToCommand();
-
-        Assert.Equal("UPDATE [Users] SET [Name] = @p0 WHERE [Id] = @p1", command.Sql);
-        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
-        Assert.Equal(1, command.Parameters.Get<int>("p1"));
-    }
-
-    [Fact]
     public void Update_entity_entry_point_sets_non_key_values_and_filters_by_key()
     {
         var command = Db4NetDatabase
@@ -501,6 +546,19 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Update_entity_entry_point_can_override_target_table()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Update(new User { Id = 1, Name = "Alice" }, table: "users_2026")
+            .ToCommand();
+
+        Assert.Equal("UPDATE [users_2026] SET [Name] = @p0 WHERE [Id] = @p1", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal(1, command.Parameters.Get<int>("p1"));
+    }
+
+    [Fact]
     public void Delete_entity_entry_point_filters_by_key()
     {
         var command = Db4NetDatabase
@@ -509,6 +567,18 @@ public sealed class CommandBuilderTests
             .ToCommand();
 
         Assert.Equal("DELETE FROM [Users] WHERE [Id] = @p0", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+    }
+
+    [Fact]
+    public void Delete_entity_entry_point_can_override_target_table()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Delete(new User { Id = 1, Name = "Alice" }, table: "users_2026")
+            .ToCommand();
+
+        Assert.Equal("DELETE FROM [users_2026] WHERE [Id] = @p0", command.Sql);
         Assert.Equal(1, command.Parameters.Get<int>("p0"));
     }
 
@@ -530,9 +600,7 @@ public sealed class CommandBuilderTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
-            .Update<KeyedUser>()
-            .Set(new KeyedUser { TenantUserId = 42, Id = 7, Name = "Alice" })
-            .WhereKey(new KeyedUser { TenantUserId = 42, Id = 7, Name = "Alice" })
+            .Update(new KeyedUser { TenantUserId = 42, Id = 7, Name = "Alice" })
             .ToCommand();
 
         Assert.Equal("UPDATE [tenant_users] SET [Id] = @p0, [Name] = @p1 WHERE [tenant_user_id] = @p2", command.Sql);
@@ -547,9 +615,7 @@ public sealed class CommandBuilderTests
         var ex = Assert.Throws<InvalidOperationException>(() =>
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
-                .Update<NoKeyUser>()
-                .Set(new NoKeyUser { Name = "Alice" })
-                .WhereKey(new NoKeyUser { Name = "Alice" })
+                .Update(new NoKeyUser { Name = "Alice" })
                 .ToCommand());
 
         Assert.Contains("does not have a key", ex.Message);
@@ -561,9 +627,7 @@ public sealed class CommandBuilderTests
         var ex = Assert.Throws<InvalidOperationException>(() =>
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
-                .Update<CompositeKeyUser>()
-                .Set(new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" })
-                .WhereKey(new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" })
+                .Update(new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" })
                 .ToCommand());
 
         Assert.Contains("Composite keys are not supported", ex.Message);
@@ -574,9 +638,7 @@ public sealed class CommandBuilderTests
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
-            .Update<ConventionUser>()
-            .Set(new ConventionUser { ConventionUserId = 5, Name = "Alice" })
-            .WhereKey(new ConventionUser { ConventionUserId = 5, Name = "Alice" })
+            .Update(new ConventionUser { ConventionUserId = 5, Name = "Alice" })
             .ToCommand();
 
         Assert.Equal("UPDATE [ConventionUser] SET [Name] = @p0 WHERE [ConventionUserId] = @p1", command.Sql);
@@ -604,9 +666,7 @@ public sealed class CommandBuilderTests
         var ex = Assert.Throws<InvalidOperationException>(() =>
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
-                .Update<User>()
-                .Set(new User { Id = 0, Name = "Alice" })
-                .WhereKey(new User { Id = 0, Name = "Alice" })
+                .Update(new User { Id = 0, Name = "Alice" })
                 .ToCommand());
 
         Assert.Contains("default key value", ex.Message);
@@ -631,12 +691,14 @@ public sealed class CommandBuilderTests
         var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
 
         Assert.Throws<ArgumentNullException>(() => database.InsertInto<User>().Values(null!));
-        Assert.Throws<ArgumentNullException>(() => database.Update<User>().Set(null!));
         Assert.Throws<ArgumentNullException>(() => database.Update<User>().WhereKey(null!));
         Assert.Throws<ArgumentNullException>(() => database.DeleteFrom<User>().WhereKey(null!));
         Assert.Throws<ArgumentNullException>(() => database.Insert<User>(null!));
+        Assert.Throws<ArgumentNullException>(() => database.Insert<User>(null!, table: "Users"));
         Assert.Throws<ArgumentNullException>(() => database.Update<User>(entity: null!));
+        Assert.Throws<ArgumentNullException>(() => database.Update<User>(entity: null!, table: "Users"));
         Assert.Throws<ArgumentNullException>(() => database.Delete<User>(null!));
+        Assert.Throws<ArgumentNullException>(() => database.Delete<User>(null!, table: "Users"));
     }
 
     [Table("Users")]
