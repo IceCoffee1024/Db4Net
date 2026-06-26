@@ -27,6 +27,10 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an AND filter using a CLR property name from <typeparamref name="T"/>.
     /// </summary>
+    /// <param name="propertyName">The mapped CLR property name to filter by.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to pass as a Dapper parameter. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> Where(string propertyName, Op op, object? value)
     {
         _filters.Add("AND", () => MapPropertyName(propertyName), op, value);
@@ -36,6 +40,9 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an AND null-check filter using a CLR property name from <typeparamref name="T"/>.
     /// </summary>
+    /// <param name="propertyName">The mapped CLR property name to filter by.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> Where(string propertyName, Op op)
     {
         _filters.AddValueFree("AND", () => MapPropertyName(propertyName), op);
@@ -45,6 +52,11 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an AND filter using a typed member selector.
     /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to pass as a Dapper parameter. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
         _filters.Add("AND", () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
@@ -54,6 +66,10 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an AND null-check filter using a typed member selector.
     /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.DeletedAt</c>.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
         _filters.AddValueFree("AND", () => ModelMetadataProvider.GetColumnName(memberSelector), op);
@@ -63,6 +79,10 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an OR filter using a CLR property name from <typeparamref name="T"/>.
     /// </summary>
+    /// <param name="propertyName">The mapped CLR property name to filter by.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to pass as a Dapper parameter. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> OrWhere(string propertyName, Op op, object? value)
     {
         _filters.Add("OR", () => MapPropertyName(propertyName), op, value);
@@ -72,6 +92,9 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an OR null-check filter using a CLR property name from <typeparamref name="T"/>.
     /// </summary>
+    /// <param name="propertyName">The mapped CLR property name to filter by.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> OrWhere(string propertyName, Op op)
     {
         _filters.AddValueFree("OR", () => MapPropertyName(propertyName), op);
@@ -81,6 +104,11 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an OR filter using a typed member selector.
     /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to pass as a Dapper parameter. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
         _filters.Add("OR", () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
@@ -90,6 +118,10 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an OR null-check filter using a typed member selector.
     /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.DeletedAt</c>.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
         _filters.AddValueFree("OR", () => ModelMetadataProvider.GetColumnName(memberSelector), op);
@@ -99,6 +131,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Allows rendering a DELETE statement without a WHERE clause.
     /// </summary>
+    /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> AllowAllRows()
     {
         _model.AllowAllRows = true;

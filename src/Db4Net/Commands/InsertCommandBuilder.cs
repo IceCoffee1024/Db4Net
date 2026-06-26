@@ -24,6 +24,9 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an INSERT value using a CLR property name from <typeparamref name="T"/>.
     /// </summary>
+    /// <param name="propertyName">The mapped CLR property name to insert.</param>
+    /// <param name="value">The value to pass as a Dapper parameter.</param>
+    /// <returns>The current command builder.</returns>
     public InsertCommandBuilder<T> Value(string propertyName, object? value)
     {
         _model.Values.Add(new AssignmentClause(MapPropertyName(propertyName), value));
@@ -33,6 +36,10 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
     /// <summary>
     /// Adds an INSERT value using a typed member selector.
     /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="value">The value to pass as a Dapper parameter.</param>
+    /// <returns>The current command builder.</returns>
     public InsertCommandBuilder<T> Value<TValue>(Expression<Func<T, TValue>> memberSelector, object? value)
     {
         _model.Values.Add(new AssignmentClause(ModelMetadataProvider.GetColumnName(memberSelector), value));

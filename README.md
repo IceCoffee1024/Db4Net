@@ -12,6 +12,8 @@ Current version: `0.1.0-alpha.1`
 
 The first alpha focuses on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders, mapped property selection, safe value parameters, Dapper-style terminal methods, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
+NuGet packages include XML documentation and a symbols package for source debugging.
+
 ## Install
 
 ```bash
@@ -29,6 +31,8 @@ var user = await connection
     .Where(u => u.Id, Op.Eq, 1)
     .QuerySingleOrDefaultAsync();
 ```
+
+The call above renders a parameterized command and executes it through Dapper. Use `Db4NetDatabase.Create(...)` instead when you only want to inspect generated SQL.
 
 Select specific mapped properties:
 
@@ -92,6 +96,24 @@ var affected = connection
 ```
 
 The table overload changes only the SQL target table. Property-to-column mapping still comes from `User`, and the table identifier is validated and quoted by the configured dialect.
+
+Inspect SQL without executing it:
+
+```csharp
+var command = Db4NetDatabase
+    .Create(Db4NetOptions.SqlServer)
+    .Select<User>(u => u.Id, u => u.Name)
+    .Where(u => u.Id, Op.Eq, 1)
+    .ToCommand();
+
+Console.WriteLine(command.Sql);
+```
+
+Output:
+
+```sql
+SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0
+```
 
 ## Mapping
 
@@ -165,6 +187,13 @@ dotnet test
 ```
 
 SQLite integration tests run by default with an in-memory database. PostgreSQL, MySQL, and SQL Server integration tests are opt-in through environment variables or a local runsettings file. See `tests/Db4Net.Tests/README.md`.
+
+Build and pack locally:
+
+```bash
+dotnet build -c Release
+dotnet pack src/Db4Net/Db4Net.csproj -c Release --no-build
+```
 
 ## License
 

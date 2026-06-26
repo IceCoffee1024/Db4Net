@@ -4,6 +4,8 @@ Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, param
 
 The API is intentionally SQL-shaped: `SelectFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
 
+Db4Net is not an ORM and does not try to become a LINQ provider.
+
 ## Install
 
 ```bash
@@ -104,6 +106,8 @@ var affected = connection
 ```
 
 `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")` only override the SQL target table. Property-to-column mapping still comes from `T`, and the table identifier is validated and quoted by the configured dialect.
+
+Use `SelectFrom<T>("view_or_table")` or `Select(...).From<T>("view_or_table")` when the SELECT target is a view, tenant table, or time-partitioned table but the column mapping still comes from `T`.
 
 ## Mapping
 
@@ -252,3 +256,5 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 ## Scope
 
 Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides are supported for safe SQL-shaped APIs, but joins, bulk operations, relationship loading, and full predicate expression translation are intentionally out of scope for this early version.
+
+For complex joins or database-specific SQL, use Dapper raw SQL directly or expose stable read models through database views.

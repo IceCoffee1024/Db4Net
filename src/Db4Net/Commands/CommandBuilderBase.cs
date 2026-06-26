@@ -25,6 +25,7 @@ public abstract class CommandBuilderBase
     /// <summary>
     /// Executes the rendered command through Dapper and returns the affected row count.
     /// </summary>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <returns>The affected row count returned by Dapper.</returns>
     public int Execute(Db4NetExecutionOptions? options = null)
     {
@@ -34,6 +35,8 @@ public abstract class CommandBuilderBase
     /// <summary>
     /// Asynchronously executes the rendered command through Dapper and returns the affected row count.
     /// </summary>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
     /// <returns>The affected row count returned by Dapper.</returns>
     public Task<int> ExecuteAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {

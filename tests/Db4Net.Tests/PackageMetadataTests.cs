@@ -21,6 +21,10 @@ public sealed class PackageMetadataTests
         Assert.Equal("https://github.com/IceCoffee1024/Db4Net.git", properties["RepositoryUrl"]);
         Assert.Equal("git", properties["RepositoryType"]);
         Assert.Equal("true", properties["GenerateDocumentationFile"]);
+        Assert.Equal("true", properties["PublishRepositoryUrl"]);
+        Assert.Equal("true", properties["EmbedUntrackedSources"]);
+        Assert.Equal("snupkg", properties["SymbolPackageFormat"]);
+        Assert.Equal("true", properties["IncludeSymbols"]);
     }
 
     private static string GetRepositoryRoot()

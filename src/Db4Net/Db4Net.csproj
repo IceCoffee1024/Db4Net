@@ -15,6 +15,10 @@
     <PackageProjectUrl>https://github.com/IceCoffee1024/Db4Net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/IceCoffee1024/Db4Net.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IncludeSymbols>true</IncludeSymbols>
   </PropertyGroup>
 
   <ItemGroup>
