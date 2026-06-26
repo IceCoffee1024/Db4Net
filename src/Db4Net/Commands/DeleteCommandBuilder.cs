@@ -13,7 +13,7 @@ namespace Db4Net.Commands;
 public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
 {
     private readonly DeleteCommandModel _model;
-    private readonly FilterBuilder _filters;
+    private readonly FilterClauseBuilder _filters;
     private readonly Db4NetOptions _options;
 
     internal DeleteCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table)
@@ -21,7 +21,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     {
         _options = options;
         _model = new DeleteCommandModel { Table = table };
-        _filters = new FilterBuilder(_model.Filters);
+        _filters = new FilterClauseBuilder(_model.Filters);
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     }
 
     /// <inheritdoc />
-    public override SqlCommandDefinition ToCommand()
+    public override RenderedSqlCommand ToCommand()
     {
         return new CommandSqlRenderer(_options.Dialect).Render(_model);
     }

@@ -11,7 +11,7 @@ public partial class SelectQueryBuilder
     /// </summary>
     /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
     /// <returns>The materialized rows.</returns>
-    public IEnumerable<TResult> Query<TResult>(Db4NetCommandOptions? options = null)
+    public IEnumerable<TResult> Query<TResult>(Db4NetExecutionOptions? options = null)
     {
         return RequireConnection().Query<TResult>(CreateDapperCommand(options));
     }
@@ -21,7 +21,7 @@ public partial class SelectQueryBuilder
     /// </summary>
     /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
     /// <returns>The materialized rows.</returns>
-    public Task<IEnumerable<TResult>> QueryAsync<TResult>(Db4NetCommandOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<TResult>> QueryAsync<TResult>(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         return RequireConnection().QueryAsync<TResult>(CreateDapperCommand(options, cancellationToken));
     }
@@ -31,7 +31,7 @@ public partial class SelectQueryBuilder
     /// </summary>
     /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
     /// <returns>The first materialized row, or the default value.</returns>
-    public TResult? QueryFirstOrDefault<TResult>(Db4NetCommandOptions? options = null)
+    public TResult? QueryFirstOrDefault<TResult>(Db4NetExecutionOptions? options = null)
     {
         return RequireConnection().QueryFirstOrDefault<TResult>(CreateDapperCommand(options));
     }
@@ -41,7 +41,7 @@ public partial class SelectQueryBuilder
     /// </summary>
     /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
     /// <returns>The first materialized row, or the default value.</returns>
-    public Task<TResult?> QueryFirstOrDefaultAsync<TResult>(Db4NetCommandOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<TResult?> QueryFirstOrDefaultAsync<TResult>(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         return RequireConnection().QueryFirstOrDefaultAsync<TResult>(CreateDapperCommand(options, cancellationToken));
     }
@@ -51,7 +51,7 @@ public partial class SelectQueryBuilder
     /// </summary>
     /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
     /// <returns>The single materialized row, or the default value.</returns>
-    public TResult? QuerySingleOrDefault<TResult>(Db4NetCommandOptions? options = null)
+    public TResult? QuerySingleOrDefault<TResult>(Db4NetExecutionOptions? options = null)
     {
         return RequireConnection().QuerySingleOrDefault<TResult>(CreateDapperCommand(options));
     }
@@ -61,12 +61,12 @@ public partial class SelectQueryBuilder
     /// </summary>
     /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
     /// <returns>The single materialized row, or the default value.</returns>
-    public Task<TResult?> QuerySingleOrDefaultAsync<TResult>(Db4NetCommandOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<TResult?> QuerySingleOrDefaultAsync<TResult>(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         return RequireConnection().QuerySingleOrDefaultAsync<TResult>(CreateDapperCommand(options, cancellationToken));
     }
 
-    private CommandDefinition CreateDapperCommand(Db4NetCommandOptions? options = null, CancellationToken cancellationToken = default)
+    private CommandDefinition CreateDapperCommand(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         var command = ToCommand();
         return new CommandDefinition(

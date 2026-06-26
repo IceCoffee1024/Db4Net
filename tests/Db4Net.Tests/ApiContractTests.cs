@@ -90,6 +90,16 @@ public sealed class ApiContractTests
         Assert.DoesNotContain(PublicInstanceMethods(typeof(Db4NetDatabase)), IsNonGenericStringOnlyCommandEntryPoint);
     }
 
+    [Fact]
+    public void Public_surface_uses_execution_options_and_rendered_sql_command_names()
+    {
+        var exportedTypes = typeof(Db4NetDatabase).Assembly.GetExportedTypes();
+
+        Assert.Contains(exportedTypes, type => type == typeof(Db4NetExecutionOptions));
+        Assert.Contains(exportedTypes, type => type == typeof(RenderedSqlCommand));
+        Assert.DoesNotContain(exportedTypes, type => type.Name is "Db4NetCommandOptions" or "SqlCommandDefinition");
+    }
+
     private static void AssertPublicInstanceMethods(Type type, params string[] methodNames)
     {
         var publicInstanceMethods = PublicInstanceMethods(type);

@@ -10,16 +10,16 @@ namespace Db4Net.Query;
 public partial class SelectQueryBuilder
 {
     private readonly IDbConnection? _connection;
-    private readonly FilterBuilder _filters;
-    private readonly QueryModel _model;
+    private readonly FilterClauseBuilder _filters;
+    private readonly SelectQueryModel _model;
     private readonly Db4NetOptions _options;
 
-    internal SelectQueryBuilder(Db4NetOptions options, IDbConnection? connection, QueryModel? model = null)
+    internal SelectQueryBuilder(Db4NetOptions options, IDbConnection? connection, SelectQueryModel? model = null)
     {
         _options = options;
         _connection = connection;
-        _model = model ?? new QueryModel();
-        _filters = new FilterBuilder(_model.Filters);
+        _model = model ?? new SelectQueryModel();
+        _filters = new FilterClauseBuilder(_model.Filters);
     }
 
     /// <summary>
@@ -209,9 +209,9 @@ public partial class SelectQueryBuilder
     /// Renders the SQL text and parameters without executing the query.
     /// </summary>
     /// <returns>The rendered SQL command definition.</returns>
-    public SqlCommandDefinition ToCommand()
+    public RenderedSqlCommand ToCommand()
     {
-        return new SqlRenderer(_options.Dialect).Render(_model);
+        return new SelectSqlRenderer(_options.Dialect).Render(_model);
     }
 
     internal SelectQueryBuilder AddSelectColumn(string column, string? alias = null)

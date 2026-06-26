@@ -1,6 +1,6 @@
 namespace Db4Net.Query;
 
-internal sealed class QueryModel
+internal sealed class SelectQueryModel
 {
     public List<SelectColumn> Columns { get; } = [];
 

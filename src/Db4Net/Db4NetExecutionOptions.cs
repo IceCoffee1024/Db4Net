@@ -5,7 +5,7 @@ namespace Db4Net;
 /// <summary>
 /// Configures options used when executing a rendered Db4Net command through Dapper.
 /// </summary>
-public sealed class Db4NetCommandOptions
+public sealed class Db4NetExecutionOptions
 {
     /// <summary>
     /// Gets or initializes the transaction used by Dapper.

@@ -4,16 +4,16 @@ using Db4Net.Query;
 
 namespace Db4Net.Rendering;
 
-internal sealed class SqlRenderer
+internal sealed class SelectSqlRenderer
 {
     private readonly ISqlDialect _dialect;
 
-    public SqlRenderer(ISqlDialect dialect)
+    public SelectSqlRenderer(ISqlDialect dialect)
     {
         _dialect = dialect;
     }
 
-    public SqlCommandDefinition Render(QueryModel model)
+    public RenderedSqlCommand Render(SelectQueryModel model)
     {
         if (string.IsNullOrWhiteSpace(model.Table))
         {
@@ -33,10 +33,10 @@ internal sealed class SqlRenderer
         RenderOrdering(sql, model);
         RenderPaging(sql, model, parameters);
 
-        return new SqlCommandDefinition(sql.ToString(), parameters.Parameters);
+        return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
     }
 
-    private string RenderColumns(QueryModel model)
+    private string RenderColumns(SelectQueryModel model)
     {
         if (model.Columns.Count == 0)
         {
@@ -57,7 +57,7 @@ internal sealed class SqlRenderer
         return $"{renderedColumn} AS {_dialect.QuoteIdentifier(column.Alias)}";
     }
 
-    private void RenderOrdering(StringBuilder sql, QueryModel model)
+    private void RenderOrdering(StringBuilder sql, SelectQueryModel model)
     {
         if (model.Orders.Count == 0)
         {
@@ -74,7 +74,7 @@ internal sealed class SqlRenderer
         sql.Append(string.Join(", ", orders));
     }
 
-    private void RenderPaging(StringBuilder sql, QueryModel model, SqlParameterWriter parameters)
+    private void RenderPaging(StringBuilder sql, SelectQueryModel model, SqlParameterWriter parameters)
     {
         if (model.Limit is null)
         {

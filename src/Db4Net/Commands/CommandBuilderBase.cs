@@ -20,13 +20,13 @@ public abstract class CommandBuilderBase
     /// Renders the SQL text and parameters without executing the command.
     /// </summary>
     /// <returns>The rendered SQL command definition.</returns>
-    public abstract SqlCommandDefinition ToCommand();
+    public abstract RenderedSqlCommand ToCommand();
 
     /// <summary>
     /// Executes the rendered command through Dapper and returns the affected row count.
     /// </summary>
     /// <returns>The affected row count returned by Dapper.</returns>
-    public int Execute(Db4NetCommandOptions? options = null)
+    public int Execute(Db4NetExecutionOptions? options = null)
     {
         return RequireConnection().Execute(CreateDapperCommand(options));
     }
@@ -35,12 +35,12 @@ public abstract class CommandBuilderBase
     /// Asynchronously executes the rendered command through Dapper and returns the affected row count.
     /// </summary>
     /// <returns>The affected row count returned by Dapper.</returns>
-    public Task<int> ExecuteAsync(Db4NetCommandOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<int> ExecuteAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         return RequireConnection().ExecuteAsync(CreateDapperCommand(options, cancellationToken));
     }
 
-    private CommandDefinition CreateDapperCommand(Db4NetCommandOptions? options = null, CancellationToken cancellationToken = default)
+    private CommandDefinition CreateDapperCommand(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         var command = ToCommand();
         return new CommandDefinition(

@@ -10,7 +10,7 @@ namespace Db4Net.Query;
 /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
 public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
 {
-    internal SelectQueryBuilder(Db4NetOptions options, IDbConnection? connection, QueryModel? model = null)
+    internal SelectQueryBuilder(Db4NetOptions options, IDbConnection? connection, SelectQueryModel? model = null)
         : base(options, connection, model)
     {
     }

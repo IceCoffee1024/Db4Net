@@ -1,13 +1,13 @@
 namespace Db4Net.Query;
 
-internal sealed class FilterBuilder
+internal sealed class FilterClauseBuilder
 {
-    public FilterBuilder()
+    public FilterClauseBuilder()
         : this([])
     {
     }
 
-    public FilterBuilder(List<FilterClause> filters)
+    public FilterClauseBuilder(List<FilterClause> filters)
     {
         ArgumentNullException.ThrowIfNull(filters);
         Filters = filters;

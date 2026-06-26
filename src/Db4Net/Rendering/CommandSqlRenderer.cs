@@ -13,7 +13,7 @@ internal sealed class CommandSqlRenderer
         _dialect = dialect;
     }
 
-    public SqlCommandDefinition Render(InsertCommandModel model)
+    public RenderedSqlCommand Render(InsertCommandModel model)
     {
         if (model.Values.Count == 0)
         {
@@ -25,10 +25,10 @@ internal sealed class CommandSqlRenderer
         var parameters = string.Join(", ", model.Values.Select(value => $"@{parameterWriter.Add(value.Value)}"));
         var sql = $"INSERT INTO {_dialect.QuoteIdentifier(model.Table)} ({columns}) VALUES ({parameters})";
 
-        return new SqlCommandDefinition(sql, parameterWriter.Parameters);
+        return new RenderedSqlCommand(sql, parameterWriter.Parameters);
     }
 
-    public SqlCommandDefinition Render(UpdateCommandModel model)
+    public RenderedSqlCommand Render(UpdateCommandModel model)
     {
         if (model.Assignments.Count == 0)
         {
@@ -51,10 +51,10 @@ internal sealed class CommandSqlRenderer
 
         filters.Render(sql, model.Filters);
 
-        return new SqlCommandDefinition(sql.ToString(), parameters.Parameters);
+        return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
     }
 
-    public SqlCommandDefinition Render(DeleteCommandModel model)
+    public RenderedSqlCommand Render(DeleteCommandModel model)
     {
         if (!model.AllowAllRows && model.Filters.Count == 0)
         {
@@ -70,6 +70,6 @@ internal sealed class CommandSqlRenderer
 
         filters.Render(sql, model.Filters);
 
-        return new SqlCommandDefinition(sql.ToString(), parameters.Parameters);
+        return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
     }
 }

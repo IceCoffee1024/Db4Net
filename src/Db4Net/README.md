@@ -216,7 +216,7 @@ INSERT, UPDATE, and DELETE builders provide command terminal methods:
 
 ## Execution Options
 
-Pass `Db4NetCommandOptions` when you need a transaction, command timeout, or command type:
+Pass `Db4NetExecutionOptions` when you need a transaction, command timeout, or command type:
 
 ```csharp
 using var transaction = connection.BeginTransaction();
@@ -225,7 +225,7 @@ var users = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectFrom<User>()
     .Where(u => u.Id, Op.Gt, 0)
-    .Query<User>(new Db4NetCommandOptions
+    .Query<User>(new Db4NetExecutionOptions
     {
         Transaction = transaction,
         CommandTimeout = 30
@@ -239,7 +239,7 @@ var users = await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
     .SelectFrom<User>()
     .QueryAsync<User>(
-        new Db4NetCommandOptions { CommandTimeout = 30 },
+        new Db4NetExecutionOptions { CommandTimeout = 30 },
         cancellationToken);
 ```
 

@@ -40,7 +40,7 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
     }
 
     /// <inheritdoc />
-    public override SqlCommandDefinition ToCommand()
+    public override RenderedSqlCommand ToCommand()
     {
         return new CommandSqlRenderer(_options.Dialect).Render(_model);
     }

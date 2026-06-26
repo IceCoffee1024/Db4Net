@@ -93,7 +93,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 3)
-            .QuerySingleOrDefault<User>(new Db4NetCommandOptions { Transaction = transaction });
+            .QuerySingleOrDefault<User>(new Db4NetExecutionOptions { Transaction = transaction });
 
         Assert.NotNull(user);
         Assert.Equal("Charlie", user.Name);
@@ -134,7 +134,7 @@ public sealed class SqliteIntegrationTests
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 1)
             .QuerySingleOrDefaultAsync<User>(
-                new Db4NetCommandOptions { Transaction = transaction },
+                new Db4NetExecutionOptions { Transaction = transaction },
                 CancellationToken.None);
 
         Assert.NotNull(user);
