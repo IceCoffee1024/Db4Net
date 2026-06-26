@@ -1,5 +1,6 @@
 using System.Data;
 using System.Linq.Expressions;
+using System.Threading;
 using Db4Net.Metadata;
 
 namespace Db4Net.Query;
@@ -274,6 +275,60 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     {
         base.Page(pageNumber, pageSize);
         return this;
+    }
+
+    /// <summary>
+    /// Executes the query through Dapper and returns all rows as <typeparamref name="T"/>.
+    /// </summary>
+    /// <returns>The materialized rows.</returns>
+    public IEnumerable<T> Query(Db4NetExecutionOptions? options = null)
+    {
+        return base.Query<T>(options);
+    }
+
+    /// <summary>
+    /// Asynchronously executes the query through Dapper and returns all rows as <typeparamref name="T"/>.
+    /// </summary>
+    /// <returns>The materialized rows.</returns>
+    public Task<IEnumerable<T>> QueryAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return base.QueryAsync<T>(options, cancellationToken);
+    }
+
+    /// <summary>
+    /// Executes the query through Dapper and returns the first row as <typeparamref name="T"/>, or the default value if no row exists.
+    /// </summary>
+    /// <returns>The first materialized row, or the default value.</returns>
+    public T? QueryFirstOrDefault(Db4NetExecutionOptions? options = null)
+    {
+        return base.QueryFirstOrDefault<T>(options);
+    }
+
+    /// <summary>
+    /// Asynchronously executes the query through Dapper and returns the first row as <typeparamref name="T"/>, or the default value if no row exists.
+    /// </summary>
+    /// <returns>The first materialized row, or the default value.</returns>
+    public Task<T?> QueryFirstOrDefaultAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return base.QueryFirstOrDefaultAsync<T>(options, cancellationToken);
+    }
+
+    /// <summary>
+    /// Executes the query through Dapper and returns a single row as <typeparamref name="T"/>, or the default value if no row exists.
+    /// </summary>
+    /// <returns>The single materialized row, or the default value.</returns>
+    public T? QuerySingleOrDefault(Db4NetExecutionOptions? options = null)
+    {
+        return base.QuerySingleOrDefault<T>(options);
+    }
+
+    /// <summary>
+    /// Asynchronously executes the query through Dapper and returns a single row as <typeparamref name="T"/>, or the default value if no row exists.
+    /// </summary>
+    /// <returns>The single materialized row, or the default value.</returns>
+    public Task<T?> QuerySingleOrDefaultAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return base.QuerySingleOrDefaultAsync<T>(options, cancellationToken);
     }
 
     private void AddMappedSelectColumn(string propertyName)

@@ -17,7 +17,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 2)
-            .QuerySingleOrDefault<User>();
+            .QuerySingleOrDefault();
 
         Assert.NotNull(user);
         Assert.Equal(2, user.Id);
@@ -33,7 +33,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 2)
-            .QuerySingleOrDefaultAsync<User>();
+            .QuerySingleOrDefaultAsync();
 
         Assert.NotNull(user);
         Assert.Equal(2, user.Id);
@@ -50,7 +50,7 @@ public sealed class SqliteIntegrationTests
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Gt, 0)
             .OrderBy(u => u.Id)
-            .Query<User>()
+            .Query()
             .ToList();
 
         Assert.Collection(
@@ -69,7 +69,7 @@ public sealed class SqliteIntegrationTests
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Gt, 0)
             .OrderBy(u => u.Id)
-            .QueryAsync<User>())
+            .QueryAsync())
             .ToList();
 
         Assert.Collection(
@@ -93,7 +93,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 3)
-            .QuerySingleOrDefault<User>(new Db4NetExecutionOptions { Transaction = transaction });
+            .QuerySingleOrDefault(new Db4NetExecutionOptions { Transaction = transaction });
 
         Assert.NotNull(user);
         Assert.Equal("Charlie", user.Name);
@@ -104,7 +104,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 3)
-            .QuerySingleOrDefault<User>();
+            .QuerySingleOrDefault();
 
         Assert.Null(afterRollback);
     }
@@ -120,7 +120,7 @@ public sealed class SqliteIntegrationTests
             connection
                 .UseDb4Net(Db4NetOptions.Sqlite)
                 .SelectFrom<User>()
-                .QueryAsync<User>(cancellationToken: cancellation.Token));
+                .QueryAsync(cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 1)
-            .QuerySingleOrDefaultAsync<User>(
+            .QuerySingleOrDefaultAsync(
                 new Db4NetExecutionOptions { Transaction = transaction },
                 CancellationToken.None);
 
@@ -150,7 +150,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 99)
-            .QueryFirstOrDefault<User>();
+            .QueryFirstOrDefault();
 
         Assert.Null(user);
     }
@@ -164,7 +164,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 99)
-            .QueryFirstOrDefaultAsync<User>();
+            .QueryFirstOrDefaultAsync();
 
         Assert.Null(user);
     }
@@ -185,7 +185,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 3)
-            .QuerySingleOrDefault<User>();
+            .QuerySingleOrDefault();
 
         Assert.Equal(1, affected);
         Assert.NotNull(user);
@@ -208,7 +208,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 1)
-            .QuerySingleOrDefault<User>();
+            .QuerySingleOrDefault();
 
         Assert.Equal(1, affected);
         Assert.NotNull(user);
@@ -230,7 +230,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<User>()
             .Where(u => u.Id, Op.Eq, 1)
-            .QuerySingleOrDefaultAsync<User>();
+            .QuerySingleOrDefaultAsync();
 
         Assert.Equal(1, affected);
         Assert.Null(user);
@@ -256,7 +256,7 @@ public sealed class SqliteIntegrationTests
 
         var user = db
             .SelectFrom<MappedUser>("app_users_staging")
-            .QuerySingleOrDefault<MappedUser>();
+            .QuerySingleOrDefault();
 
         var deleted = db
             .DeleteFrom<MappedUser>("app_users_staging")
@@ -265,7 +265,7 @@ public sealed class SqliteIntegrationTests
 
         var afterDelete = db
             .SelectFrom<MappedUser>("app_users_staging")
-            .QuerySingleOrDefault<MappedUser>();
+            .QuerySingleOrDefault();
 
         Assert.Equal(1, inserted);
         Assert.Equal(1, updated);
@@ -283,7 +283,7 @@ public sealed class SqliteIntegrationTests
         var user = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
             .Select<MappedUser>(u => u.DisplayName)
-            .QuerySingleOrDefault<MappedUser>();
+            .QuerySingleOrDefault();
 
         Assert.NotNull(user);
         Assert.Equal("Alice", user.DisplayName);
@@ -297,7 +297,7 @@ public sealed class SqliteIntegrationTests
         var user = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<MappedUser>()
-            .QuerySingleOrDefault<MappedUser>();
+            .QuerySingleOrDefault();
 
         Assert.NotNull(user);
         Assert.Equal(1, user.Id);
@@ -313,7 +313,7 @@ public sealed class SqliteIntegrationTests
         var user = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectFrom<MappedUser>()
-            .QuerySingleOrDefault<MappedUser>();
+            .QuerySingleOrDefault();
 
         Assert.NotNull(user);
         Assert.Equal("", user.Ignored);

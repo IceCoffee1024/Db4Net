@@ -19,7 +19,7 @@ var user = await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
     .SelectFrom<User>()
     .Where(u => u.Id, Op.Eq, 1)
-    .QuerySingleOrDefaultAsync<User>();
+    .QuerySingleOrDefaultAsync();
 ```
 
 ## Recommended APIs
@@ -32,7 +32,7 @@ var users = connection
     .SelectFrom<User>()
     .Where(u => u.Name, Op.Like, "A%")
     .OrderBy(u => u.Id)
-    .Query<User>();
+    .Query();
 ```
 
 Use `Select<T>(...)` when querying specific mapped properties:
@@ -42,7 +42,7 @@ var users = connection
     .UseDb4Net(Db4NetOptions.Sqlite)
     .Select<User>(u => u.Id, u => u.Name)
     .Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
-    .Query<User>();
+    .Query();
 ```
 
 Use dynamic CLR property names when the column set is dynamic but the result model is known, such as user-selected grid columns, dynamic forms, export templates, or field-level permissions:
@@ -53,7 +53,7 @@ var rows = connection
     .Select("Id", "Name")
     .From<User>()
     .Where("Name", Op.IsNotNull)
-    .Query<User>();
+    .Query();
 ```
 
 String fields are CLR property names, not database column names or SQL fragments. They are validated against the mapped CLR model and converted to database column names. For example, use `"DisplayName"` rather than `"display_name"` when `[Column("display_name")]` is applied. Table or view names can be overridden with `SelectFrom<T>("view_name")` or `From<T>("view_name")`; those identifiers are validated and quoted by the configured dialect. Values are always passed as Dapper parameters.
@@ -153,7 +153,7 @@ var page = connection
     .SelectFrom<User>()
     .OrderBy(u => u.Id)
     .Page(pageNumber: 2, pageSize: 20)
-    .Query<User>();
+    .Query();
 ```
 
 Db4Net renders paging through the configured dialect:
@@ -200,14 +200,16 @@ UPDATE [Users] SET [Name] = @p0 WHERE [Id] = @p1
 
 ## Terminal Methods
 
-SELECT builders provide Dapper-style query terminal methods:
+Typed SELECT builders provide Dapper-style query terminal methods that materialize the bound CLR model:
 
-- `Query<T>()`
-- `QueryFirstOrDefault<T>()`
-- `QuerySingleOrDefault<T>()`
-- `QueryAsync<T>()`
-- `QueryFirstOrDefaultAsync<T>()`
-- `QuerySingleOrDefaultAsync<T>()`
+- `Query()`
+- `QueryFirstOrDefault()`
+- `QuerySingleOrDefault()`
+- `QueryAsync()`
+- `QueryFirstOrDefaultAsync()`
+- `QuerySingleOrDefaultAsync()`
+
+The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()` for advanced materialization scenarios.
 
 INSERT, UPDATE, and DELETE builders provide command terminal methods:
 
@@ -225,7 +227,7 @@ var users = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectFrom<User>()
     .Where(u => u.Id, Op.Gt, 0)
-    .Query<User>(new Db4NetExecutionOptions
+    .Query(new Db4NetExecutionOptions
     {
         Transaction = transaction,
         CommandTimeout = 30
@@ -238,7 +240,7 @@ Async terminal methods also accept a `CancellationToken`:
 var users = await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
     .SelectFrom<User>()
-    .QueryAsync<User>(
+    .QueryAsync(
         new Db4NetExecutionOptions { CommandTimeout = 30 },
         cancellationToken);
 ```

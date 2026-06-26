@@ -27,7 +27,7 @@ var user = await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
     .SelectFrom<User>()
     .Where(u => u.Id, Op.Eq, 1)
-    .QuerySingleOrDefaultAsync<User>();
+    .QuerySingleOrDefaultAsync();
 ```
 
 Select specific mapped properties:
@@ -38,7 +38,7 @@ var users = connection
     .Select<User>(u => u.Id, u => u.Name)
     .Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
     .OrderBy(u => u.Id)
-    .Query<User>();
+    .Query();
 ```
 
 Use dynamic CLR property names when the result model is known, such as user-selected grid columns, dynamic forms, export templates, or field-level permissions:
@@ -49,7 +49,7 @@ var rows = connection
     .Select("Id", "Name")
     .From<User>()
     .Where("Name", Op.IsNotNull)
-    .Query<User>();
+    .Query();
 ```
 
 String fields are CLR property names, not database column names or SQL fragments. They are validated against the mapped CLR model and converted to quoted database column names. For example, use `"DisplayName"` rather than `"display_name"` when `[Column("display_name")]` is applied. Values are always passed as Dapper parameters.

@@ -24,7 +24,7 @@ public sealed class SqlServerIntegrationTests
                 .UseDb4Net(Db4NetOptions.SqlServer)
                 .SelectFrom<User>(table)
                 .Where(u => u.Id, Op.Eq, 2)
-                .QuerySingleOrDefaultAsync<User>();
+                .QuerySingleOrDefaultAsync();
 
             Assert.NotNull(user);
             Assert.Equal(2, user.Id);
@@ -53,7 +53,7 @@ public sealed class SqlServerIntegrationTests
                 .UseDb4Net(Db4NetOptions.SqlServer)
                 .Select("DisplayName")
                 .From<MappedUser>(table)
-                .QuerySingleOrDefaultAsync<MappedUser>();
+                .QuerySingleOrDefaultAsync();
 
             Assert.NotNull(user);
             Assert.Equal("Alice", user.DisplayName);
@@ -83,7 +83,7 @@ public sealed class SqlServerIntegrationTests
                 .OrderBy(u => u.Id)
                 .Offset(1)
                 .Limit(1)
-                .QueryAsync<User>())
+                .QueryAsync())
                 .ToList();
 
             var user = Assert.Single(users);

@@ -40,7 +40,7 @@ public sealed class ApiContractTests
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
                 .SelectFrom<User>()
-                .QueryAsync<User>());
+                .QueryAsync());
 
         Assert.Contains("Dapper execution requires an IDbConnection", ex.Message);
     }
@@ -64,6 +64,19 @@ public sealed class ApiContractTests
     public void Select_query_builder_does_not_expose_execute_methods()
     {
         Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectQueryBuilder)), method => method.Name is "Execute" or "ExecuteAsync");
+    }
+
+    [Fact]
+    public void Typed_select_query_builder_exposes_typed_terminal_methods()
+    {
+        AssertPublicNonGenericInstanceMethods(
+            typeof(SelectQueryBuilder<>),
+            "Query",
+            "QueryAsync",
+            "QueryFirstOrDefault",
+            "QueryFirstOrDefaultAsync",
+            "QuerySingleOrDefault",
+            "QuerySingleOrDefaultAsync");
     }
 
     [Fact]
@@ -107,6 +120,16 @@ public sealed class ApiContractTests
         foreach (var methodName in methodNames)
         {
             Assert.Contains(publicInstanceMethods, method => method.Name == methodName);
+        }
+    }
+
+    private static void AssertPublicNonGenericInstanceMethods(Type type, params string[] methodNames)
+    {
+        var publicInstanceMethods = PublicInstanceMethods(type);
+
+        foreach (var methodName in methodNames)
+        {
+            Assert.Contains(publicInstanceMethods, method => method.Name == methodName && !method.IsGenericMethod);
         }
     }
 

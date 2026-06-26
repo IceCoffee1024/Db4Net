@@ -371,7 +371,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
                 .SelectFrom<User>()
-                .Query<User>()
+                .Query()
                 .ToList());
 
         Assert.Contains("Dapper execution requires an IDbConnection", ex.Message);
