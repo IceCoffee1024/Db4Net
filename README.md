@@ -4,6 +4,8 @@ Db4Net is a lightweight fluent SQL builder for safe, parameterized Dapper querie
 
 It is designed for developers who want more structure than hand-written SQL string concatenation, while still keeping Dapper in charge of execution and object mapping. Db4Net is not an ORM and does not try to become a LINQ provider.
 
+The API is intentionally SQL-shaped: `SelectFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
+
 ## Status
 
 Current version: `0.1.0-alpha.1`
@@ -39,7 +41,7 @@ var users = connection
     .Query<User>();
 ```
 
-Use dynamic property names when the result model is known:
+Use dynamic CLR property names when the result model is known, such as user-selected grid columns, dynamic forms, export templates, or field-level permissions:
 
 ```csharp
 var rows = connection
@@ -50,7 +52,7 @@ var rows = connection
     .Query<User>();
 ```
 
-String property names are validated against the mapped CLR model and converted to quoted database column names. Values are always passed as Dapper parameters.
+String fields are CLR property names, not database column names or SQL fragments. They are validated against the mapped CLR model and converted to quoted database column names. For example, use `"DisplayName"` rather than `"display_name"` when `[Column("display_name")]` is applied. Values are always passed as Dapper parameters.
 
 Insert, update, and delete rows with command builders:
 
@@ -77,6 +79,19 @@ var deleted = await connection
 ```
 
 `UPDATE` and `DELETE` require a `WHERE` clause by default. Call `AllowAllRows()` only when intentionally affecting every row.
+
+Override command target tables when the CLR model mapping is reused for tenant, time-partitioned, staging, or archive tables:
+
+```csharp
+var affected = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .Update<User>("users_tenant_001")
+    .Set(u => u.Name, "Alice")
+    .Where(u => u.Id, Op.Eq, 1)
+    .Execute();
+```
+
+The table overload changes only the SQL target table. Property-to-column mapping still comes from `User`, and the table identifier is validated and quoted by the configured dialect.
 
 ## Mapping
 
@@ -119,6 +134,7 @@ Included in the current alpha:
 
 - Typed `SELECT` builders
 - Typed `INSERT`, `UPDATE`, and `DELETE` builders
+- SQL-shaped command target overrides such as `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")`
 - Dynamic property-name projection with model validation
 - `Where`, `OrWhere`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders

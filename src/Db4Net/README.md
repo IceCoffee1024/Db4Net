@@ -2,6 +2,8 @@
 
 Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, parameterized single-table queries and commands while leaving execution and SELECT result materialization to Dapper.
 
+The API is intentionally SQL-shaped: `SelectFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
+
 ## Install
 
 ```bash
@@ -43,7 +45,7 @@ var users = connection
     .Query<User>();
 ```
 
-Use string property names when the column set is dynamic but the result model is known:
+Use dynamic CLR property names when the column set is dynamic but the result model is known, such as user-selected grid columns, dynamic forms, export templates, or field-level permissions:
 
 ```csharp
 var rows = connection
@@ -54,7 +56,7 @@ var rows = connection
     .Query<User>();
 ```
 
-String property names are validated against the mapped CLR model and converted to database column names. Table or view names can be overridden with `SelectFrom<T>("view_name")` or `From<T>("view_name")`; those identifiers are validated and quoted by the configured dialect. Values are always passed as Dapper parameters.
+String fields are CLR property names, not database column names or SQL fragments. They are validated against the mapped CLR model and converted to database column names. For example, use `"DisplayName"` rather than `"display_name"` when `[Column("display_name")]` is applied. Table or view names can be overridden with `SelectFrom<T>("view_name")` or `From<T>("view_name")`; those identifiers are validated and quoted by the configured dialect. Values are always passed as Dapper parameters.
 
 Use `InsertInto<T>()` when inserting explicit mapped properties:
 
@@ -89,6 +91,19 @@ var affected = await connection
 ```
 
 `UPDATE` and `DELETE` require a `WHERE` clause by default. Call `AllowAllRows()` only when intentionally affecting every row.
+
+Use command table overloads when the same CLR model maps to tenant, time-partitioned, staging, or archive tables:
+
+```csharp
+var affected = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .Update<User>("users_tenant_001")
+    .Set(u => u.Name, "Alice")
+    .Where(u => u.Id, Op.Eq, 1)
+    .Execute();
+```
+
+`InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")` only override the SQL target table. Property-to-column mapping still comes from `T`, and the table identifier is validated and quoted by the configured dialect.
 
 ## Mapping
 
@@ -234,4 +249,4 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Joins, bulk operations, relationship loading, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides are supported for safe SQL-shaped APIs, but joins, bulk operations, relationship loading, and full predicate expression translation are intentionally out of scope for this early version.
