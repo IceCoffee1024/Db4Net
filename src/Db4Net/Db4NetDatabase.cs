@@ -1,11 +1,13 @@
 using System.Data;
 using System.Linq.Expressions;
+using Db4Net.Commands;
+using Db4Net.Metadata;
 using Db4Net.Query;
 
 namespace Db4Net;
 
 /// <summary>
-/// Entry point for creating Db4Net select query builders.
+/// Entry point for creating Db4Net query and command builders.
 /// </summary>
 public sealed class Db4NetDatabase
 {
@@ -19,7 +21,7 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
-    /// Creates a Db4Net facade that can build SQL commands without executing them.
+    /// Creates a Db4Net facade that can build SQL without executing it.
     /// </summary>
     /// <param name="options">The SQL generation options to use.</param>
     /// <returns>A Db4Net facade for building queries.</returns>
@@ -86,5 +88,35 @@ public sealed class Db4NetDatabase
     public SelectQueryBuilder<T> SelectFrom<T>(string table)
     {
         return new SelectQueryBuilder(_options, _connection).From<T>(table).SelectAllMappedColumns();
+    }
+
+    /// <summary>
+    /// Starts an INSERT command using the table mapped from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <returns>An insert command builder.</returns>
+    public InsertCommandBuilder<T> InsertInto<T>()
+    {
+        return new InsertCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
+    }
+
+    /// <summary>
+    /// Starts an UPDATE command using the table mapped from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <returns>An update command builder.</returns>
+    public UpdateCommandBuilder<T> Update<T>()
+    {
+        return new UpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
+    }
+
+    /// <summary>
+    /// Starts a DELETE command using the table mapped from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <returns>A delete command builder.</returns>
+    public DeleteCommandBuilder<T> DeleteFrom<T>()
+    {
+        return new DeleteCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
     }
 }

@@ -1,6 +1,6 @@
 # Db4Net
 
-Db4Net is a lightweight fluent SQL builder for safe, parameterized Dapper `SELECT` queries.
+Db4Net is a lightweight fluent SQL builder for safe, parameterized Dapper queries and commands.
 
 It is designed for developers who want more structure than hand-written SQL string concatenation, while still keeping Dapper in charge of execution and object mapping. Db4Net is not an ORM and does not try to become a LINQ provider.
 
@@ -8,7 +8,7 @@ It is designed for developers who want more structure than hand-written SQL stri
 
 Current version: `0.1.0-alpha.1`
 
-The first alpha focuses on typed `SELECT` builders, mapped property selection, safe value parameters, Dapper-style terminal methods, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
+The first alpha focuses on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders, mapped property selection, safe value parameters, Dapper-style terminal methods, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
 ## Install
 
@@ -52,6 +52,32 @@ var rows = connection
 
 String property names are validated against the mapped CLR model and converted to quoted database column names. Values are always passed as Dapper parameters.
 
+Insert, update, and delete rows with command builders:
+
+```csharp
+var inserted = await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .InsertInto<User>()
+    .Value(u => u.Id, 3)
+    .Value(u => u.Name, "Charlie")
+    .ExecuteAsync();
+
+var updated = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .Update<User>()
+    .Set(u => u.Name, "Alice")
+    .Where(u => u.Id, Op.Eq, 1)
+    .Execute();
+
+var deleted = await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .DeleteFrom<User>()
+    .Where(u => u.Id, Op.Eq, 1)
+    .ExecuteAsync();
+```
+
+`UPDATE` and `DELETE` require a `WHERE` clause by default. Call `AllowAllRows()` only when intentionally affecting every row.
+
 ## Mapping
 
 Db4Net supports standard mapping attributes:
@@ -92,15 +118,17 @@ Db4Net handles identifier quoting and paging syntax through the configured diale
 Included in the current alpha:
 
 - Typed `SELECT` builders
+- Typed `INSERT`, `UPDATE`, and `DELETE` builders
 - Dynamic property-name projection with model validation
 - `Where`, `OrWhere`, `OrderBy`, `Limit`, `Offset`, and `Page`
-- Sync and async Dapper-style terminal methods
+- `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders
+- Sync and async Dapper-style query terminal methods
 - Transaction, command timeout, command type, and async cancellation token support
 
 Intentionally out of scope for now:
 
 - Joins
-- Inserts, updates, and deletes
+- Bulk operations
 - Full predicate expression translation such as `Where(u => u.Id == 1)`
 - Full LINQ provider behavior
 

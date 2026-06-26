@@ -170,31 +170,70 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
-    public void Execute_runs_rendered_command_with_dapper()
+    public void Insert_command_executes_parameterized_sql_with_dapper()
     {
         using var connection = CreateOpenConnection();
 
         var affected = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
-            .SelectFrom<User>()
-            .Where(u => u.Id, Op.Eq, 1)
+            .InsertInto<User>()
+            .Value(u => u.Id, 3)
+            .Value(u => u.Name, "Charlie")
             .Execute();
 
-        Assert.Equal(-1, affected);
+        var user = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault<User>();
+
+        Assert.Equal(1, affected);
+        Assert.NotNull(user);
+        Assert.Equal("Charlie", user.Name);
     }
 
     [Fact]
-    public async Task Execute_async_runs_rendered_command_with_dapper()
+    public void Update_command_executes_parameterized_sql_with_dapper()
+    {
+        using var connection = CreateOpenConnection();
+
+        var affected = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .Update<User>()
+            .Set(u => u.Name, "Alicia")
+            .Where(u => u.Id, Op.Eq, 1)
+            .Execute();
+
+        var user = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .QuerySingleOrDefault<User>();
+
+        Assert.Equal(1, affected);
+        Assert.NotNull(user);
+        Assert.Equal("Alicia", user.Name);
+    }
+
+    [Fact]
+    public async Task Delete_command_async_executes_parameterized_sql_with_dapper()
     {
         await using var connection = CreateOpenConnection();
 
         var affected = await connection
             .UseDb4Net(Db4NetOptions.Sqlite)
-            .SelectFrom<User>()
+            .DeleteFrom<User>()
             .Where(u => u.Id, Op.Eq, 1)
             .ExecuteAsync();
 
-        Assert.Equal(-1, affected);
+        var user = await connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .QuerySingleOrDefaultAsync<User>();
+
+        Assert.Equal(1, affected);
+        Assert.Null(user);
     }
 
     [Fact]

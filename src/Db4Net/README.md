@@ -1,6 +1,6 @@
 # Db4Net
 
-Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, parameterized `SELECT` queries while leaving execution and object mapping to Dapper.
+Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, parameterized single-table queries and commands while leaving execution and SELECT result materialization to Dapper.
 
 ## Install
 
@@ -56,6 +56,40 @@ var rows = connection
 
 String property names are validated against the mapped CLR model and converted to database column names. Table or view names can be overridden with `SelectFrom<T>("view_name")` or `From<T>("view_name")`; those identifiers are validated and quoted by the configured dialect. Values are always passed as Dapper parameters.
 
+Use `InsertInto<T>()` when inserting explicit mapped properties:
+
+```csharp
+var affected = await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .InsertInto<User>()
+    .Value(u => u.Id, 3)
+    .Value(u => u.Name, "Charlie")
+    .ExecuteAsync();
+```
+
+Use `Update<T>()` with `Set(...)` and an explicit filter:
+
+```csharp
+var affected = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .Update<User>()
+    .Set(u => u.Name, "Alice")
+    .Where(u => u.Id, Op.Eq, 1)
+    .Execute();
+```
+
+Use `DeleteFrom<T>()` with an explicit filter:
+
+```csharp
+var affected = await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .DeleteFrom<User>()
+    .Where(u => u.Id, Op.Eq, 1)
+    .ExecuteAsync();
+```
+
+`UPDATE` and `DELETE` require a `WHERE` clause by default. Call `AllowAllRows()` only when intentionally affecting every row.
+
 ## Mapping
 
 Db4Net supports standard mapping attributes:
@@ -82,7 +116,7 @@ Typed projections alias mapped columns so Dapper can map results back to propert
 SELECT [Id], [display_name] AS [Name] FROM [app_users]
 ```
 
-`[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, and `OrderBy` member selectors.
+`[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, `OrderBy`, `Value`, and `Set` member selectors.
 
 ## Filters
 
@@ -132,17 +166,37 @@ Output:
 SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0
 ```
 
+Command builders also support `ToCommand()`:
+
+```csharp
+var command = Db4NetDatabase
+    .Create(Db4NetOptions.SqlServer)
+    .Update<User>()
+    .Set(u => u.Name, "Alice")
+    .Where(u => u.Id, Op.Eq, 1)
+    .ToCommand();
+```
+
+Output:
+
+```sql
+UPDATE [Users] SET [Name] = @p0 WHERE [Id] = @p1
+```
+
 ## Terminal Methods
 
-Db4Net provides Dapper-style terminal methods:
+SELECT builders provide Dapper-style query terminal methods:
 
 - `Query<T>()`
 - `QueryFirstOrDefault<T>()`
 - `QuerySingleOrDefault<T>()`
-- `Execute()`
 - `QueryAsync<T>()`
 - `QueryFirstOrDefaultAsync<T>()`
 - `QuerySingleOrDefaultAsync<T>()`
+
+INSERT, UPDATE, and DELETE builders provide command terminal methods:
+
+- `Execute()`
 - `ExecuteAsync()`
 
 ## Execution Options
@@ -180,4 +234,4 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed `SELECT` builders and dynamic property-name projection for SQL Server, SQLite, PostgreSQL, and MySQL. Joins, inserts, updates, deletes, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Joins, bulk operations, relationship loading, and full predicate expression translation are intentionally out of scope for this early version.

@@ -279,24 +279,6 @@ public class SelectQueryBuilder
         return RequireConnection().QuerySingleOrDefaultAsync<TResult>(CreateDapperCommand(options, cancellationToken));
     }
 
-    /// <summary>
-    /// Executes the rendered command through Dapper and returns the affected row count.
-    /// </summary>
-    /// <returns>The affected row count returned by Dapper.</returns>
-    public int Execute(Db4NetCommandOptions? options = null)
-    {
-        return RequireConnection().Execute(CreateDapperCommand(options));
-    }
-
-    /// <summary>
-    /// Asynchronously executes the rendered command through Dapper and returns the affected row count.
-    /// </summary>
-    /// <returns>The affected row count returned by Dapper.</returns>
-    public Task<int> ExecuteAsync(Db4NetCommandOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        return RequireConnection().ExecuteAsync(CreateDapperCommand(options, cancellationToken));
-    }
-
     private CommandDefinition CreateDapperCommand(Db4NetCommandOptions? options = null, CancellationToken cancellationToken = default)
     {
         var command = ToCommand();
