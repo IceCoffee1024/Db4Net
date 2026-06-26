@@ -176,11 +176,7 @@ var users = await connection
 
 ## Tests
 
-SQLite integration tests run by default with an in-memory database. PostgreSQL, MySQL, and SQL Server integration tests are opt-in and skipped unless these environment variables are set:
-
-- `DB4NET_POSTGRESQL_CONNECTION_STRING`
-- `DB4NET_MYSQL_CONNECTION_STRING`
-- `DB4NET_SQLSERVER_CONNECTION_STRING`
+SQLite integration tests run by default with an in-memory database. PostgreSQL, MySQL, and SQL Server integration tests are opt-in; see `tests/Db4Net.Tests/README.md` for local `dotnet test --settings tests\Db4Net.Tests\local.runsettings` usage.
 
 ## Scope
 

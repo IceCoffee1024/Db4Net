@@ -9,6 +9,9 @@ TestResults/
 *.coveragexml
 coverage.cobertura.xml
 
+# Local test settings may contain database credentials
+local.runsettings
+
 # NuGet packages
 *.nupkg
 *.snupkg
