@@ -237,6 +237,45 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Command_table_overrides_execute_against_explicit_tables_with_model_mapping()
+    {
+        using var connection = CreateOpenShardedConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var inserted = db
+            .InsertInto<MappedUser>("app_users_staging")
+            .Value(u => u.Id, 1)
+            .Value(u => u.DisplayName, "Alice")
+            .Execute();
+
+        var updated = db
+            .Update<MappedUser>("app_users_staging")
+            .Set(u => u.DisplayName, "Alicia")
+            .Where(u => u.Id, Op.Eq, 1)
+            .Execute();
+
+        var user = db
+            .SelectFrom<MappedUser>("app_users_staging")
+            .QuerySingleOrDefault<MappedUser>();
+
+        var deleted = db
+            .DeleteFrom<MappedUser>("app_users_staging")
+            .Where(u => u.Id, Op.Eq, 1)
+            .Execute();
+
+        var afterDelete = db
+            .SelectFrom<MappedUser>("app_users_staging")
+            .QuerySingleOrDefault<MappedUser>();
+
+        Assert.Equal(1, inserted);
+        Assert.Equal(1, updated);
+        Assert.NotNull(user);
+        Assert.Equal("Alicia", user.DisplayName);
+        Assert.Equal(1, deleted);
+        Assert.Null(afterDelete);
+    }
+
+    [Fact]
     public void Typed_select_with_column_attribute_maps_result_to_property()
     {
         using var connection = CreateOpenMappedConnection();
@@ -302,6 +341,18 @@ public sealed class SqliteIntegrationTests
         setup.CommandText = """
             create table app_users (Id integer primary key, display_name text not null, Ignored text not null);
             insert into app_users (Id, display_name, Ignored) values (1, 'Alice', 'should-not-map');
+            """;
+        setup.ExecuteNonQuery();
+        return connection;
+    }
+
+    private static SqliteConnection CreateOpenShardedConnection()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using var setup = connection.CreateCommand();
+        setup.CommandText = """
+            create table app_users_staging (Id integer primary key, display_name text not null, Ignored text not null default '');
             """;
         setup.ExecuteNonQuery();
         return connection;

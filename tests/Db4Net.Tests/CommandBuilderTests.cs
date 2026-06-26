@@ -43,6 +43,43 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Delete_from_type_can_override_target_table()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .DeleteFrom<User>("users_2026")
+            .Where(u => u.Id, Op.Eq, 1)
+            .ToCommand();
+
+        Assert.Equal("DELETE FROM [users_2026] WHERE [Id] = @p0", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+    }
+
+    [Fact]
+    public void Delete_from_type_with_table_override_still_rejects_missing_where_by_default()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .DeleteFrom<User>("users_2026")
+                .ToCommand());
+
+        Assert.Contains("DELETE requires a WHERE clause", ex.Message);
+    }
+
+    [Fact]
+    public void Delete_from_type_with_table_override_can_allow_all_rows_explicitly()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .DeleteFrom<User>("users_2026")
+            .AllowAllRows()
+            .ToCommand();
+
+        Assert.Equal("DELETE FROM [users_2026]", command.Sql);
+    }
+
+    [Fact]
     public void Delete_from_type_uses_column_attribute_for_string_properties()
     {
         var command = Db4NetDatabase
@@ -152,6 +189,34 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Update_type_can_override_target_table()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Update<MappedUser>("users_2026")
+            .Set(u => u.DisplayName, "Alice")
+            .Where(u => u.Id, Op.Eq, 1)
+            .ToCommand();
+
+        Assert.Equal("UPDATE [users_2026] SET [display_name] = @p0 WHERE [Id] = @p1", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal(1, command.Parameters.Get<int>("p1"));
+    }
+
+    [Fact]
+    public void Update_type_with_table_override_still_rejects_missing_where_by_default()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Update<User>("users_2026")
+                .Set(u => u.Name, "Alice")
+                .ToCommand());
+
+        Assert.Contains("UPDATE requires a WHERE clause", ex.Message);
+    }
+
+    [Fact]
     public void Update_type_uses_column_attribute_for_string_properties()
     {
         var command = Db4NetDatabase
@@ -195,6 +260,20 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Update_type_with_table_override_rejects_invalid_table_identifier()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Update<User>("users;drop table Users")
+                .Set(u => u.Name, "Alice")
+                .Where(u => u.Id, Op.Eq, 1)
+                .ToCommand());
+
+        Assert.Contains("Invalid SQL identifier", ex.Message);
+    }
+
+    [Fact]
     public void Update_type_renders_null_operators_without_parameters()
     {
         var command = Db4NetDatabase
@@ -221,6 +300,19 @@ public sealed class CommandBuilderTests
         Assert.Equal("INSERT INTO [Users] ([Id], [Name]) VALUES (@p0, @p1)", command.Sql);
         Assert.Equal(1, command.Parameters.Get<int>("p0"));
         Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Insert_into_type_can_override_target_table()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertInto<MappedUser>("users_staging")
+            .Value(u => u.DisplayName, "Alice")
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [users_staging] ([display_name]) VALUES (@p0)", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
     }
 
     [Fact]

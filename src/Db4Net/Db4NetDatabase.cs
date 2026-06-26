@@ -101,6 +101,17 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Starts an INSERT command using an explicit table while mapping columns from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>An insert command builder.</returns>
+    public InsertCommandBuilder<T> InsertInto<T>(string table)
+    {
+        return new InsertCommandBuilder<T>(_options, _connection, table);
+    }
+
+    /// <summary>
     /// Starts an UPDATE command using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
@@ -111,6 +122,17 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Starts an UPDATE command using an explicit table while mapping columns from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>An update command builder.</returns>
+    public UpdateCommandBuilder<T> Update<T>(string table)
+    {
+        return new UpdateCommandBuilder<T>(_options, _connection, table);
+    }
+
+    /// <summary>
     /// Starts a DELETE command using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
@@ -118,5 +140,16 @@ public sealed class Db4NetDatabase
     public DeleteCommandBuilder<T> DeleteFrom<T>()
     {
         return new DeleteCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
+    }
+
+    /// <summary>
+    /// Starts a DELETE command using an explicit table while mapping columns from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>A delete command builder.</returns>
+    public DeleteCommandBuilder<T> DeleteFrom<T>(string table)
+    {
+        return new DeleteCommandBuilder<T>(_options, _connection, table);
     }
 }
