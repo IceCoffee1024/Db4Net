@@ -29,4 +29,8 @@
     <ProjectReference Include="..\..\src\Db4Net\Db4Net.csproj" />
   </ItemGroup>
 
+  <PropertyGroup Condition="Exists('local.runsettings')">
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\local.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
 </Project>

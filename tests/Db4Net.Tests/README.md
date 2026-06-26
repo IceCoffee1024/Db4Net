@@ -8,7 +8,7 @@ Run the normal test suite from the repository root:
 dotnet test
 ```
 
-SQLite integration tests run by default with an in-memory database. PostgreSQL, MySQL, and SQL Server integration tests are opt-in and skipped unless their connection strings are configured.
+SQLite integration tests run by default with an in-memory database. PostgreSQL, MySQL, and SQL Server integration tests are opt-in and skipped unless their connection strings are configured. If `tests/Db4Net.Tests/local.runsettings` exists, the test project automatically uses it through `RunSettingsFilePath`, so `dotnet test` is enough for local runs.
 
 ## Local External Database Tests
 
@@ -27,6 +27,8 @@ Run all tests with local external database settings:
 ```powershell
 dotnet test --settings tests\Db4Net.Tests\local.runsettings
 ```
+
+The explicit `--settings` form is still useful for CI scripts or runners that do not read the project-level `RunSettingsFilePath` property.
 
 Run one external database test class:
 
