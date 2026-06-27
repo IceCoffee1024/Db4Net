@@ -461,6 +461,113 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Insert_or_ignore_entity_entry_point_can_override_target_table()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .InsertOrIgnore(new User { Id = 1, Name = "Alice" }, table: "users_staging")
+            .ToCommand();
+
+        Assert.Equal("""INSERT INTO "users_staging" ("Id", "Name") VALUES (@p0, @p1) ON CONFLICT ("Id") DO NOTHING""", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Insert_or_ignore_can_use_explicit_composite_conflict_target()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .InsertOrIgnore(new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" })
+            .OnConflict(u => u.TenantId, u => u.UserId)
+            .ToCommand();
+
+        Assert.Equal("""INSERT INTO "CompositeKeyUser" ("TenantId", "UserId", "Name") VALUES (@p0, @p1, @p2) ON CONFLICT ("TenantId", "UserId") DO NOTHING""", command.Sql);
+    }
+
+    [Fact]
+    public void Insert_or_update_rejects_missing_key_without_explicit_conflict_target()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.Sqlite)
+                .InsertOrUpdate(new NoKeyUser { Name = "Alice" })
+                .ToCommand());
+
+        Assert.Contains("does not have a key", ex.Message);
+    }
+
+    [Fact]
+    public void Insert_or_update_rejects_generated_update_columns()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.Sqlite)
+                .InsertOrUpdate(new GeneratedAuditUser { Id = 1, Name = "Alice" })
+                .Update(u => u.UpdatedAt)
+                .ToCommand());
+
+        Assert.Contains("database-generated", ex.Message);
+    }
+
+    [Fact]
+    public void Conflict_insert_rejects_generated_conflict_columns()
+    {
+        var ignoreEx = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.Sqlite)
+                .InsertOrIgnore(new GeneratedKeyUser { Id = 1, Name = "Alice" })
+                .ToCommand());
+        var updateEx = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.Sqlite)
+                .InsertOrUpdate(new GeneratedKeyUser { Id = 1, Name = "Alice" })
+                .ToCommand());
+
+        Assert.Contains("database-generated", ignoreEx.Message);
+        Assert.Contains("database-generated", updateEx.Message);
+    }
+
+    [Fact]
+    public void Insert_or_update_many_renders_command_for_each_entity()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .InsertOrUpdateMany(
+            [
+                new User { Id = 1, Name = "Alice" },
+                new User { Id = 2, Name = "Bob" },
+            ])
+            .ToCommands();
+
+        Assert.Collection(
+            commands,
+            command =>
+            {
+                Assert.Equal("INSERT INTO \"Users\" (\"Id\", \"Name\") VALUES (@Id, @Name) ON CONFLICT (\"Id\") DO UPDATE SET \"Name\" = excluded.\"Name\"", command.Sql);
+                Assert.Equal(1, command.Parameters.Get<int>("Id"));
+                Assert.Equal("Alice", command.Parameters.Get<string>("Name"));
+            },
+            command =>
+            {
+                Assert.Equal("INSERT INTO \"Users\" (\"Id\", \"Name\") VALUES (@Id, @Name) ON CONFLICT (\"Id\") DO UPDATE SET \"Name\" = excluded.\"Name\"", command.Sql);
+                Assert.Equal(2, command.Parameters.Get<int>("Id"));
+                Assert.Equal("Bob", command.Parameters.Get<string>("Name"));
+            });
+    }
+
+    [Fact]
+    public void Empty_conflict_many_entity_command_conveniences_return_no_commands()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.Sqlite);
+
+        Assert.Empty(database.InsertOrIgnoreMany(Array.Empty<User>()).ToCommands());
+        Assert.Empty(database.InsertOrUpdateMany(Array.Empty<User>()).ToCommands());
+        Assert.Empty(database.InsertOrIgnoreMany(Array.Empty<NoKeyUser>()).ToCommands());
+        Assert.Empty(database.InsertOrUpdateMany(Array.Empty<NoKeyUser>()).ToCommands());
+    }
+
+    [Fact]
     public void Insert_into_type_skips_database_generated_key_values_from_entity()
     {
         var command = Db4NetDatabase

@@ -139,6 +139,60 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Starts an INSERT command that ignores the row when the conflict target already exists.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entity">The entity instance to insert.</param>
+    /// <returns>An insert-or-ignore command builder.</returns>
+    public InsertOrIgnoreCommandBuilder<T> InsertOrIgnore<T>(T entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
+        return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity);
+    }
+
+    /// <summary>
+    /// Starts an INSERT command that ignores the row when the conflict target already exists, using an explicit target table.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="entity">The entity instance to insert.</param>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>An insert-or-ignore command builder.</returns>
+    public InsertOrIgnoreCommandBuilder<T> InsertOrIgnore<T>(T entity, string table)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
+        return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, table, entity);
+    }
+
+    /// <summary>
+    /// Starts an INSERT command that updates mapped columns when the conflict target already exists.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entity">The entity instance to insert or update.</param>
+    /// <returns>An insert-or-update command builder.</returns>
+    public InsertOrUpdateCommandBuilder<T> InsertOrUpdate<T>(T entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
+        return new InsertOrUpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity);
+    }
+
+    /// <summary>
+    /// Starts an INSERT command that updates mapped columns when the conflict target already exists, using an explicit target table.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="entity">The entity instance to insert or update.</param>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>An insert-or-update command builder.</returns>
+    public InsertOrUpdateCommandBuilder<T> InsertOrUpdate<T>(T entity, string table)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
+        return new InsertOrUpdateCommandBuilder<T>(_options, _connection, table, entity);
+    }
+
+    /// <summary>
     /// Starts INSERT commands for multiple entity instances using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
@@ -161,6 +215,56 @@ public sealed class Db4NetDatabase
     {
         EnsureEntityType<T>();
         return new InsertManyCommandBuilder<T>(_options, _connection, table, entities);
+    }
+
+    /// <summary>
+    /// Starts INSERT commands for multiple entity instances and ignores rows whose conflict target already exists.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entities">The entity instances to insert.</param>
+    /// <returns>An insert-or-ignore-many command builder.</returns>
+    public InsertOrIgnoreManyCommandBuilder<T> InsertOrIgnoreMany<T>(IEnumerable<T> entities)
+    {
+        EnsureEntityType<T>();
+        return new InsertOrIgnoreManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+    }
+
+    /// <summary>
+    /// Starts INSERT commands for multiple entity instances and ignores rows whose conflict target already exists, using an explicit target table.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="entities">The entity instances to insert.</param>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>An insert-or-ignore-many command builder.</returns>
+    public InsertOrIgnoreManyCommandBuilder<T> InsertOrIgnoreMany<T>(IEnumerable<T> entities, string table)
+    {
+        EnsureEntityType<T>();
+        return new InsertOrIgnoreManyCommandBuilder<T>(_options, _connection, table, entities);
+    }
+
+    /// <summary>
+    /// Starts INSERT commands for multiple entity instances and updates mapped columns when the conflict target already exists.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entities">The entity instances to insert or update.</param>
+    /// <returns>An insert-or-update-many command builder.</returns>
+    public InsertOrUpdateManyCommandBuilder<T> InsertOrUpdateMany<T>(IEnumerable<T> entities)
+    {
+        EnsureEntityType<T>();
+        return new InsertOrUpdateManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+    }
+
+    /// <summary>
+    /// Starts INSERT commands for multiple entity instances and updates mapped columns when the conflict target already exists, using an explicit target table.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="entities">The entity instances to insert or update.</param>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>An insert-or-update-many command builder.</returns>
+    public InsertOrUpdateManyCommandBuilder<T> InsertOrUpdateMany<T>(IEnumerable<T> entities, string table)
+    {
+        EnsureEntityType<T>();
+        return new InsertOrUpdateManyCommandBuilder<T>(_options, _connection, table, entities);
     }
 
     /// <summary>

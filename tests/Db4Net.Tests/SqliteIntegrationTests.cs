@@ -472,6 +472,101 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Conflict_insert_conveniences_execute_with_sqlite()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var ignored = db
+            .InsertOrIgnore(new User { Id = 1, Name = "Ignored" })
+            .Execute();
+
+        var upsertUpdated = db
+            .InsertOrUpdate(new User { Id = 2, Name = "Bobby" })
+            .Execute();
+
+        var upsertInserted = db
+            .InsertOrUpdate(new User { Id = 3, Name = "Charlie" })
+            .Execute();
+
+        var users = db
+            .SelectFrom<User>()
+            .OrderBy(u => u.Id)
+            .Query()
+            .ToList();
+
+        Assert.Equal(0, ignored);
+        Assert.Equal(1, upsertUpdated);
+        Assert.Equal(1, upsertInserted);
+        Assert.Collection(
+            users,
+            user => Assert.Equal("Alice", user.Name),
+            user => Assert.Equal("Bobby", user.Name),
+            user => Assert.Equal("Charlie", user.Name));
+    }
+
+    [Fact]
+    public void Conflict_insert_many_conveniences_execute_with_sqlite()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var ignoredAndInserted = db
+            .InsertOrIgnoreMany(
+            [
+                new User { Id = 1, Name = "Ignored" },
+                new User { Id = 3, Name = "Charlie" },
+            ])
+            .Execute();
+
+        var updatedAndInserted = db
+            .InsertOrUpdateMany(
+            [
+                new User { Id = 2, Name = "Bobby" },
+                new User { Id = 4, Name = "Dana" },
+            ])
+            .Execute();
+
+        var users = db
+            .SelectFrom<User>()
+            .OrderBy(u => u.Id)
+            .Query()
+            .ToList();
+
+        Assert.Equal(1, ignoredAndInserted);
+        Assert.Equal(2, updatedAndInserted);
+        Assert.Collection(
+            users,
+            user => Assert.Equal("Alice", user.Name),
+            user => Assert.Equal("Bobby", user.Name),
+            user => Assert.Equal("Charlie", user.Name),
+            user => Assert.Equal("Dana", user.Name));
+    }
+
+    [Fact]
+    public void Conflict_insert_can_override_table_and_conflict_target_with_sqlite()
+    {
+        using var connection = CreateOpenUniqueConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var inserted = db
+            .InsertOrUpdate(new UniqueUser { Id = 2, Email = "alice@example.com", Name = "Alicia" }, table: "unique_users_staging")
+            .OnConflict(u => u.Email)
+            .Update(u => u.Name)
+            .Execute();
+
+        var user = db
+            .SelectFrom<UniqueUser>("unique_users_staging")
+            .Where(u => u.Email, Op.Eq, "alice@example.com")
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1, inserted);
+        Assert.NotNull(user);
+        Assert.Equal(1, user.Id);
+        Assert.Equal("Alicia", user.Name);
+    }
+
+    [Fact]
     public void Command_table_overrides_execute_against_explicit_tables_with_model_mapping()
     {
         using var connection = CreateOpenShardedConnection();
@@ -593,6 +688,19 @@ public sealed class SqliteIntegrationTests
         return connection;
     }
 
+    private static SqliteConnection CreateOpenUniqueConnection()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using var setup = connection.CreateCommand();
+        setup.CommandText = """
+            create table unique_users_staging (Id integer primary key, Email text not null unique, Name text not null);
+            insert into unique_users_staging (Id, Email, Name) values (1, 'alice@example.com', 'Alice');
+            """;
+        setup.ExecuteNonQuery();
+        return connection;
+    }
+
     [Table("Users")]
     private sealed class User
     {
@@ -611,5 +719,15 @@ public sealed class SqliteIntegrationTests
 
         [NotMapped]
         public string Ignored { get; set; } = "";
+    }
+
+    [Table("unique_users")]
+    private sealed class UniqueUser
+    {
+        public int Id { get; set; }
+
+        public string Email { get; set; } = "";
+
+        public string Name { get; set; } = "";
     }
 }

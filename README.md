@@ -10,7 +10,7 @@ The API is intentionally SQL-shaped: `SelectFrom<T>()`, `InsertInto<T>()`, `Upda
 
 Current version: `0.1.0-alpha.1`
 
-The first alpha focuses on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders, mapped property selection, safe value parameters, Dapper-style terminal methods, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
+The first alpha focuses on typed single-table `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders, mapped property selection, safe value parameters, Dapper-style terminal methods, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
 NuGet packages include XML documentation and a symbols package for source debugging.
 
@@ -132,6 +132,21 @@ var deleted = db
     .Execute();
 ```
 
+Use conflict-aware insert conveniences when inserts should ignore or update rows that already match a conflict target:
+
+```csharp
+db.InsertOrIgnore(user, table: "users_staging")
+  .OnConflict(u => u.Email)
+  .Execute();
+
+db.InsertOrUpdateMany(users, table: "users_2026")
+  .OnConflict(u => u.Email)
+  .Update(u => u.Name, u => u.UpdatedAt)
+  .Execute();
+```
+
+`OnConflict(...)` accepts mapped CLR member selectors for the conflict target. `InsertOrUpdate` and `InsertOrUpdateMany` also support `Update(...)` to choose the mapped columns updated on conflict. When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target. The `Many` variants are Dapper multi-execute conveniences: one validated, parameterized command per entity, not provider-native import/copy APIs or optimized batching.
+
 Use the SQL-shaped command builders when you need explicit fields or predicates:
 
 ```csharp
@@ -188,7 +203,7 @@ Typed projections alias mapped columns so Dapper can map results back to propert
 SELECT [Id], [display_name] AS [Name] FROM [app_users]
 ```
 
-`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, and `WhereKey(user)`. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, and `InsertMany(users)`. Explicit `.Value(...)` calls remain caller-controlled.
+`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, `WhereKey(user)`, and as the default conflict target for conflict-aware insert commands. Key metadata identifies mapped columns for equality predicates or conflict targets; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(users)`, and conflict-aware insert values. Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Explicit `.Value(...)` calls remain caller-controlled.
 
 ## Supported Dialects
 
@@ -199,6 +214,8 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 Db4Net handles identifier quoting and paging syntax through the configured dialect.
 
+SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. SQL Server renders a dialect-specific conflict-aware command; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
+
 ## Scope
 
 Included in the current alpha:
@@ -208,6 +225,7 @@ Included in the current alpha:
 - SQL-shaped command target overrides such as `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")`
 - Entity command conveniences such as `Values(entity)`, `WhereKey(entity)`, `Insert(entity)`, `Insert(entity, table)`, `Update(entity)`, `Update(entity, table)`, `Delete(entity)`, and `Delete(entity, table)`
 - Many entity command conveniences such as `InsertMany(users)`, `InsertMany(users, table)`, `UpdateMany(users)`, `UpdateMany(users, table)`, `DeleteMany(users)`, and `DeleteMany(users, table)`
+- Conflict-aware insert conveniences such as `InsertOrIgnore(user)`, `InsertOrIgnoreMany(users)`, `InsertOrUpdate(user)`, `InsertOrUpdateMany(users)`, and their `table` overloads
 - Dynamic property-name projection with model validation
 - `Where`, `OrWhere`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders
@@ -217,7 +235,7 @@ Included in the current alpha:
 Intentionally out of scope for now:
 
 - Joins
-- Provider-native bulk copy/import APIs, set-based merge/upsert, and optimized bulk batching
+- Provider-native copy/import APIs, set-based synchronization, and optimized batching
 - Change tracking, dirty checking, `SaveChanges()`, or unit-of-work behavior
 - Relationship loading, cascade persistence, lazy loading, or proxy generation
 - Migrations or schema management

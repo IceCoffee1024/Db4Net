@@ -104,10 +104,14 @@ public sealed class ApiContractTests
     [Fact]
     public void Database_exposes_entity_command_convenience_entry_points()
     {
-        AssertPublicInstanceMethods(typeof(Db4NetDatabase), "Insert", "Update", "Delete");
+        AssertPublicInstanceMethods(typeof(Db4NetDatabase), "Insert", "InsertOrIgnore", "InsertOrUpdate", "Update", "Delete");
 
         AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Insert", typeof(InsertCommandBuilder<>));
         AssertGenericEntityWithTableMethodSignature(typeof(Db4NetDatabase), "Insert", typeof(InsertCommandBuilder<>));
+        AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "InsertOrIgnore", typeof(InsertOrIgnoreCommandBuilder<>));
+        AssertGenericEntityWithTableMethodSignature(typeof(Db4NetDatabase), "InsertOrIgnore", typeof(InsertOrIgnoreCommandBuilder<>));
+        AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "InsertOrUpdate", typeof(InsertOrUpdateCommandBuilder<>));
+        AssertGenericEntityWithTableMethodSignature(typeof(Db4NetDatabase), "InsertOrUpdate", typeof(InsertOrUpdateCommandBuilder<>));
         AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Update", typeof(UpdateCommandBuilder<>));
         AssertGenericEntityWithTableMethodSignature(typeof(Db4NetDatabase), "Update", typeof(UpdateCommandBuilder<>));
         AssertGenericEntityMethodSignature(typeof(Db4NetDatabase), "Delete", typeof(DeleteCommandBuilder<>));
@@ -117,10 +121,14 @@ public sealed class ApiContractTests
     [Fact]
     public void Database_exposes_many_entity_command_convenience_entry_points()
     {
-        AssertPublicInstanceMethods(typeof(Db4NetDatabase), "InsertMany", "UpdateMany", "DeleteMany");
+        AssertPublicInstanceMethods(typeof(Db4NetDatabase), "InsertMany", "InsertOrIgnoreMany", "InsertOrUpdateMany", "UpdateMany", "DeleteMany");
 
         AssertGenericEnumerableMethodSignature(typeof(Db4NetDatabase), "InsertMany", typeof(InsertManyCommandBuilder<>));
         AssertGenericEnumerableWithTableMethodSignature(typeof(Db4NetDatabase), "InsertMany", typeof(InsertManyCommandBuilder<>));
+        AssertGenericEnumerableMethodSignature(typeof(Db4NetDatabase), "InsertOrIgnoreMany", typeof(InsertOrIgnoreManyCommandBuilder<>));
+        AssertGenericEnumerableWithTableMethodSignature(typeof(Db4NetDatabase), "InsertOrIgnoreMany", typeof(InsertOrIgnoreManyCommandBuilder<>));
+        AssertGenericEnumerableMethodSignature(typeof(Db4NetDatabase), "InsertOrUpdateMany", typeof(InsertOrUpdateManyCommandBuilder<>));
+        AssertGenericEnumerableWithTableMethodSignature(typeof(Db4NetDatabase), "InsertOrUpdateMany", typeof(InsertOrUpdateManyCommandBuilder<>));
         AssertGenericEnumerableMethodSignature(typeof(Db4NetDatabase), "UpdateMany", typeof(UpdateManyCommandBuilder<>));
         AssertGenericEnumerableWithTableMethodSignature(typeof(Db4NetDatabase), "UpdateMany", typeof(UpdateManyCommandBuilder<>));
         AssertGenericEnumerableMethodSignature(typeof(Db4NetDatabase), "DeleteMany", typeof(DeleteManyCommandBuilder<>));
@@ -131,12 +139,23 @@ public sealed class ApiContractTests
     public void Many_command_builders_expose_execution_api()
     {
         AssertPublicInstanceMethods(typeof(InsertManyCommandBuilder<>), "ToCommands", "Execute", "ExecuteAsync");
+        AssertPublicInstanceMethods(typeof(InsertOrIgnoreManyCommandBuilder<>), "OnConflict", "ToCommands", "Execute", "ExecuteAsync");
+        AssertPublicInstanceMethods(typeof(InsertOrUpdateManyCommandBuilder<>), "OnConflict", "Update", "ToCommands", "Execute", "ExecuteAsync");
         AssertPublicInstanceMethods(typeof(UpdateManyCommandBuilder<>), "ToCommands", "Execute", "ExecuteAsync");
         AssertPublicInstanceMethods(typeof(DeleteManyCommandBuilder<>), "ToCommands", "Execute", "ExecuteAsync");
 
         Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertManyCommandBuilder<>)), method => method.Name == "ToCommand");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertOrIgnoreManyCommandBuilder<>)), method => method.Name == "ToCommand");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertOrUpdateManyCommandBuilder<>)), method => method.Name == "ToCommand");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(UpdateManyCommandBuilder<>)), method => method.Name == "ToCommand");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(DeleteManyCommandBuilder<>)), method => method.Name == "ToCommand");
+    }
+
+    [Fact]
+    public void Conflict_insert_command_builders_expose_conflict_api()
+    {
+        AssertPublicInstanceMethods(typeof(InsertOrIgnoreCommandBuilder<>), "OnConflict", "ToCommand", "Execute", "ExecuteAsync");
+        AssertPublicInstanceMethods(typeof(InsertOrUpdateCommandBuilder<>), "OnConflict", "Update", "ToCommand", "Execute", "ExecuteAsync");
     }
 
     [Fact]
@@ -146,6 +165,19 @@ public sealed class ApiContractTests
 
         Assert.DoesNotContain(exportedTypes, type => type.Name.Contains("Bulk", StringComparison.Ordinal));
         Assert.DoesNotContain(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name.Contains("Bulk", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Public_surface_does_not_use_orm_or_merge_naming()
+    {
+        var disallowedNames = new[] { "Save", "SaveChanges", "Merge", "Upsert" };
+        var exportedTypes = typeof(Db4NetDatabase).Assembly.GetExportedTypes();
+
+        foreach (var name in disallowedNames)
+        {
+            Assert.DoesNotContain(exportedTypes, type => type.Name.Contains(name, StringComparison.Ordinal));
+            Assert.DoesNotContain(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name.Contains(name, StringComparison.Ordinal));
+        }
     }
 
     [Fact]
@@ -301,7 +333,7 @@ public sealed class ApiContractTests
 
     private static bool IsNonGenericStringOnlyCommandEntryPoint(MethodInfo method)
     {
-        return method.Name is "InsertInto" or "Update" or "DeleteFrom"
+        return method.Name is "InsertInto" or "InsertOrIgnore" or "InsertOrUpdate" or "InsertOrIgnoreMany" or "InsertOrUpdateMany" or "Update" or "DeleteFrom"
             && !method.IsGenericMethodDefinition
             && method.GetParameters() is [{ ParameterType: var parameterType }]
             && parameterType == typeof(string);

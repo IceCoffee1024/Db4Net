@@ -144,6 +144,21 @@ var deleted = db
     .Execute();
 ```
 
+Use conflict-aware insert conveniences when inserts should ignore or update rows that already match a conflict target:
+
+```csharp
+db.InsertOrUpdate(user)
+  .OnConflict(u => u.Email)
+  .Update(u => u.Name, u => u.UpdatedAt)
+  .Execute();
+
+db.InsertOrIgnoreMany(users, table: "users_staging")
+  .OnConflict(u => u.Email)
+  .Execute();
+```
+
+`InsertOrIgnore`, `InsertOrIgnoreMany`, `InsertOrUpdate`, and `InsertOrUpdateMany` also support `table` overloads. The explicit table changes only the SQL target table; CLR member-to-column mapping still comes from `T`. `OnConflict(...)` and `Update(...)` use mapped CLR member selectors, not database column-name strings or SQL fragments. The `Many` variants are Dapper multi-execute conveniences that run one parameterized command per entity; they are not provider-native import/copy APIs or set-based synchronization APIs.
+
 Use the SQL-shaped command builders when you need explicit fields or predicates:
 
 ```csharp
@@ -184,7 +199,7 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 `[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, `OrderBy`, `Value`, and `Set` member selectors.
 
-`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, and `WhereKey(user)`. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, and `InsertMany(users)`. Explicit `.Value(...)` calls remain caller-controlled.
+`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, `WhereKey(user)`, and as the default conflict target for conflict-aware insert commands. Key metadata identifies mapped columns for equality predicates or conflict targets; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(users)`, and conflict-aware insert values. Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Explicit `.Value(...)` calls remain caller-controlled.
 
 ## Filters
 
@@ -264,7 +279,7 @@ Typed SELECT builders provide Dapper-style query terminal methods that materiali
 
 The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()` for advanced materialization scenarios.
 
-INSERT, UPDATE, and DELETE builders provide command terminal methods:
+INSERT, UPDATE, DELETE, and conflict-aware insert builders provide command terminal methods:
 
 - `Execute()`
 - `ExecuteAsync()`
@@ -304,6 +319,8 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, but joins, provider-native bulk copy/import APIs, set-based merge/upsert, optimized bulk batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, but joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
+
+SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. SQL Server renders a dialect-specific conflict-aware command; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
 
 For complex joins or database-specific SQL, use Dapper raw SQL directly or expose stable read models through database views.
