@@ -209,6 +209,17 @@ public sealed class ApiContractTests
         Assert.DoesNotContain(exportedTypes, type => type.Name is "Db4NetCommandOptions" or "SqlCommandDefinition");
     }
 
+    [Fact]
+    public void Internal_filter_clause_uses_enum_for_boolean_operator()
+    {
+        var filterClauseType = typeof(Db4NetDatabase).Assembly.GetType("Db4Net.Query.FilterClause", throwOnError: true)!;
+        var booleanOperator = filterClauseType.GetProperty("BooleanOperator", BindingFlags.Public | BindingFlags.Instance);
+
+        Assert.NotNull(booleanOperator);
+        Assert.True(booleanOperator.PropertyType.IsEnum);
+        Assert.NotEqual(typeof(string), booleanOperator.PropertyType);
+    }
+
     private static void AssertPublicInstanceMethods(Type type, params string[] methodNames)
     {
         var publicInstanceMethods = PublicInstanceMethods(type);

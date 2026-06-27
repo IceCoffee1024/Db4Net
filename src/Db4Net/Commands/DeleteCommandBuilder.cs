@@ -33,7 +33,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> Where(string propertyName, Op op, object? value)
     {
-        _filters.Add("AND", () => MapPropertyName(propertyName), op, value);
+        _filters.Add(FilterBooleanOperator.And, () => MapPropertyName(propertyName), op, value);
         return this;
     }
 
@@ -45,7 +45,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> Where(string propertyName, Op op)
     {
-        _filters.AddValueFree("AND", () => MapPropertyName(propertyName), op);
+        _filters.AddValueFree(FilterBooleanOperator.And, () => MapPropertyName(propertyName), op);
         return this;
     }
 
@@ -59,7 +59,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
-        _filters.Add("AND", () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
+        _filters.Add(FilterBooleanOperator.And, () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
         return this;
     }
 
@@ -72,7 +72,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
-        _filters.AddValueFree("AND", () => ModelMetadataProvider.GetColumnName(memberSelector), op);
+        _filters.AddValueFree(FilterBooleanOperator.And, () => ModelMetadataProvider.GetColumnName(memberSelector), op);
         return this;
     }
 
@@ -89,7 +89,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
         {
             var value = column.GetValue(entity);
             EnsureNonDefaultKeyValue(column, value);
-            _filters.Add("AND", () => column.ColumnName, Op.Eq, value);
+            _filters.Add(FilterBooleanOperator.And, () => column.ColumnName, Op.Eq, value);
         }
 
         return this;
@@ -104,7 +104,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> OrWhere(string propertyName, Op op, object? value)
     {
-        _filters.Add("OR", () => MapPropertyName(propertyName), op, value);
+        _filters.Add(FilterBooleanOperator.Or, () => MapPropertyName(propertyName), op, value);
         return this;
     }
 
@@ -116,7 +116,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> OrWhere(string propertyName, Op op)
     {
-        _filters.AddValueFree("OR", () => MapPropertyName(propertyName), op);
+        _filters.AddValueFree(FilterBooleanOperator.Or, () => MapPropertyName(propertyName), op);
         return this;
     }
 
@@ -130,7 +130,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
-        _filters.Add("OR", () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
+        _filters.Add(FilterBooleanOperator.Or, () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
         return this;
     }
 
@@ -143,7 +143,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
-        _filters.AddValueFree("OR", () => ModelMetadataProvider.GetColumnName(memberSelector), op);
+        _filters.AddValueFree(FilterBooleanOperator.Or, () => ModelMetadataProvider.GetColumnName(memberSelector), op);
         return this;
     }
 

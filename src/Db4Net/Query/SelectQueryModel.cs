@@ -17,6 +17,12 @@ internal sealed class SelectQueryModel
 
 internal sealed record SelectColumn(string Column, string? Alias = null);
 
-internal sealed record FilterClause(string BooleanOperator, string Column, Op Operator, object? Value);
+internal sealed record FilterClause(FilterBooleanOperator BooleanOperator, string Column, Op Operator, object? Value);
+
+internal enum FilterBooleanOperator
+{
+    And,
+    Or
+}
 
 internal sealed record OrderClause(string Column, bool Descending);

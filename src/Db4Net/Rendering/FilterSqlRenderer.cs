@@ -21,11 +21,21 @@ internal sealed class FilterSqlRenderer
         for (var index = 0; index < filters.Count; index++)
         {
             var filter = filters[index];
-            sql.Append(index == 0 ? " WHERE " : $" {filter.BooleanOperator} ");
+            sql.Append(index == 0 ? " WHERE " : $" {RenderBooleanOperator(filter.BooleanOperator)} ");
             sql.Append(_dialect.QuoteIdentifier(filter.Column));
             sql.Append(' ');
             sql.Append(RenderOperator(filter));
         }
+    }
+
+    private static string RenderBooleanOperator(FilterBooleanOperator booleanOperator)
+    {
+        return booleanOperator switch
+        {
+            FilterBooleanOperator.And => "AND",
+            FilterBooleanOperator.Or => "OR",
+            _ => throw new NotSupportedException($"Boolean operator {booleanOperator} is not supported.")
+        };
     }
 
     private string RenderOperator(FilterClause filter)

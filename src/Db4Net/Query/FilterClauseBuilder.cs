@@ -15,26 +15,26 @@ internal sealed class FilterClauseBuilder
 
     public List<FilterClause> Filters { get; }
 
-    public void Add(string booleanOperator, string column, Op op, object? value)
+    public void Add(FilterBooleanOperator booleanOperator, string column, Op op, object? value)
     {
         EnsureValidOperatorValue(op, value);
         Filters.Add(new FilterClause(booleanOperator, column, op, value));
     }
 
-    public void Add(string booleanOperator, Func<string> columnFactory, Op op, object? value)
+    public void Add(FilterBooleanOperator booleanOperator, Func<string> columnFactory, Op op, object? value)
     {
         ArgumentNullException.ThrowIfNull(columnFactory);
         EnsureValidOperatorValue(op, value);
         Filters.Add(new FilterClause(booleanOperator, columnFactory(), op, value));
     }
 
-    public void AddValueFree(string booleanOperator, string column, Op op)
+    public void AddValueFree(FilterBooleanOperator booleanOperator, string column, Op op)
     {
         EnsureValueFreeOperator(op);
         Filters.Add(new FilterClause(booleanOperator, column, op, null));
     }
 
-    public void AddValueFree(string booleanOperator, Func<string> columnFactory, Op op)
+    public void AddValueFree(FilterBooleanOperator booleanOperator, Func<string> columnFactory, Op op)
     {
         ArgumentNullException.ThrowIfNull(columnFactory);
         EnsureValueFreeOperator(op);

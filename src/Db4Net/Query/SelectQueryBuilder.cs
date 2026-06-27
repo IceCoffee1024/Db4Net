@@ -87,7 +87,7 @@ public partial class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder Where(string column, Op op, object? value)
     {
-        _filters.Add("AND", column, op, value);
+        _filters.Add(FilterBooleanOperator.And, column, op, value);
         return this;
     }
 
@@ -99,7 +99,7 @@ public partial class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder Where(string column, Op op)
     {
-        _filters.AddValueFree("AND", column, op);
+        _filters.AddValueFree(FilterBooleanOperator.And, column, op);
         return this;
     }
 
@@ -112,7 +112,7 @@ public partial class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder OrWhere(string column, Op op, object? value)
     {
-        _filters.Add("OR", column, op, value);
+        _filters.Add(FilterBooleanOperator.Or, column, op, value);
         return this;
     }
 
@@ -124,7 +124,7 @@ public partial class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder OrWhere(string column, Op op)
     {
-        _filters.AddValueFree("OR", column, op);
+        _filters.AddValueFree(FilterBooleanOperator.Or, column, op);
         return this;
     }
 
