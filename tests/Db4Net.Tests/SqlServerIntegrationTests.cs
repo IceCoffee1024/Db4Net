@@ -96,6 +96,120 @@ public sealed class SqlServerIntegrationTests
         }
     }
 
+    [SkippableFact]
+    public async Task Conflict_insert_conveniences_execute()
+    {
+        var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "conflict_users");
+        await using var connection = await OpenConnectionAsync();
+
+        try
+        {
+            await ExecuteAsync(connection, $"""
+                CREATE TABLE [{table}] ([Id] int NOT NULL PRIMARY KEY, [Name] nvarchar(100) NOT NULL);
+                INSERT INTO [{table}] ([Id], [Name]) VALUES (1, N'Alice'), (2, N'Bob');
+                """);
+            var db = connection.UseDb4Net(Db4NetOptions.SqlServer);
+
+            db.InsertOrIgnore(new User { Id = 1, Name = "Ignored" }, table).Execute();
+            db.InsertOrUpdate(new User { Id = 2, Name = "Bobby" }, table).Execute();
+            db.InsertOrUpdate(new User { Id = 3, Name = "Charlie" }, table).Execute();
+
+            var users = db
+                .SelectFrom<User>(table)
+                .OrderBy(u => u.Id)
+                .Query()
+                .ToList();
+
+            Assert.Collection(
+                users,
+                user => Assert.Equal("Alice", user.Name),
+                user => Assert.Equal("Bobby", user.Name),
+                user => Assert.Equal("Charlie", user.Name));
+        }
+        finally
+        {
+            await DropTableIfExistsAsync(connection, table);
+        }
+    }
+
+    [SkippableFact]
+    public async Task Conflict_insert_many_conveniences_execute()
+    {
+        var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "conflict_many");
+        await using var connection = await OpenConnectionAsync();
+
+        try
+        {
+            await ExecuteAsync(connection, $"""
+                CREATE TABLE [{table}] ([Id] int NOT NULL PRIMARY KEY, [Name] nvarchar(100) NOT NULL);
+                INSERT INTO [{table}] ([Id], [Name]) VALUES (1, N'Alice'), (2, N'Bob');
+                """);
+            var db = connection.UseDb4Net(Db4NetOptions.SqlServer);
+
+            db.InsertOrIgnoreMany(
+            [
+                new User { Id = 1, Name = "Ignored" },
+                new User { Id = 3, Name = "Charlie" },
+            ], table).Execute();
+            db.InsertOrUpdateMany(
+            [
+                new User { Id = 2, Name = "Bobby" },
+                new User { Id = 4, Name = "Dana" },
+            ], table).Execute();
+
+            var users = db
+                .SelectFrom<User>(table)
+                .OrderBy(u => u.Id)
+                .Query()
+                .ToList();
+
+            Assert.Collection(
+                users,
+                user => Assert.Equal("Alice", user.Name),
+                user => Assert.Equal("Bobby", user.Name),
+                user => Assert.Equal("Charlie", user.Name),
+                user => Assert.Equal("Dana", user.Name));
+        }
+        finally
+        {
+            await DropTableIfExistsAsync(connection, table);
+        }
+    }
+
+    [SkippableFact]
+    public async Task Conflict_insert_can_override_table_and_conflict_target()
+    {
+        var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "unique_users");
+        await using var connection = await OpenConnectionAsync();
+
+        try
+        {
+            await ExecuteAsync(connection, $"""
+                CREATE TABLE [{table}] ([Id] int NOT NULL PRIMARY KEY, [Email] nvarchar(200) NOT NULL UNIQUE, [Name] nvarchar(100) NOT NULL);
+                INSERT INTO [{table}] ([Id], [Email], [Name]) VALUES (1, N'alice@example.com', N'Alice');
+                """);
+            var db = connection.UseDb4Net(Db4NetOptions.SqlServer);
+
+            db.InsertOrUpdate(new UniqueUser { Id = 2, Email = "alice@example.com", Name = "Alicia" }, table)
+                .OnConflict(u => u.Email)
+                .Update(u => u.Name)
+                .Execute();
+
+            var user = db
+                .SelectFrom<UniqueUser>(table)
+                .Where(u => u.Email, Op.Eq, "alice@example.com")
+                .QuerySingleOrDefault();
+
+            Assert.NotNull(user);
+            Assert.Equal(1, user.Id);
+            Assert.Equal("Alicia", user.Name);
+        }
+        finally
+        {
+            await DropTableIfExistsAsync(connection, table);
+        }
+    }
+
     private static async Task<SqlConnection> OpenConnectionAsync()
     {
         var connection = new SqlConnection(ExternalDatabaseTestSupport.GetRequiredConnectionString(ConnectionStringEnvironmentVariable));
@@ -129,5 +243,15 @@ public sealed class SqlServerIntegrationTests
 
         [Column("display_name")]
         public string DisplayName { get; set; } = "";
+    }
+
+    [Table("unique_users")]
+    private sealed class UniqueUser
+    {
+        public int Id { get; set; }
+
+        public string Email { get; set; } = "";
+
+        public string Name { get; set; } = "";
     }
 }
