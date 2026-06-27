@@ -115,6 +115,40 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public void Database_exposes_many_entity_command_convenience_entry_points()
+    {
+        AssertPublicInstanceMethods(typeof(Db4NetDatabase), "InsertMany", "UpdateMany", "DeleteMany");
+
+        AssertGenericEnumerableMethodSignature(typeof(Db4NetDatabase), "InsertMany", typeof(InsertManyCommandBuilder<>));
+        AssertGenericEnumerableWithTableMethodSignature(typeof(Db4NetDatabase), "InsertMany", typeof(InsertManyCommandBuilder<>));
+        AssertGenericEnumerableMethodSignature(typeof(Db4NetDatabase), "UpdateMany", typeof(UpdateManyCommandBuilder<>));
+        AssertGenericEnumerableWithTableMethodSignature(typeof(Db4NetDatabase), "UpdateMany", typeof(UpdateManyCommandBuilder<>));
+        AssertGenericEnumerableMethodSignature(typeof(Db4NetDatabase), "DeleteMany", typeof(DeleteManyCommandBuilder<>));
+        AssertGenericEnumerableWithTableMethodSignature(typeof(Db4NetDatabase), "DeleteMany", typeof(DeleteManyCommandBuilder<>));
+    }
+
+    [Fact]
+    public void Many_command_builders_expose_execution_api()
+    {
+        AssertPublicInstanceMethods(typeof(InsertManyCommandBuilder<>), "ToCommands", "Execute", "ExecuteAsync");
+        AssertPublicInstanceMethods(typeof(UpdateManyCommandBuilder<>), "ToCommands", "Execute", "ExecuteAsync");
+        AssertPublicInstanceMethods(typeof(DeleteManyCommandBuilder<>), "ToCommands", "Execute", "ExecuteAsync");
+
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertManyCommandBuilder<>)), method => method.Name == "ToCommand");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(UpdateManyCommandBuilder<>)), method => method.Name == "ToCommand");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(DeleteManyCommandBuilder<>)), method => method.Name == "ToCommand");
+    }
+
+    [Fact]
+    public void Public_surface_does_not_use_bulk_naming()
+    {
+        var exportedTypes = typeof(Db4NetDatabase).Assembly.GetExportedTypes();
+
+        Assert.DoesNotContain(exportedTypes, type => type.Name.Contains("Bulk", StringComparison.Ordinal));
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name.Contains("Bulk", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Database_exposes_sql_shaped_command_builder_entry_points()
     {
         AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
@@ -225,6 +259,33 @@ public sealed class ApiContractTests
             candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
                 && candidate.GetParameters() is [{ ParameterType: var entityParameterType }, { ParameterType: var tableParameterType }]
                 && entityParameterType == candidate.GetGenericArguments()[0]
+                && tableParameterType == typeof(string));
+
+        Assert.Equal("table", method.GetParameters()[1].Name);
+    }
+
+    private static void AssertGenericEnumerableMethodSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
+    {
+        var method = Assert.Single(
+            PublicInstanceMethods(declaringType),
+            candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
+                && candidate.GetParameters() is [{ ParameterType: var parameterType }]
+                && parameterType.IsGenericType
+                && parameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                && parameterType.GetGenericArguments()[0] == candidate.GetGenericArguments()[0]);
+
+        Assert.Equal(method.GetGenericArguments()[0], method.GetParameters()[0].ParameterType.GetGenericArguments()[0]);
+    }
+
+    private static void AssertGenericEnumerableWithTableMethodSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
+    {
+        var method = Assert.Single(
+            PublicInstanceMethods(declaringType),
+            candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
+                && candidate.GetParameters() is [{ ParameterType: var entitiesParameterType }, { ParameterType: var tableParameterType }]
+                && entitiesParameterType.IsGenericType
+                && entitiesParameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                && entitiesParameterType.GetGenericArguments()[0] == candidate.GetGenericArguments()[0]
                 && tableParameterType == typeof(string));
 
         Assert.Equal("table", method.GetParameters()[1].Name);

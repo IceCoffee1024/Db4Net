@@ -116,6 +116,22 @@ await connection
     .ExecuteAsync();
 ```
 
+For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`; Db4Net does not create an automatic transaction, so pass one through `Db4NetExecutionOptions` when the operation must be atomic:
+
+```csharp
+var inserted = db
+    .InsertMany(users)
+    .Execute();
+
+var updated = db
+    .UpdateMany(users, table: "users_2026")
+    .Execute();
+
+var deleted = db
+    .DeleteMany(users)
+    .Execute();
+```
+
 Use the SQL-shaped command builders when you need explicit fields or predicates:
 
 ```csharp
@@ -125,7 +141,7 @@ db.Update<User>()
   .Execute();
 ```
 
-They still support `ToCommand()` and do not add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
+Single command builders still support `ToCommand()`, and `Many` command builders support `ToCommands()` for inspecting the per-entity commands. None of these APIs add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
 
 Inspect SQL without executing it:
 
@@ -172,7 +188,7 @@ Typed projections alias mapped columns so Dapper can map results back to propert
 SELECT [Id], [display_name] AS [Name] FROM [app_users]
 ```
 
-`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `Delete(user)`, and `WhereKey(user)`. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)` and `Insert(entity)`. Explicit `.Value(...)` calls remain caller-controlled.
+`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, and `WhereKey(user)`. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, and `InsertMany(users)`. Explicit `.Value(...)` calls remain caller-controlled.
 
 ## Supported Dialects
 
@@ -191,6 +207,7 @@ Included in the current alpha:
 - Typed `INSERT`, `UPDATE`, and `DELETE` builders
 - SQL-shaped command target overrides such as `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")`
 - Entity command conveniences such as `Values(entity)`, `WhereKey(entity)`, `Insert(entity)`, `Insert(entity, table)`, `Update(entity)`, `Update(entity, table)`, `Delete(entity)`, and `Delete(entity, table)`
+- Many entity command conveniences such as `InsertMany(users)`, `InsertMany(users, table)`, `UpdateMany(users)`, `UpdateMany(users, table)`, `DeleteMany(users)`, and `DeleteMany(users, table)`
 - Dynamic property-name projection with model validation
 - `Where`, `OrWhere`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders
@@ -200,7 +217,7 @@ Included in the current alpha:
 Intentionally out of scope for now:
 
 - Joins
-- Bulk operations
+- Provider-native bulk copy/import APIs, set-based merge/upsert, and optimized bulk batching
 - Change tracking, dirty checking, `SaveChanges()`, or unit-of-work behavior
 - Relationship loading, cascade persistence, lazy loading, or proxy generation
 - Migrations or schema management

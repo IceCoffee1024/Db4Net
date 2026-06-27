@@ -1,6 +1,5 @@
 using System.Data;
 using System.Threading;
-using Dapper;
 
 namespace Db4Net.Commands;
 
@@ -9,11 +8,11 @@ namespace Db4Net.Commands;
 /// </summary>
 public abstract class CommandBuilderBase
 {
-    private readonly IDbConnection? _connection;
+    private readonly DapperCommandExecutor _executor;
 
     internal CommandBuilderBase(IDbConnection? connection)
     {
-        _connection = connection;
+        _executor = new DapperCommandExecutor(connection);
     }
 
     /// <summary>
@@ -29,7 +28,7 @@ public abstract class CommandBuilderBase
     /// <returns>The affected row count returned by Dapper.</returns>
     public int Execute(Db4NetExecutionOptions? options = null)
     {
-        return RequireConnection().Execute(CreateDapperCommand(options));
+        return _executor.Execute(ToCommand(), options);
     }
 
     /// <summary>
@@ -40,23 +39,6 @@ public abstract class CommandBuilderBase
     /// <returns>The affected row count returned by Dapper.</returns>
     public Task<int> ExecuteAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return RequireConnection().ExecuteAsync(CreateDapperCommand(options, cancellationToken));
-    }
-
-    private CommandDefinition CreateDapperCommand(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        var command = ToCommand();
-        return new CommandDefinition(
-            command.Sql,
-            command.Parameters,
-            options?.Transaction,
-            options?.CommandTimeout,
-            options?.CommandType,
-            cancellationToken: cancellationToken);
-    }
-
-    private IDbConnection RequireConnection()
-    {
-        return _connection ?? throw new InvalidOperationException("Dapper execution requires an IDbConnection. Use connection.UseDb4Net(options) to create the database facade.");
+        return _executor.ExecuteAsync(ToCommand(), options, cancellationToken);
     }
 }

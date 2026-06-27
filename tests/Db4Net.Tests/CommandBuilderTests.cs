@@ -389,6 +389,78 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Insert_many_entity_entry_point_renders_command_for_each_entity()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertMany(
+            [
+                new User { Id = 1, Name = "Alice" },
+                new User { Id = 2, Name = "Bob" },
+            ])
+            .ToCommands();
+
+        Assert.Collection(
+            commands,
+            command =>
+            {
+                Assert.Equal("INSERT INTO [Users] ([Id], [Name]) VALUES (@Id, @Name)", command.Sql);
+                Assert.Equal(1, command.Parameters.Get<int>("Id"));
+                Assert.Equal("Alice", command.Parameters.Get<string>("Name"));
+            },
+            command =>
+            {
+                Assert.Equal("INSERT INTO [Users] ([Id], [Name]) VALUES (@Id, @Name)", command.Sql);
+                Assert.Equal(2, command.Parameters.Get<int>("Id"));
+                Assert.Equal("Bob", command.Parameters.Get<string>("Name"));
+            });
+    }
+
+    [Fact]
+    public void Insert_many_entity_entry_point_can_override_target_table()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertMany(
+            [
+                new User { Id = 1, Name = "Alice" },
+            ],
+            table: "users_staging")
+            .ToCommands();
+
+        var command = Assert.Single(commands);
+        Assert.Equal("INSERT INTO [users_staging] ([Id], [Name]) VALUES (@Id, @Name)", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("Id"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("Name"));
+    }
+
+    [Fact]
+    public void Insert_many_skips_database_generated_values_for_each_entity()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertMany(
+            [
+                new GeneratedKeyUser { Id = 1, Name = "Alice" },
+                new GeneratedKeyUser { Id = 2, Name = "Bob" },
+            ])
+            .ToCommands();
+
+        Assert.Collection(
+            commands,
+            command =>
+            {
+                Assert.Equal("INSERT INTO [generated_users] ([Name]) VALUES (@Name)", command.Sql);
+                Assert.Equal("Alice", command.Parameters.Get<string>("Name"));
+            },
+            command =>
+            {
+                Assert.Equal("INSERT INTO [generated_users] ([Name]) VALUES (@Name)", command.Sql);
+                Assert.Equal("Bob", command.Parameters.Get<string>("Name"));
+            });
+    }
+
+    [Fact]
     public void Insert_into_type_skips_database_generated_key_values_from_entity()
     {
         var command = Db4NetDatabase
@@ -583,6 +655,95 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Update_many_entity_entry_point_sets_non_key_values_and_filters_each_entity_by_key()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .UpdateMany(
+            [
+                new User { Id = 1, Name = "Alice" },
+                new User { Id = 2, Name = "Bob" },
+            ])
+            .ToCommands();
+
+        Assert.Collection(
+            commands,
+            command =>
+            {
+                Assert.Equal("UPDATE [Users] SET [Name] = @Name WHERE [Id] = @Id", command.Sql);
+                Assert.Equal(1, command.Parameters.Get<int>("Id"));
+                Assert.Equal("Alice", command.Parameters.Get<string>("Name"));
+            },
+            command =>
+            {
+                Assert.Equal("UPDATE [Users] SET [Name] = @Name WHERE [Id] = @Id", command.Sql);
+                Assert.Equal(2, command.Parameters.Get<int>("Id"));
+                Assert.Equal("Bob", command.Parameters.Get<string>("Name"));
+            });
+    }
+
+    [Fact]
+    public void Update_many_entity_entry_point_can_override_target_table()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .UpdateMany(
+            [
+                new User { Id = 1, Name = "Alice" },
+            ],
+            table: "users_2026")
+            .ToCommands();
+
+        var command = Assert.Single(commands);
+        Assert.Equal("UPDATE [users_2026] SET [Name] = @Name WHERE [Id] = @Id", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("Id"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("Name"));
+    }
+
+    [Fact]
+    public void Delete_many_entity_entry_point_filters_each_entity_by_key()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .DeleteMany(
+            [
+                new User { Id = 1, Name = "Alice" },
+                new User { Id = 2, Name = "Bob" },
+            ])
+            .ToCommands();
+
+        Assert.Collection(
+            commands,
+            command =>
+            {
+                Assert.Equal("DELETE FROM [Users] WHERE [Id] = @Id", command.Sql);
+                Assert.Equal(1, command.Parameters.Get<int>("Id"));
+            },
+            command =>
+            {
+                Assert.Equal("DELETE FROM [Users] WHERE [Id] = @Id", command.Sql);
+                Assert.Equal(2, command.Parameters.Get<int>("Id"));
+            });
+    }
+
+    [Fact]
+    public void Delete_many_entity_entry_point_can_override_target_table()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .DeleteMany(
+            [
+                new User { Id = 1, Name = "Alice" },
+            ],
+            table: "users_2026")
+            .ToCommands();
+
+        var command = Assert.Single(commands);
+        Assert.Equal("DELETE FROM [users_2026] WHERE [Id] = @Id", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("Id"));
+    }
+
+    [Fact]
     public void Delete_from_type_where_key_filters_by_convention()
     {
         var command = Db4NetDatabase
@@ -654,10 +815,16 @@ public sealed class CommandBuilderTests
         var insertEx = Assert.Throws<ArgumentException>(() => database.Insert<string>(entity: "Users").ToCommand());
         var updateEx = Assert.Throws<ArgumentException>(() => database.Update<string>(entity: "Users").ToCommand());
         var deleteEx = Assert.Throws<ArgumentException>(() => database.Delete<string>(entity: "Users").ToCommand());
+        var insertManyEx = Assert.Throws<ArgumentException>(() => database.InsertMany(new[] { "Users" }).ToCommands());
+        var updateManyEx = Assert.Throws<ArgumentException>(() => database.UpdateMany(new[] { "Users" }).ToCommands());
+        var deleteManyEx = Assert.Throws<ArgumentException>(() => database.DeleteMany(new[] { "Users" }).ToCommands());
 
         Assert.Contains("does not have any mapped columns", insertEx.Message);
         Assert.Contains("does not have any mapped columns", updateEx.Message);
         Assert.Contains("does not have any mapped columns", deleteEx.Message);
+        Assert.Contains("does not have any mapped columns", insertManyEx.Message);
+        Assert.Contains("does not have any mapped columns", updateManyEx.Message);
+        Assert.Contains("does not have any mapped columns", deleteManyEx.Message);
     }
 
     [Fact]
@@ -699,6 +866,73 @@ public sealed class CommandBuilderTests
         Assert.Throws<ArgumentNullException>(() => database.Update<User>(entity: null!, table: "Users"));
         Assert.Throws<ArgumentNullException>(() => database.Delete<User>(null!));
         Assert.Throws<ArgumentNullException>(() => database.Delete<User>(null!, table: "Users"));
+        Assert.Throws<ArgumentNullException>(() => database.InsertMany<User>(null!).ToCommands());
+        Assert.Throws<ArgumentNullException>(() => database.UpdateMany<User>(null!).ToCommands());
+        Assert.Throws<ArgumentNullException>(() => database.DeleteMany<User>(null!).ToCommands());
+        Assert.Throws<ArgumentNullException>(() => database.InsertMany([new User { Id = 1, Name = "Alice" }, null!]).ToCommands());
+        Assert.Throws<ArgumentNullException>(() => database.UpdateMany([new User { Id = 1, Name = "Alice" }, null!]).ToCommands());
+        Assert.Throws<ArgumentNullException>(() => database.DeleteMany([new User { Id = 1, Name = "Alice" }, null!]).ToCommands());
+    }
+
+    [Fact]
+    public void Many_entity_command_entry_points_return_no_commands_for_empty_sequences()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        Assert.Empty(database.InsertMany(Array.Empty<User>()).ToCommands());
+        Assert.Empty(database.UpdateMany(Array.Empty<User>()).ToCommands());
+        Assert.Empty(database.DeleteMany(Array.Empty<User>()).ToCommands());
+    }
+
+    [Fact]
+    public void Many_entity_command_entry_points_reject_invalid_table_identifiers_when_rendered()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var insertEx = Assert.Throws<ArgumentException>(() =>
+            database.InsertMany([new User { Id = 1, Name = "Alice" }], table: "users;drop table Users").ToCommands());
+        var updateEx = Assert.Throws<ArgumentException>(() =>
+            database.UpdateMany([new User { Id = 1, Name = "Alice" }], table: "users;drop table Users").ToCommands());
+        var deleteEx = Assert.Throws<ArgumentException>(() =>
+            database.DeleteMany([new User { Id = 1, Name = "Alice" }], table: "users;drop table Users").ToCommands());
+
+        Assert.Contains("Invalid SQL identifier", insertEx.Message);
+        Assert.Contains("Invalid SQL identifier", updateEx.Message);
+        Assert.Contains("Invalid SQL identifier", deleteEx.Message);
+    }
+
+    [Fact]
+    public void Update_many_rejects_missing_composite_and_default_keys()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var missingKeyEx = Assert.Throws<InvalidOperationException>(() =>
+            database.UpdateMany([new NoKeyUser { Name = "Alice" }]).ToCommands());
+        var compositeKeyEx = Assert.Throws<InvalidOperationException>(() =>
+            database.UpdateMany([new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" }]).ToCommands());
+        var defaultKeyEx = Assert.Throws<InvalidOperationException>(() =>
+            database.UpdateMany([new User { Id = 0, Name = "Alice" }]).ToCommands());
+
+        Assert.Contains("does not have a key", missingKeyEx.Message);
+        Assert.Contains("Composite keys are not supported", compositeKeyEx.Message);
+        Assert.Contains("default key value", defaultKeyEx.Message);
+    }
+
+    [Fact]
+    public void Delete_many_rejects_missing_composite_and_default_keys()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var missingKeyEx = Assert.Throws<InvalidOperationException>(() =>
+            database.DeleteMany([new NoKeyUser { Name = "Alice" }]).ToCommands());
+        var compositeKeyEx = Assert.Throws<InvalidOperationException>(() =>
+            database.DeleteMany([new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" }]).ToCommands());
+        var defaultKeyEx = Assert.Throws<InvalidOperationException>(() =>
+            database.DeleteMany([new User { Id = 0, Name = "Alice" }]).ToCommands());
+
+        Assert.Contains("does not have a key", missingKeyEx.Message);
+        Assert.Contains("Composite keys are not supported", compositeKeyEx.Message);
+        Assert.Contains("default key value", defaultKeyEx.Message);
     }
 
     [Table("Users")]

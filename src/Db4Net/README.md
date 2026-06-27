@@ -128,6 +128,22 @@ await connection
     .ExecuteAsync();
 ```
 
+For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`; Db4Net does not create an automatic transaction, so pass one through `Db4NetExecutionOptions` when the operation must be atomic:
+
+```csharp
+var inserted = db
+    .InsertMany(users)
+    .Execute();
+
+var updated = db
+    .UpdateMany(users, table: "users_2026")
+    .Execute();
+
+var deleted = db
+    .DeleteMany(users)
+    .Execute();
+```
+
 Use the SQL-shaped command builders when you need explicit fields or predicates:
 
 ```csharp
@@ -137,7 +153,7 @@ db.Update<User>()
   .Execute();
 ```
 
-They still generate inspectable SQL and do not add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
+Single command builders generate inspectable SQL through `ToCommand()`, and `Many` command builders expose `ToCommands()` for inspecting the per-entity commands. None of these APIs add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
 
 ## Mapping
 
@@ -168,7 +184,7 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 `[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, `OrderBy`, `Value`, and `Set` member selectors.
 
-`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `Delete(user)`, and `WhereKey(user)`. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)` and `Insert(entity)`. Explicit `.Value(...)` calls remain caller-controlled.
+`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, and `WhereKey(user)`. Key metadata identifies mapped columns for equality predicates; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, and `InsertMany(users)`. Explicit `.Value(...)` calls remain caller-controlled.
 
 ## Filters
 
@@ -288,6 +304,6 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides and entity command conveniences are supported for safe SQL-shaped APIs, but joins, bulk operations, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, but joins, provider-native bulk copy/import APIs, set-based merge/upsert, optimized bulk batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
 
 For complex joins or database-specific SQL, use Dapper raw SQL directly or expose stable read models through database views.

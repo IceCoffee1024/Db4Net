@@ -139,6 +139,31 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Starts INSERT commands for multiple entity instances using the table mapped from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entities">The entity instances to insert.</param>
+    /// <returns>An insert-many command builder.</returns>
+    public InsertManyCommandBuilder<T> InsertMany<T>(IEnumerable<T> entities)
+    {
+        EnsureEntityType<T>();
+        return new InsertManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+    }
+
+    /// <summary>
+    /// Starts INSERT commands for multiple entity instances using an explicit table while mapping columns from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="entities">The entity instances to insert.</param>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>An insert-many command builder.</returns>
+    public InsertManyCommandBuilder<T> InsertMany<T>(IEnumerable<T> entities, string table)
+    {
+        EnsureEntityType<T>();
+        return new InsertManyCommandBuilder<T>(_options, _connection, table, entities);
+    }
+
+    /// <summary>
     /// Starts an UPDATE command using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
@@ -187,6 +212,31 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Starts UPDATE commands for multiple entity instances using key properties for each WHERE clause.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entities">The entity instances to update.</param>
+    /// <returns>An update-many command builder.</returns>
+    public UpdateManyCommandBuilder<T> UpdateMany<T>(IEnumerable<T> entities)
+    {
+        EnsureEntityType<T>();
+        return new UpdateManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+    }
+
+    /// <summary>
+    /// Starts UPDATE commands for multiple entity instances using an explicit table and key properties for each WHERE clause.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="entities">The entity instances to update.</param>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>An update-many command builder.</returns>
+    public UpdateManyCommandBuilder<T> UpdateMany<T>(IEnumerable<T> entities, string table)
+    {
+        EnsureEntityType<T>();
+        return new UpdateManyCommandBuilder<T>(_options, _connection, table, entities);
+    }
+
+    /// <summary>
     /// Starts a DELETE command using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
@@ -232,6 +282,31 @@ public sealed class Db4NetDatabase
         ArgumentNullException.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return DeleteFrom<T>(table).WhereKey(entity);
+    }
+
+    /// <summary>
+    /// Starts DELETE commands for multiple entity instances using key properties for each WHERE clause.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="entities">The entity instances to delete.</param>
+    /// <returns>A delete-many command builder.</returns>
+    public DeleteManyCommandBuilder<T> DeleteMany<T>(IEnumerable<T> entities)
+    {
+        EnsureEntityType<T>();
+        return new DeleteManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+    }
+
+    /// <summary>
+    /// Starts DELETE commands for multiple entity instances using an explicit table and key properties for each WHERE clause.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for member mapping.</typeparam>
+    /// <param name="entities">The entity instances to delete.</param>
+    /// <param name="table">The target table identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>A delete-many command builder.</returns>
+    public DeleteManyCommandBuilder<T> DeleteMany<T>(IEnumerable<T> entities, string table)
+    {
+        EnsureEntityType<T>();
+        return new DeleteManyCommandBuilder<T>(_options, _connection, table, entities);
     }
 
     private static void EnsureEntityType<T>()

@@ -273,6 +273,205 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Many_entity_command_conveniences_execute_parameterized_sql_with_dapper()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var inserted = db
+            .InsertMany(
+            [
+                new User { Id = 3, Name = "Charlie" },
+                new User { Id = 4, Name = "Dana" },
+            ])
+            .Execute();
+
+        var updated = db
+            .UpdateMany(
+            [
+                new User { Id = 3, Name = "Charles" },
+                new User { Id = 4, Name = "Daphne" },
+            ])
+            .Execute();
+
+        var users = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.In, new[] { 3, 4 })
+            .OrderBy(u => u.Id)
+            .Query()
+            .ToList();
+
+        var deleted = db
+            .DeleteMany(
+            [
+                new User { Id = 3, Name = "Charles" },
+                new User { Id = 4, Name = "Daphne" },
+            ])
+            .Execute();
+
+        var remaining = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.In, new[] { 3, 4 })
+            .Query()
+            .ToList();
+
+        Assert.Equal(2, inserted);
+        Assert.Equal(2, updated);
+        Assert.Collection(
+            users,
+            user => Assert.Equal("Charles", user.Name),
+            user => Assert.Equal("Daphne", user.Name));
+        Assert.Equal(2, deleted);
+        Assert.Empty(remaining);
+    }
+
+    [Fact]
+    public void Many_entity_command_table_overrides_execute_against_explicit_tables_with_model_mapping()
+    {
+        using var connection = CreateOpenShardedConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var inserted = db
+            .InsertMany(
+            [
+                new MappedUser { Id = 1, DisplayName = "Alice" },
+                new MappedUser { Id = 2, DisplayName = "Bob" },
+            ],
+            table: "app_users_staging")
+            .Execute();
+
+        var updated = db
+            .UpdateMany(
+            [
+                new MappedUser { Id = 1, DisplayName = "Alicia" },
+                new MappedUser { Id = 2, DisplayName = "Bobby" },
+            ],
+            table: "app_users_staging")
+            .Execute();
+
+        var users = db
+            .SelectFrom<MappedUser>("app_users_staging")
+            .OrderBy(u => u.Id)
+            .Query()
+            .ToList();
+
+        var deleted = db
+            .DeleteMany(
+            [
+                new MappedUser { Id = 1, DisplayName = "Alicia" },
+                new MappedUser { Id = 2, DisplayName = "Bobby" },
+            ],
+            table: "app_users_staging")
+            .Execute();
+
+        var afterDelete = db
+            .SelectFrom<MappedUser>("app_users_staging")
+            .Query()
+            .ToList();
+
+        Assert.Equal(2, inserted);
+        Assert.Equal(2, updated);
+        Assert.Collection(
+            users,
+            user => Assert.Equal("Alicia", user.DisplayName),
+            user => Assert.Equal("Bobby", user.DisplayName));
+        Assert.Equal(2, deleted);
+        Assert.Empty(afterDelete);
+    }
+
+    [Fact]
+    public void Empty_many_entity_command_conveniences_return_zero_without_executing()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        Assert.Equal(0, db.InsertMany(Array.Empty<User>()).Execute());
+        Assert.Equal(0, db.UpdateMany(Array.Empty<User>()).Execute());
+        Assert.Equal(0, db.DeleteMany(Array.Empty<User>()).Execute());
+    }
+
+    [Fact]
+    public void Many_commands_use_transaction_from_execution_options()
+    {
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var inserted = db
+            .InsertMany(
+            [
+                new User { Id = 3, Name = "Charlie" },
+                new User { Id = 4, Name = "Dana" },
+            ])
+            .Execute(new Db4NetExecutionOptions { Transaction = transaction });
+
+        var usersInTransaction = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.In, new[] { 3, 4 })
+            .Query(new Db4NetExecutionOptions { Transaction = transaction })
+            .ToList();
+
+        transaction.Rollback();
+
+        var usersAfterRollback = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.In, new[] { 3, 4 })
+            .Query()
+            .ToList();
+
+        Assert.Equal(2, inserted);
+        Assert.Equal(2, usersInTransaction.Count);
+        Assert.Empty(usersAfterRollback);
+    }
+
+    [Fact]
+    public void Update_many_validates_all_entities_before_executing()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            db.UpdateMany(
+            [
+                new User { Id = 1, Name = "Alicia" },
+                new User { Id = 0, Name = "Invalid" },
+            ])
+            .Execute());
+
+        var user = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .QuerySingleOrDefault();
+
+        Assert.Contains("default key value", ex.Message);
+        Assert.NotNull(user);
+        Assert.Equal("Alice", user.Name);
+    }
+
+    [Fact]
+    public async Task Delete_many_async_executes_parameterized_sql_with_dapper()
+    {
+        await using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var deleted = await db
+            .DeleteMany(
+            [
+                new User { Id = 1, Name = "Alice" },
+                new User { Id = 2, Name = "Bob" },
+            ])
+            .ExecuteAsync();
+
+        var remaining = (await db
+            .SelectFrom<User>()
+            .QueryAsync())
+            .ToList();
+
+        Assert.Equal(2, deleted);
+        Assert.Empty(remaining);
+    }
+
+    [Fact]
     public void Command_table_overrides_execute_against_explicit_tables_with_model_mapping()
     {
         using var connection = CreateOpenShardedConnection();
