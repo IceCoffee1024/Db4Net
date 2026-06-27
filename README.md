@@ -262,7 +262,7 @@ For complex joins or database-specific SQL, use Dapper raw SQL directly or expos
 
 - `src/Db4Net`: library source and NuGet package README
 - `tests/Db4Net.Tests`: unit and integration tests
-- `docs`: design notes and project analysis
+- `engineering`: internal analysis notes, design records, and implementation plans
 
 ## Tests
 

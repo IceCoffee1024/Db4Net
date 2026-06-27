@@ -1,6 +1,6 @@
 # Fluent Dapper Query Builder：v1 方向与当前状态
 
-日期：2026-06-26
+最后更新：2026-06-27
 
 ## 目标
 
@@ -143,7 +143,7 @@ db.SelectFrom<User>()
 
 ## 当前实现状态
 
-第一阶段已经完成，当前包版本为 `0.2.0-alpha.1`。当前 alpha 已经不只是最初的 SELECT builder，而是安全、SQL-shaped、单表 query/command builder 的早期完整形态。
+当前 alpha 阶段实现已完成，当前包版本为 `0.2.0-alpha.1`。当前 alpha 已经不只是最初的 SELECT builder，而是安全、SQL-shaped、单表 query/command builder 的早期完整形态。
 
 已实现：
 
@@ -179,7 +179,7 @@ db.SelectFrom<User>()
 
 - `dotnet test`：当前本机配置下 223 个测试全部通过；外部数据库测试是否执行取决于 `local.runsettings` 或环境变量。
 - `dotnet build -c Release`：最近验证为 0 warning，0 error。
-- `dotnet pack src/Db4Net/Db4Net.csproj -c Release`：可生成 `Db4Net.0.2.0-alpha.1.nupkg`。
+- `dotnet pack src/Db4Net/Db4Net.csproj -c Release`：可生成 `Db4Net.0.2.0-alpha.1.nupkg` 和 `Db4Net.0.2.0-alpha.1.snupkg`。
 
 测试策略：
 
@@ -199,6 +199,9 @@ SQL 渲染和 Dapper 执行保持分离。
 当前内部组件：
 
 - `SelectQueryBuilder`：面向用户的 SELECT Fluent API，并在 query 终止方法中调用 Dapper。
+- `FilterNode`、`FilterClause`、`FilterGroup`：记录过滤条件树，支持普通条件和显式括号分组。
+- `FilterClauseBuilder`：内部集中追加过滤条件和校验操作符值规则。
+- `FilterGroupBuilder`、`FilterGroupBuilder<T>`：面向用户的显式分组 API，只暴露过滤方法，不暴露排序、分页或命令渲染。
 - `InsertCommandBuilder<T>`、`UpdateCommandBuilder<T>`、`DeleteCommandBuilder<T>`：面向用户的单表命令 Fluent API，并通过 `Execute()` / `ExecuteAsync()` 调用 Dapper。
 - `InsertManyCommandBuilder<T>`、`UpdateManyCommandBuilder<T>`、`DeleteManyCommandBuilder<T>`：面向用户的多实体命令 convenience；`ToCommands()` 可检查逐实体命令，`Execute()` / `ExecuteAsync()` 使用 Dapper 对实体序列执行同一条参数化命令并累加影响行数。
 - `InsertOrIgnoreCommandBuilder<T>`、`InsertOrUpdateCommandBuilder<T>`、`InsertOrIgnoreManyCommandBuilder<T>`、`InsertOrUpdateManyCommandBuilder<T>`：面向用户的 conflict-aware insert API，支持可检查 SQL 和 Dapper 执行。
@@ -208,6 +211,7 @@ SQL 渲染和 Dapper 执行保持分离。
 - `CommandSqlRenderer`：把 Insert/Update/Delete 命令模型渲染成 SQL 和参数。
 - `ManyCommandSqlRenderer`：把多实体 convenience 的逐实体命令模板和可检查命令渲染成 SQL 和参数。
 - `ConflictInsertSqlRenderer`：把 `InsertOrIgnore` / `InsertOrUpdate` 渲染成各方言的 conflict-aware insert SQL。
+- `FilterSqlRenderer`：递归渲染过滤条件树，并为 `WhereGroup(...)` / `OrWhereGroup(...)` 输出括号。
 - `ISqlDialect`：处理标识符引用、分页语法、分页参数顺序。
 - `ModelMetadataProvider`：从 CLR 类型和成员选择器构建映射元数据。
 - `ModelMetadata<T>`：按实体类型缓存表名、可映射列集合，以及按属性名索引的列字典，减少类型化 API 构建查询时的重复反射和线性查找。
@@ -220,6 +224,7 @@ SQL 渲染和 Dapper 执行保持分离。
 - `Version`: `0.2.0-alpha.1`
 - `Authors`: `IceCoffee`
 - `Description`: `Safe, SQL-shaped fluent query and command builder for Dapper.`
+- `PackageReleaseNotes`: `0.2.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, and explicit filter groups.`
 - `PackageTags`: `dapper;sql;fluent;query-builder`
 - `PackageReadmeFile`: `README.md`
 - `PackageLicenseExpression`: `MIT`
@@ -227,13 +232,19 @@ SQL 渲染和 Dapper 执行保持分离。
 - `RepositoryUrl`: `https://github.com/IceCoffee1024/Db4Net.git`
 - `RepositoryType`: `git`
 - `GenerateDocumentationFile`: `true`
+- `PublishRepositoryUrl`: `true`
+- `EmbedUntrackedSources`: `true`
+- `SymbolPackageFormat`: `snupkg`
+- `IncludeSymbols`: `true`
+
+`PackageProjectUrl` 指向项目网站 `https://dotnet.db4.dev`，该地址当前可访问并展示 Db4Net 文档；源码仓库地址由 `RepositoryUrl` 单独指向 GitHub。
 
 发布包体验已补齐：
 
 - SourceLink。
 - Symbols package。
 
-发布前发布说明已补充到根目录 `CHANGELOG.md`。
+发布说明已补充到根目录 `CHANGELOG.md`，通过 `PackageReleaseNotes` 写入 NuGet 元数据，并打包进 nupkg 根目录。
 
 分页参数顺序由方言决定：
 
