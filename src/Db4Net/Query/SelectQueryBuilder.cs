@@ -104,6 +104,17 @@ public partial class SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds a parenthesized AND filter group.
+    /// </summary>
+    /// <param name="configure">Configures the nested filter group.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder WhereGroup(Action<FilterGroupBuilder> configure)
+    {
+        _filters.AddGroup(FilterBooleanOperator.And, CreateFilterGroup(configure));
+        return this;
+    }
+
+    /// <summary>
     /// Adds an OR filter using a string-based column identifier.
     /// </summary>
     /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
@@ -125,6 +136,17 @@ public partial class SelectQueryBuilder
     public SelectQueryBuilder OrWhere(string column, Op op)
     {
         _filters.AddValueFree(FilterBooleanOperator.Or, column, op);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a parenthesized OR filter group.
+    /// </summary>
+    /// <param name="configure">Configures the nested filter group.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrWhereGroup(Action<FilterGroupBuilder> configure)
+    {
+        _filters.AddGroup(FilterBooleanOperator.Or, CreateFilterGroup(configure));
         return this;
     }
 
@@ -220,6 +242,11 @@ public partial class SelectQueryBuilder
         return this;
     }
 
+    internal void AddFilterGroup(FilterBooleanOperator booleanOperator, IReadOnlyList<FilterNode> filters)
+    {
+        _filters.AddGroup(booleanOperator, filters);
+    }
+
     internal void ClearSelectColumns()
     {
         _model.Columns.Clear();
@@ -237,7 +264,7 @@ public partial class SelectQueryBuilder
         for (var index = 0; index < _model.Filters.Count; index++)
         {
             var filter = _model.Filters[index];
-            _model.Filters[index] = filter with { Column = MapPropertyName<T>(filter.Column) };
+            _model.Filters[index] = MapFilter<T>(filter);
         }
 
         for (var index = 0; index < _model.Orders.Count; index++)
@@ -261,5 +288,24 @@ public partial class SelectQueryBuilder
     private static string MapPropertyName<T>(string propertyName)
     {
         return ModelMetadata<T>.GetColumn(propertyName).ColumnName;
+    }
+
+    private static IReadOnlyList<FilterNode> CreateFilterGroup(Action<FilterGroupBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var group = new FilterGroupBuilder();
+        configure(group);
+        return group.Filters;
+    }
+
+    private static FilterNode MapFilter<T>(FilterNode filter)
+    {
+        return filter switch
+        {
+            FilterClause clause => clause with { Column = MapPropertyName<T>(clause.Column) },
+            FilterGroup group => group with { Filters = group.Filters.Select(MapFilter<T>).ToArray() },
+            _ => throw new NotSupportedException($"Filter node {filter.GetType().Name} is not supported.")
+        };
     }
 }

@@ -16,16 +16,63 @@ internal sealed class FilterSqlRenderer
         _parameters = parameters;
     }
 
-    public void Render(StringBuilder sql, IReadOnlyList<FilterClause> filters)
+    public void Render(StringBuilder sql, IReadOnlyList<FilterNode> filters)
+    {
+        if (filters.Count == 0)
+        {
+            return;
+        }
+
+        sql.Append(" WHERE ");
+        RenderNodes(sql, filters);
+    }
+
+    private void RenderNodes(StringBuilder sql, IReadOnlyList<FilterNode> filters)
     {
         for (var index = 0; index < filters.Count; index++)
         {
             var filter = filters[index];
-            sql.Append(index == 0 ? " WHERE " : $" {RenderBooleanOperator(filter.BooleanOperator)} ");
-            sql.Append(_dialect.QuoteIdentifier(filter.Column));
-            sql.Append(' ');
-            sql.Append(RenderOperator(filter));
+            if (index > 0)
+            {
+                sql.Append($" {RenderBooleanOperator(filter.BooleanOperator)} ");
+            }
+
+            RenderNode(sql, filter);
         }
+    }
+
+    private void RenderNode(StringBuilder sql, FilterNode filter)
+    {
+        switch (filter)
+        {
+            case FilterClause clause:
+                RenderClause(sql, clause);
+                break;
+            case FilterGroup group:
+                RenderGroup(sql, group);
+                break;
+            default:
+                throw new NotSupportedException($"Filter node {filter.GetType().Name} is not supported.");
+        }
+    }
+
+    private void RenderClause(StringBuilder sql, FilterClause filter)
+    {
+        sql.Append(_dialect.QuoteIdentifier(filter.Column));
+        sql.Append(' ');
+        sql.Append(RenderOperator(filter));
+    }
+
+    private void RenderGroup(StringBuilder sql, FilterGroup group)
+    {
+        if (group.Filters.Count == 0)
+        {
+            throw new InvalidOperationException("Filter group requires at least one filter.");
+        }
+
+        sql.Append('(');
+        RenderNodes(sql, group.Filters);
+        sql.Append(')');
     }
 
     private static string RenderBooleanOperator(FilterBooleanOperator booleanOperator)

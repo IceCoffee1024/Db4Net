@@ -163,6 +163,37 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Delete_from_type_renders_where_group()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .DeleteFrom<User>()
+            .WhereGroup(group => group
+                .Where(u => u.Id, Op.Eq, 1)
+                .OrWhere(u => u.Name, Op.Eq, "Alice"))
+            .Where(u => u.Name, Op.Like, "A%")
+            .ToCommand();
+
+        Assert.Equal("DELETE FROM [Users] WHERE ([Id] = @p0 OR [Name] = @p1) AND [Name] LIKE @p2", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+        Assert.Equal("A%", command.Parameters.Get<string>("p2"));
+    }
+
+    [Fact]
+    public void Delete_from_type_rejects_empty_where_group()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .DeleteFrom<User>()
+                .WhereGroup(_ => { })
+                .ToCommand());
+
+        Assert.Contains("Filter group requires at least one filter", ex.Message);
+    }
+
+    [Fact]
     public void Update_type_renders_set_before_where_parameters()
     {
         var command = Db4NetDatabase
@@ -289,6 +320,40 @@ public sealed class CommandBuilderTests
                 .ToCommand());
 
         Assert.Contains("is not a mapped column", ex.Message);
+    }
+
+    [Fact]
+    public void Update_type_renders_where_group_after_set_parameters()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Update<User>()
+            .Set(u => u.Name, "Updated")
+            .Where(u => u.Id, Op.Eq, 1)
+            .OrWhereGroup(group => group
+                .Where(u => u.Name, Op.Eq, "Alice")
+                .Where(u => u.Id, Op.Gt, 10))
+            .ToCommand();
+
+        Assert.Equal("UPDATE [Users] SET [Name] = @p0 WHERE [Id] = @p1 OR ([Name] = @p2 AND [Id] > @p3)", command.Sql);
+        Assert.Equal("Updated", command.Parameters.Get<string>("p0"));
+        Assert.Equal(1, command.Parameters.Get<int>("p1"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p2"));
+        Assert.Equal(10, command.Parameters.Get<int>("p3"));
+    }
+
+    [Fact]
+    public void Update_type_rejects_empty_where_group()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .Update<User>()
+                .Set(u => u.Name, "Updated")
+                .WhereGroup(_ => { })
+                .ToCommand());
+
+        Assert.Contains("Filter group requires at least one filter", ex.Message);
     }
 
     [Fact]

@@ -6,7 +6,7 @@ internal sealed class SelectQueryModel
 
     public string? Table { get; set; }
 
-    public List<FilterClause> Filters { get; } = [];
+    public List<FilterNode> Filters { get; } = [];
 
     public List<OrderClause> Orders { get; } = [];
 
@@ -17,7 +17,13 @@ internal sealed class SelectQueryModel
 
 internal sealed record SelectColumn(string Column, string? Alias = null);
 
-internal sealed record FilterClause(FilterBooleanOperator BooleanOperator, string Column, Op Operator, object? Value);
+internal abstract record FilterNode(FilterBooleanOperator BooleanOperator);
+
+internal sealed record FilterClause(FilterBooleanOperator BooleanOperator, string Column, Op Operator, object? Value)
+    : FilterNode(BooleanOperator);
+
+internal sealed record FilterGroup(FilterBooleanOperator BooleanOperator, IReadOnlyList<FilterNode> Filters)
+    : FilterNode(BooleanOperator);
 
 internal enum FilterBooleanOperator
 {

@@ -254,6 +254,93 @@ public sealed class SelectQueryBuilderTests
         Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
     }
 
+    [Fact]
+    public void Where_group_renders_parenthesized_filters()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .WhereGroup(group => group
+                .Where(u => u.Id, Op.Eq, 1)
+                .OrWhere(u => u.Name, Op.Eq, "Alice"))
+            .Where(u => u.Name, Op.Like, "A%")
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE ([Id] = @p0 OR [Name] = @p1) AND [Name] LIKE @p2", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+        Assert.Equal("A%", command.Parameters.Get<string>("p2"));
+    }
+
+    [Fact]
+    public void Or_where_group_renders_parenthesized_filters()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .OrWhereGroup(group => group
+                .Where(u => u.Name, Op.Eq, "Alice")
+                .Where(u => u.Id, Op.Gt, 10))
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0 OR ([Name] = @p1 AND [Id] > @p2)", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+        Assert.Equal(10, command.Parameters.Get<int>("p2"));
+    }
+
+    [Fact]
+    public void Where_group_renders_nested_groups()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Gt, 0)
+            .WhereGroup(group => group
+                .Where(u => u.Name, Op.Like, "A%")
+                .OrWhereGroup(nested => nested
+                    .Where(u => u.Name, Op.Like, "B%")
+                    .Where(u => u.Id, Op.Lt, 10)))
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Id] > @p0 AND ([Name] LIKE @p1 OR ([Name] LIKE @p2 AND [Id] < @p3))", command.Sql);
+        Assert.Equal(0, command.Parameters.Get<int>("p0"));
+        Assert.Equal("A%", command.Parameters.Get<string>("p1"));
+        Assert.Equal("B%", command.Parameters.Get<string>("p2"));
+        Assert.Equal(10, command.Parameters.Get<int>("p3"));
+    }
+
+    [Fact]
+    public void Where_group_rejects_empty_group()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<User>()
+                .WhereGroup(_ => { })
+                .ToCommand());
+
+        Assert.Contains("Filter group requires at least one filter", ex.Message);
+    }
+
+    [Fact]
+    public void String_where_group_before_typed_from_uses_property_mapping()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Select("DisplayName")
+            .WhereGroup(group => group
+                .Where("DisplayName", Op.Eq, "Alice")
+                .OrWhere("Id", Op.Eq, 1))
+            .From<MappedUser>()
+            .ToCommand();
+
+        Assert.Equal("SELECT [display_name] AS [DisplayName] FROM [app_users] WHERE ([display_name] = @p0 OR [Id] = @p1)", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal(1, command.Parameters.Get<int>("p1"));
+    }
+
     [Table("Users")]
     private sealed class User
     {

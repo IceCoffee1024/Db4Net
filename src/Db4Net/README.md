@@ -168,6 +168,19 @@ db.Update<User>()
   .Execute();
 ```
 
+Use `WhereGroup(...)` and `OrWhereGroup(...)` when mixed `AND` / `OR` filters need explicit parentheses:
+
+```csharp
+var users = db.SelectFrom<User>()
+  .WhereGroup(group => group
+      .Where(u => u.Id, Op.Eq, 1)
+      .OrWhere(u => u.Name, Op.Eq, "Alice"))
+  .Where(u => u.Id, Op.Gt, 0)
+  .Query();
+```
+
+This renders grouped SQL such as `WHERE ([Id] = @p0 OR [Name] = @p1) AND [Id] > @p2`. Plain `Where(...)` and `OrWhere(...)` chains follow SQL's normal operator precedence and do not add parentheses automatically.
+
 Single command builders generate inspectable SQL through `ToCommand()`, and `Many` command builders expose `ToCommands()` for inspecting the per-entity commands. None of these APIs add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
 
 ## Mapping
@@ -212,6 +225,8 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 ```
 
 `Op.Eq` with `null` renders `IS NULL`, and `Op.NotEq` with `null` renders `IS NOT NULL`. Prefer `Op.IsNull` and `Op.IsNotNull` when no value is needed.
+
+Use `WhereGroup(...)` / `OrWhereGroup(...)` for nested parentheses. The group builder only exposes filter methods, so ordering, paging, and command rendering stay outside the group.
 
 ## Paging
 

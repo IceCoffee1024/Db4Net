@@ -156,6 +156,19 @@ db.Update<User>()
   .Execute();
 ```
 
+Use `WhereGroup(...)` and `OrWhereGroup(...)` when mixed `AND` / `OR` filters need explicit parentheses:
+
+```csharp
+var users = db.SelectFrom<User>()
+  .WhereGroup(group => group
+      .Where(u => u.Id, Op.Eq, 1)
+      .OrWhere(u => u.Name, Op.Eq, "Alice"))
+  .Where(u => u.Id, Op.Gt, 0)
+  .Query();
+```
+
+This renders grouped SQL such as `WHERE ([Id] = @p0 OR [Name] = @p1) AND [Id] > @p2`. Plain `Where(...)` and `OrWhere(...)` chains follow SQL's normal operator precedence and do not add parentheses automatically.
+
 Single command builders still support `ToCommand()`, and `Many` command builders support `ToCommands()` for inspecting the per-entity commands. None of these APIs add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
 
 Inspect SQL without executing it:
@@ -227,7 +240,7 @@ Included in the current alpha:
 - Many entity command conveniences such as `InsertMany(users)`, `InsertMany(users, table)`, `UpdateMany(users)`, `UpdateMany(users, table)`, `DeleteMany(users)`, and `DeleteMany(users, table)`
 - Conflict-aware insert conveniences such as `InsertOrIgnore(user)`, `InsertOrIgnoreMany(users)`, `InsertOrUpdate(user)`, `InsertOrUpdateMany(users)`, and their `table` overloads
 - Dynamic property-name projection with model validation
-- `Where`, `OrWhere`, `OrderBy`, `Limit`, `Offset`, and `Page`
+- `Where`, `OrWhere`, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders
 - Sync and async Dapper-style query terminal methods
 - Transaction, command timeout, command type, and async cancellation token support

@@ -114,6 +114,17 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     }
 
     /// <summary>
+    /// Adds a parenthesized AND filter group.
+    /// </summary>
+    /// <param name="configure">Configures the nested filter group.</param>
+    /// <returns>The current command builder.</returns>
+    public UpdateCommandBuilder<T> WhereGroup(Action<FilterGroupBuilder<T>> configure)
+    {
+        AddGroup(FilterBooleanOperator.And, configure);
+        return this;
+    }
+
+    /// <summary>
     /// Adds AND filters for the key properties of an entity instance.
     /// </summary>
     /// <param name="entity">The entity instance to read key values from.</param>
@@ -185,6 +196,17 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     }
 
     /// <summary>
+    /// Adds a parenthesized OR filter group.
+    /// </summary>
+    /// <param name="configure">Configures the nested filter group.</param>
+    /// <returns>The current command builder.</returns>
+    public UpdateCommandBuilder<T> OrWhereGroup(Action<FilterGroupBuilder<T>> configure)
+    {
+        AddGroup(FilterBooleanOperator.Or, configure);
+        return this;
+    }
+
+    /// <summary>
     /// Allows rendering an UPDATE statement without a WHERE clause.
     /// </summary>
     /// <returns>The current command builder.</returns>
@@ -203,6 +225,15 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     private static string MapPropertyName(string propertyName)
     {
         return ModelMetadata<T>.GetColumn(propertyName).ColumnName;
+    }
+
+    private void AddGroup(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder<T>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var group = new FilterGroupBuilder<T>();
+        configure(group);
+        _filters.AddGroup(booleanOperator, group.Filters);
     }
 
     private static void EnsureNonDefaultKeyValue(ColumnMetadata column, object? value)

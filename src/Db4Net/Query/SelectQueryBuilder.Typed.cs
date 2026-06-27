@@ -146,6 +146,21 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds a parenthesized AND filter group using typed member selectors or CLR property names.
+    /// </summary>
+    /// <param name="configure">Configures the nested filter group.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> WhereGroup(Action<FilterGroupBuilder<T>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var group = new FilterGroupBuilder<T>();
+        configure(group);
+        AddFilterGroup(FilterBooleanOperator.And, group.Filters);
+        return this;
+    }
+
+    /// <summary>
     /// Adds an OR filter using a typed member selector.
     /// </summary>
     /// <typeparam name="TValue">The selected member value type.</typeparam>
@@ -194,6 +209,21 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     public new SelectQueryBuilder<T> OrWhere(string propertyName, Op op)
     {
         base.OrWhere(ModelMetadata<T>.GetColumn(propertyName).ColumnName, op);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a parenthesized OR filter group using typed member selectors or CLR property names.
+    /// </summary>
+    /// <param name="configure">Configures the nested filter group.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> OrWhereGroup(Action<FilterGroupBuilder<T>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var group = new FilterGroupBuilder<T>();
+        configure(group);
+        AddFilterGroup(FilterBooleanOperator.Or, group.Filters);
         return this;
     }
 

@@ -67,6 +67,23 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public void Select_query_builders_expose_filter_group_api()
+    {
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder), "WhereGroup", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder<>), "WhereGroup", "OrWhereGroup");
+    }
+
+    [Fact]
+    public void Filter_group_builders_expose_filter_only_api()
+    {
+        AssertPublicInstanceMethods(typeof(FilterGroupBuilder), "Where", "OrWhere", "WhereGroup", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(FilterGroupBuilder<>), "Where", "OrWhere", "WhereGroup", "OrWhereGroup");
+
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(FilterGroupBuilder)), method => method.Name is "OrderBy" or "Limit" or "Offset" or "Page" or "ToCommand");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(FilterGroupBuilder<>)), method => method.Name is "OrderBy" or "Limit" or "Offset" or "Page" or "ToCommand");
+    }
+
+    [Fact]
     public void Typed_select_query_builder_exposes_typed_terminal_methods()
     {
         AssertPublicNonGenericInstanceMethods(
@@ -89,7 +106,7 @@ public sealed class ApiContractTests
     [Fact]
     public void Update_command_builder_exposes_update_api()
     {
-        AssertPublicInstanceMethods(typeof(UpdateCommandBuilder<>), "Set", "Where", "WhereKey", "AllowAllRows");
+        AssertPublicInstanceMethods(typeof(UpdateCommandBuilder<>), "Set", "Where", "WhereGroup", "OrWhereGroup", "WhereKey", "AllowAllRows");
         AssertNoBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "Set");
         AssertBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "WhereKey");
     }
@@ -97,7 +114,7 @@ public sealed class ApiContractTests
     [Fact]
     public void Delete_command_builder_exposes_delete_api()
     {
-        AssertPublicInstanceMethods(typeof(DeleteCommandBuilder<>), "Where", "WhereKey", "AllowAllRows");
+        AssertPublicInstanceMethods(typeof(DeleteCommandBuilder<>), "Where", "WhereGroup", "OrWhereGroup", "WhereKey", "AllowAllRows");
         AssertBuilderEntityMethodSignature(typeof(DeleteCommandBuilder<>), "WhereKey");
     }
 

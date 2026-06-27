@@ -15,7 +15,7 @@ internal sealed class UpdateCommandModel
 
     public List<AssignmentClause> Assignments { get; } = [];
 
-    public List<FilterClause> Filters { get; } = [];
+    public List<FilterNode> Filters { get; } = [];
 
     public bool AllowAllRows { get; set; }
 }
@@ -24,7 +24,7 @@ internal sealed class DeleteCommandModel
 {
     public required string Table { get; init; }
 
-    public List<FilterClause> Filters { get; } = [];
+    public List<FilterNode> Filters { get; } = [];
 
     public bool AllowAllRows { get; set; }
 }
