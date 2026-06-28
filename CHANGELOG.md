@@ -27,6 +27,7 @@ All notable changes to Db4Net will be documented in this file.
 - Public API naming is SQL-shaped and intentionally avoids ORM-style `Save`, `SaveChanges`, `Merge`, `Upsert`, and `Bulk` names.
 - String field names are CLR property names after a model is bound; database column names are supplied through `[Column]`.
 - `UPDATE` and `DELETE` require a `WHERE` clause by default unless `AllowAllRows()` is called explicitly.
+- Single-entity command conveniences now reject sequence values with messages that point to the matching `Many` API.
 
 ### Known Limitations
 

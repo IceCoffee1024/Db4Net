@@ -1000,6 +1000,40 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Single_entity_command_entry_points_reject_sequence_values()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+        var users = new List<User> { new() { Id = 1, Name = "Alice" } };
+
+        AssertSequenceRejected(() => database.Insert(users).ToCommand(), "InsertMany");
+        AssertSequenceRejected(() => database.Insert(users, table: "users_staging").ToCommand(), "InsertMany");
+        AssertSequenceRejected(() => database.InsertOrIgnore(users).ToCommand(), "InsertOrIgnoreMany");
+        AssertSequenceRejected(() => database.InsertOrIgnore(users, table: "users_staging").ToCommand(), "InsertOrIgnoreMany");
+        AssertSequenceRejected(() => database.InsertOrUpdate(users).ToCommand(), "InsertOrUpdateMany");
+        AssertSequenceRejected(() => database.InsertOrUpdate(users, table: "users_staging").ToCommand(), "InsertOrUpdateMany");
+        AssertSequenceRejected(() => database.Update(users).ToCommand(), "UpdateMany");
+        AssertSequenceRejected(() => database.Update(users, table: "users_2026").ToCommand(), "UpdateMany");
+        AssertSequenceRejected(() => database.Delete(users).ToCommand(), "DeleteMany");
+        AssertSequenceRejected(() => database.Delete(users, table: "users_2026").ToCommand(), "DeleteMany");
+    }
+
+    [Fact]
+    public void Typed_model_entry_points_reject_sequence_model_types()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var selectEx = Assert.Throws<ArgumentException>(() => database.SelectFrom<List<User>>().ToCommand());
+        var insertEx = Assert.Throws<ArgumentException>(() => database.InsertInto<List<User>>().Value("Capacity", 1).ToCommand());
+        var updateEx = Assert.Throws<ArgumentException>(() => database.Update<List<User>>().Set("Capacity", 1).AllowAllRows().ToCommand());
+        var deleteEx = Assert.Throws<ArgumentException>(() => database.DeleteFrom<List<User>>().AllowAllRows().ToCommand());
+
+        Assert.Contains("is a sequence type", selectEx.Message);
+        Assert.Contains("is a sequence type", insertEx.Message);
+        Assert.Contains("is a sequence type", updateEx.Message);
+        Assert.Contains("is a sequence type", deleteEx.Message);
+    }
+
+    [Fact]
     public void Where_key_rejects_default_key_value()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -1113,6 +1147,14 @@ public sealed class CommandBuilderTests
         public int Id { get; set; }
 
         public string Name { get; set; } = "";
+    }
+
+    private static void AssertSequenceRejected(Action action, string expectedAlternative)
+    {
+        var ex = Assert.Throws<ArgumentException>(action);
+
+        Assert.Contains("is a sequence type", ex.Message);
+        Assert.Contains(expectedAlternative, ex.Message);
     }
 
     [Table("app_users")]

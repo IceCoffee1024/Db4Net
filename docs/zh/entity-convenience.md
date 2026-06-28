@@ -21,6 +21,8 @@ await connection
 
 这些方法会读取对象上的映射值，构建与 SQL 风格构建器相同的已验证、参数化命令。
 
+单实体便捷方法会拒绝 `List<User>` 或 `User[]` 这类序列值。多个对象请使用 `InsertMany(...)`、`UpdateMany(...)`、`DeleteMany(...)`、`InsertOrIgnoreMany(...)` 或 `InsertOrUpdateMany(...)`。
+
 ## 键元数据
 
 `[Key]` 以及 `Id` / `<TypeName>Id` 约定用于：

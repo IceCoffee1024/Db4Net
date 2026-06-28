@@ -7,9 +7,44 @@ namespace Db4Net.Metadata;
 
 internal static class ModelMetadataProvider
 {
-    public static string GetTableName(Type type)
+    public static void EnsureMappedModelType<T>()
+    {
+        EnsureMappedModelType(typeof(T));
+    }
+
+    public static void EnsureMappedModelType(Type type)
     {
         ThrowHelper.ThrowIfNull(type);
+        if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal))
+        {
+            throw new ArgumentException($"Type '{GetDisplayName(type)}' does not have any mapped columns.");
+        }
+
+        if (IsSequenceType(type))
+        {
+            throw new ArgumentException($"Type '{GetDisplayName(type)}' is a sequence type and cannot be used as a mapped entity type.");
+        }
+    }
+
+    public static bool IsSequenceType(Type type)
+    {
+        return type != typeof(string)
+            && typeof(System.Collections.IEnumerable).IsAssignableFrom(type);
+    }
+
+    public static string GetDisplayName(Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return type.Name;
+        }
+
+        var genericName = type.Name.Substring(0, type.Name.IndexOf('`'));
+        return $"{genericName}<{string.Join(", ", type.GetGenericArguments().Select(GetDisplayName))}>";
+    }
+
+    public static string GetTableName(Type type)
+    {
         return BuildTableName(type);
     }
 
@@ -35,15 +70,13 @@ internal static class ModelMetadataProvider
 
     internal static string BuildTableName(Type type)
     {
+        EnsureMappedModelType(type);
         return type.GetCustomAttribute<TableAttribute>()?.Name ?? type.Name;
     }
 
     internal static ColumnMetadata[] BuildColumnMetadata(Type type)
     {
-        if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal))
-        {
-            throw new ArgumentException($"Type '{type.Name}' does not have any mapped columns.");
-        }
+        EnsureMappedModelType(type);
 
         var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
         var explicitKeyProperties = new HashSet<PropertyInfo>(

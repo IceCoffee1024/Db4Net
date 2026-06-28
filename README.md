@@ -118,6 +118,8 @@ await connection
     .ExecuteAsync();
 ```
 
+Single-entity convenience methods reject sequence values such as `List<User>` or `User[]`; use the matching `Many` method instead.
+
 For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`; Db4Net does not create an automatic transaction, so pass one through `Db4NetExecutionOptions` when the operation must be atomic:
 
 ```csharp

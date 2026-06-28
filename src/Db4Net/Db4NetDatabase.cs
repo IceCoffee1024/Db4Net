@@ -66,6 +66,7 @@ public sealed class Db4NetDatabase
     /// <returns>A typed select query builder.</returns>
     public SelectQueryBuilder<T> Select<T>(params Expression<Func<T, object?>>[] memberSelectors)
     {
+        EnsureEntityType<T>();
         return new SelectQueryBuilder(_options, _connection).From<T>().Select(memberSelectors);
     }
 
@@ -76,6 +77,7 @@ public sealed class Db4NetDatabase
     /// <returns>A typed select query builder.</returns>
     public SelectQueryBuilder<T> SelectFrom<T>()
     {
+        EnsureEntityType<T>();
         return new SelectQueryBuilder(_options, _connection).From<T>().SelectAllMappedColumns();
     }
 
@@ -87,6 +89,7 @@ public sealed class Db4NetDatabase
     /// <returns>A typed select query builder.</returns>
     public SelectQueryBuilder<T> SelectFrom<T>(string table)
     {
+        EnsureEntityType<T>();
         return new SelectQueryBuilder(_options, _connection).From<T>(table).SelectAllMappedColumns();
     }
 
@@ -97,6 +100,7 @@ public sealed class Db4NetDatabase
     /// <returns>An insert command builder.</returns>
     public InsertCommandBuilder<T> InsertInto<T>()
     {
+        EnsureEntityType<T>();
         return new InsertCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
     }
 
@@ -108,6 +112,7 @@ public sealed class Db4NetDatabase
     /// <returns>An insert command builder.</returns>
     public InsertCommandBuilder<T> InsertInto<T>(string table)
     {
+        EnsureEntityType<T>();
         return new InsertCommandBuilder<T>(_options, _connection, table);
     }
 
@@ -120,7 +125,7 @@ public sealed class Db4NetDatabase
     public InsertCommandBuilder<T> Insert<T>(T entity)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("InsertMany");
         return InsertInto<T>().Values(entity);
     }
 
@@ -134,7 +139,7 @@ public sealed class Db4NetDatabase
     public InsertCommandBuilder<T> Insert<T>(T entity, string table)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("InsertMany");
         return InsertInto<T>(table).Values(entity);
     }
 
@@ -147,7 +152,7 @@ public sealed class Db4NetDatabase
     public InsertOrIgnoreCommandBuilder<T> InsertOrIgnore<T>(T entity)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("InsertOrIgnoreMany");
         return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity);
     }
 
@@ -161,7 +166,7 @@ public sealed class Db4NetDatabase
     public InsertOrIgnoreCommandBuilder<T> InsertOrIgnore<T>(T entity, string table)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("InsertOrIgnoreMany");
         return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, table, entity);
     }
 
@@ -174,7 +179,7 @@ public sealed class Db4NetDatabase
     public InsertOrUpdateCommandBuilder<T> InsertOrUpdate<T>(T entity)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("InsertOrUpdateMany");
         return new InsertOrUpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity);
     }
 
@@ -188,7 +193,7 @@ public sealed class Db4NetDatabase
     public InsertOrUpdateCommandBuilder<T> InsertOrUpdate<T>(T entity, string table)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("InsertOrUpdateMany");
         return new InsertOrUpdateCommandBuilder<T>(_options, _connection, table, entity);
     }
 
@@ -274,6 +279,7 @@ public sealed class Db4NetDatabase
     /// <returns>An update command builder.</returns>
     public UpdateCommandBuilder<T> Update<T>()
     {
+        EnsureEntityType<T>();
         return new UpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
     }
 
@@ -285,6 +291,7 @@ public sealed class Db4NetDatabase
     /// <returns>An update command builder.</returns>
     public UpdateCommandBuilder<T> Update<T>(string table)
     {
+        EnsureEntityType<T>();
         return new UpdateCommandBuilder<T>(_options, _connection, table);
     }
 
@@ -297,7 +304,7 @@ public sealed class Db4NetDatabase
     public UpdateCommandBuilder<T> Update<T>(T entity)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("UpdateMany");
         return Update<T>().SetEntityValues(entity).WhereKey(entity);
     }
 
@@ -311,7 +318,7 @@ public sealed class Db4NetDatabase
     public UpdateCommandBuilder<T> Update<T>(T entity, string table)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("UpdateMany");
         return Update<T>(table).SetEntityValues(entity).WhereKey(entity);
     }
 
@@ -347,6 +354,7 @@ public sealed class Db4NetDatabase
     /// <returns>A delete command builder.</returns>
     public DeleteCommandBuilder<T> DeleteFrom<T>()
     {
+        EnsureEntityType<T>();
         return new DeleteCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
     }
 
@@ -358,6 +366,7 @@ public sealed class Db4NetDatabase
     /// <returns>A delete command builder.</returns>
     public DeleteCommandBuilder<T> DeleteFrom<T>(string table)
     {
+        EnsureEntityType<T>();
         return new DeleteCommandBuilder<T>(_options, _connection, table);
     }
 
@@ -370,7 +379,7 @@ public sealed class Db4NetDatabase
     public DeleteCommandBuilder<T> Delete<T>(T entity)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("DeleteMany");
         return DeleteFrom<T>().WhereKey(entity);
     }
 
@@ -384,7 +393,7 @@ public sealed class Db4NetDatabase
     public DeleteCommandBuilder<T> Delete<T>(T entity, string table)
     {
         ThrowHelper.ThrowIfNull(entity);
-        EnsureEntityType<T>();
+        EnsureEntityType<T>("DeleteMany");
         return DeleteFrom<T>(table).WhereKey(entity);
     }
 
@@ -413,12 +422,14 @@ public sealed class Db4NetDatabase
         return new DeleteManyCommandBuilder<T>(_options, _connection, table, entities);
     }
 
-    private static void EnsureEntityType<T>()
+    private static void EnsureEntityType<T>(string? sequenceAlternative = null)
     {
         var type = typeof(T);
-        if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal))
+        if (sequenceAlternative is not null && ModelMetadataProvider.IsSequenceType(type))
         {
-            throw new ArgumentException($"Type '{type.Name}' does not have any mapped columns.");
+            throw new ArgumentException($"Type '{ModelMetadataProvider.GetDisplayName(type)}' is a sequence type. Use {sequenceAlternative}(...) for multiple entities.");
         }
+
+        ModelMetadataProvider.EnsureMappedModelType(type);
     }
 }

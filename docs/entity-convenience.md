@@ -39,6 +39,8 @@ Available single-entity conveniences:
 
 `Update(entity)` and `Delete(entity)` use key metadata for the `WHERE` clause.
 
+Single-entity conveniences reject sequence values such as `List<User>` or `User[]`. Use `InsertMany(...)`, `UpdateMany(...)`, `DeleteMany(...)`, `InsertOrIgnoreMany(...)`, or `InsertOrUpdateMany(...)` for multiple objects.
+
 ::: tip
 Here, entity means a mapped CLR object used as a value source. Db4Net does not add identity maps, dirty checking, lazy loading, or `SaveChanges()`.
 :::
