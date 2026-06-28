@@ -19,7 +19,7 @@ var deleted = db
 这些方法会通过 Dapper 执行每个实体对应的已验证、参数化命令，并返回总影响行数。空序列返回 `0`。
 
 ::: warning 事务
-Db4Net 不会自动创建事务。如果多实体操作必须原子化，请通过 `Db4NetExecutionOptions` 传入事务。
+Db4Net 不会自动创建、提交或回滚事务。如果多实体操作必须原子化，请通过 `Db4NetExecutionOptions` 传入事务，并在应用代码中管理事务生命周期。
 :::
 
 ## 检查命令

@@ -273,6 +273,52 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Entity_commands_use_transaction_from_execution_options()
+    {
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        var options = new Db4NetExecutionOptions { Transaction = transaction };
+
+        var inserted = db
+            .Insert(new User { Id = 3, Name = "Charlie" })
+            .Execute(options);
+
+        var updated = db
+            .Update(new User { Id = 3, Name = "Charles" })
+            .Execute(options);
+
+        var userInTransaction = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault(options);
+
+        var deleted = db
+            .Delete(new User { Id = 3, Name = "Charles" })
+            .Execute(options);
+
+        var afterDeleteInTransaction = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault(options);
+
+        transaction.Rollback();
+
+        var afterRollback = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1, inserted);
+        Assert.Equal(1, updated);
+        Assert.NotNull(userInTransaction);
+        Assert.Equal("Charles", userInTransaction.Name);
+        Assert.Equal(1, deleted);
+        Assert.Null(afterDeleteInTransaction);
+        Assert.Null(afterRollback);
+    }
+
+    [Fact]
     public void Many_entity_command_conveniences_execute_parameterized_sql_with_dapper()
     {
         using var connection = CreateOpenConnection();

@@ -16,6 +16,8 @@ var users = connection
     });
 ```
 
+Db4Net 只会把事务传给 Dapper，不会自动开启、提交或回滚事务。事务应来自调用 `UseDb4Net(...)` 的同一个连接；需要参与同一事务的每个终结方法都要显式传入同一个 `Db4NetExecutionOptions`，最后由调用方自行提交或回滚。
+
 异步终结方法也接受 `CancellationToken`：
 
 ```csharp

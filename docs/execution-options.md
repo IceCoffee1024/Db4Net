@@ -22,6 +22,8 @@ Execution options can carry:
 - `CommandTimeout`
 - `CommandType`
 
+Db4Net passes the transaction through to Dapper. It does not begin, commit, or roll back transactions. Create the transaction from the same connection used by `UseDb4Net(...)`, pass it to every terminal method that must participate, and commit or roll back it yourself.
+
 ## Async Cancellation
 
 Async terminal methods also accept a `CancellationToken`.

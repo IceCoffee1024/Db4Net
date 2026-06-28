@@ -136,6 +136,8 @@ var deleted = db
     .Execute();
 ```
 
+Db4Net passes transactions through to Dapper; it does not begin, commit, or roll back them. Create the transaction from the same connection used by `UseDb4Net(...)`, pass it to each terminal method that must participate, and manage commit or rollback in application code.
+
 Use conflict-aware insert conveniences when inserts should ignore or update rows that already match a conflict target:
 
 ```csharp

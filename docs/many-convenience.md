@@ -43,6 +43,8 @@ var affected = connection
     });
 ```
 
+Db4Net does not commit or roll back that transaction. Manage the transaction lifetime in application code.
+
 ::: warning
 `Many` APIs are Dapper multi-execute conveniences, not provider-native copy/import APIs, set-based synchronization, or optimized batching.
 :::
