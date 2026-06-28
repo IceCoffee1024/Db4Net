@@ -10,14 +10,16 @@ namespace Db4Net.Query;
 public partial class SelectQueryBuilder
 {
     private readonly IDbConnection? _connection;
+    private readonly Db4NetExecutionOptions? _executionOptions;
     private readonly FilterClauseBuilder _filters;
     private readonly SelectQueryModel _model;
     private readonly Db4NetOptions _options;
 
-    internal SelectQueryBuilder(Db4NetOptions options, IDbConnection? connection, SelectQueryModel? model = null)
+    internal SelectQueryBuilder(Db4NetOptions options, IDbConnection? connection, SelectQueryModel? model = null, Db4NetExecutionOptions? executionOptions = null)
     {
         _options = options;
         _connection = connection;
+        _executionOptions = executionOptions;
         _model = model ?? new SelectQueryModel();
         _filters = new FilterClauseBuilder(_model.Filters);
     }
@@ -63,7 +65,7 @@ public partial class SelectQueryBuilder
     public SelectQueryBuilder<T> From<T>()
     {
         BindToModel<T>(ModelMetadata<T>.TableName);
-        return new SelectQueryBuilder<T>(_options, _connection, _model);
+        return new SelectQueryBuilder<T>(_options, _connection, _model, _executionOptions);
     }
 
     /// <summary>
@@ -75,7 +77,7 @@ public partial class SelectQueryBuilder
     public SelectQueryBuilder<T> From<T>(string table)
     {
         BindToModel<T>(table);
-        return new SelectQueryBuilder<T>(_options, _connection, _model);
+        return new SelectQueryBuilder<T>(_options, _connection, _model, _executionOptions);
     }
 
     /// <summary>

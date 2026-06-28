@@ -7,10 +7,12 @@ namespace Db4Net.Commands;
 internal sealed class DapperCommandExecutor
 {
     private readonly IDbConnection? _connection;
+    private readonly Db4NetExecutionOptions? _executionOptions;
 
-    public DapperCommandExecutor(IDbConnection? connection)
+    public DapperCommandExecutor(IDbConnection? connection, Db4NetExecutionOptions? executionOptions = null)
     {
         _connection = connection;
+        _executionOptions = executionOptions;
     }
 
     public int Execute(RenderedSqlCommand command, Db4NetExecutionOptions? options = null)
@@ -25,12 +27,21 @@ internal sealed class DapperCommandExecutor
 
     public int Execute(string sql, object? parameters, Db4NetExecutionOptions? options = null)
     {
-        return RequireConnection().Execute(CreateDapperCommand(sql, parameters, options));
+        var executionOptions = ResolveOptions(options);
+        executionOptions?.Validate();
+        return RequireConnection().Execute(CreateDapperCommand(sql, parameters, executionOptions));
     }
 
     public Task<int> ExecuteAsync(string sql, object? parameters, Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return RequireConnection().ExecuteAsync(CreateDapperCommand(sql, parameters, options, cancellationToken));
+        var executionOptions = ResolveOptions(options);
+        executionOptions?.Validate();
+        return RequireConnection().ExecuteAsync(CreateDapperCommand(sql, parameters, executionOptions, cancellationToken));
+    }
+
+    private Db4NetExecutionOptions? ResolveOptions(Db4NetExecutionOptions? options)
+    {
+        return Db4NetExecutionOptions.Merge(_executionOptions, options);
     }
 
     private static CommandDefinition CreateDapperCommand(

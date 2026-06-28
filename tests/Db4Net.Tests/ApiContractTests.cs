@@ -153,6 +153,50 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public void Database_exposes_lightweight_transaction_api()
+    {
+        AssertPublicInstanceMethods(
+            typeof(Db4NetDatabase),
+            "WithExecutionOptions",
+            "WithTransaction",
+            "BeginTransaction",
+            "ExecuteInTransaction",
+            "ExecuteInTransactionAsync");
+
+        AssertPublicInstanceMethods(typeof(Db4NetTransaction), "Commit", "Rollback");
+        Assert.NotNull(typeof(Db4NetTransaction).GetProperty("Database", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Null(typeof(Db4NetTransaction).GetProperty("Transaction", BindingFlags.Public | BindingFlags.Instance));
+        AssertPublicStaticMethods(
+            typeof(Db4NetTransactionExtensions),
+            "Select",
+            "SelectFrom",
+            "Insert",
+            "InsertInto",
+            "InsertMany",
+            "InsertOrIgnore",
+            "InsertOrIgnoreMany",
+            "InsertOrUpdate",
+            "InsertOrUpdateMany",
+            "Update",
+            "UpdateMany",
+            "Delete",
+            "DeleteFrom",
+            "DeleteMany");
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(Db4NetTransaction)));
+        Assert.Single(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name == "BeginTransaction" && method.GetParameters().Length == 0 && method.ReturnType == typeof(Db4NetTransaction));
+        Assert.Contains(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name == "BeginTransaction" && method.GetParameters() is [{ ParameterType: var parameterType }] && parameterType == typeof(System.Data.IsolationLevel));
+        Assert.Contains(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name == "ExecuteInTransaction" && method.GetParameters() is [{ ParameterType: var parameterType }] && parameterType == typeof(Action<Db4NetTransaction>));
+        Assert.Contains(typeof(Db4NetConnectionExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static), method => method.Name == "UseDb4Net"
+            && method.GetParameters() is [{ ParameterType: var connection }, { ParameterType: var options }, { ParameterType: var executionOptions }]
+            && connection == typeof(System.Data.IDbConnection)
+            && options == typeof(Db4NetOptions)
+            && executionOptions == typeof(Db4NetExecutionOptions));
+
+        var exportedTypes = typeof(Db4NetDatabase).Assembly.GetExportedTypes();
+        Assert.Contains(exportedTypes, type => type == typeof(Db4NetTransaction));
+    }
+
+    [Fact]
     public void Many_command_builders_expose_execution_api()
     {
         AssertPublicInstanceMethods(typeof(InsertManyCommandBuilder<>), "ToCommands", "Execute", "ExecuteAsync");
@@ -187,7 +231,7 @@ public sealed class ApiContractTests
     [Fact]
     public void Public_surface_does_not_use_orm_or_merge_naming()
     {
-        var disallowedNames = new[] { "Save", "SaveChanges", "Merge", "Upsert" };
+        var disallowedNames = new[] { "Save", "SaveChanges", "Merge", "Upsert", "UnitOfWork" };
         var exportedTypes = typeof(Db4NetDatabase).Assembly.GetExportedTypes();
 
         foreach (var name in disallowedNames)
@@ -244,6 +288,16 @@ public sealed class ApiContractTests
         foreach (var methodName in methodNames)
         {
             Assert.Contains(publicInstanceMethods, method => method.Name == methodName);
+        }
+    }
+
+    private static void AssertPublicStaticMethods(Type type, params string[] methodNames)
+    {
+        var publicStaticMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
+
+        foreach (var methodName in methodNames)
+        {
+            Assert.Contains(publicStaticMethods, method => method.Name == methodName);
         }
     }
 

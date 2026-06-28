@@ -11,7 +11,7 @@ Included in the current alpha:
 - conflict-aware insert conveniences
 - `Where`, `OrWhere`, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - sync and async Dapper-style terminal methods
-- transaction, command timeout, command type, and async cancellation token support
+- existing transaction pass-through, lightweight transaction scopes, command timeout, command type, and async cancellation token support
 
 Intentionally out of scope:
 

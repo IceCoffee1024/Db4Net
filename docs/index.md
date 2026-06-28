@@ -24,6 +24,8 @@ features:
     details: Standard attributes such as Table, Column, Key, and NotMapped drive table and column metadata.
   - title: Entity conveniences
     details: Insert, update, delete, many-entity, and conflict-aware shortcuts reuse the same validated builders.
+  - title: Lightweight transactions
+    details: Pass existing transactions through to Dapper or group explicit operations with BeginTransaction().
   - title: Multi-dialect rendering
     details: SQL Server, SQLite, PostgreSQL, and MySQL are supported for quoting, paging, and conflict SQL.
 ---

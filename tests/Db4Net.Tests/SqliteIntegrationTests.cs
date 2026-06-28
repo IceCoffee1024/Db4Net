@@ -319,6 +319,384 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void With_transaction_applies_transaction_to_terminal_methods()
+    {
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+        var db = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .WithTransaction(transaction);
+
+        var inserted = db
+            .Insert(new User { Id = 3, Name = "Charlie" })
+            .Execute();
+
+        var userInTransaction = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        transaction.Rollback();
+
+        var afterRollback = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1, inserted);
+        Assert.NotNull(userInTransaction);
+        Assert.Equal("Charlie", userInTransaction.Name);
+        Assert.Null(afterRollback);
+    }
+
+    [Fact]
+    public void With_transaction_preserves_transaction_when_call_options_override_timeout()
+    {
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+        var db = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .WithTransaction(transaction);
+
+        db.Insert(new User { Id = 3, Name = "Charlie" })
+            .Execute(new Db4NetExecutionOptions { CommandTimeout = 30 });
+
+        var userInTransaction = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault(new Db4NetExecutionOptions { CommandTimeout = 30 });
+
+        transaction.Rollback();
+
+        var afterRollback = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.NotNull(userInTransaction);
+        Assert.Equal("Charlie", userInTransaction.Name);
+        Assert.Null(afterRollback);
+    }
+
+    [Fact]
+    public void Begin_transaction_commits_when_commit_is_called()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        using (var transaction = db.BeginTransaction())
+        {
+            transaction
+                .Insert(new User { Id = 3, Name = "Charlie" })
+                .Execute();
+
+            transaction.Commit();
+        }
+
+        var user = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.NotNull(user);
+        Assert.Equal("Charlie", user.Name);
+    }
+
+    [Fact]
+    public void Begin_transaction_rolls_back_when_disposed_without_commit()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        using (var transaction = db.BeginTransaction())
+        {
+            transaction
+                .Insert(new User { Id = 3, Name = "Charlie" })
+                .Execute();
+        }
+
+        var user = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.Null(user);
+    }
+
+    [Fact]
+    public void Begin_transaction_rolls_back_when_rollback_is_called()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        using (var transaction = db.BeginTransaction())
+        {
+            transaction
+                .Insert(new User { Id = 3, Name = "Charlie" })
+                .Execute();
+
+            transaction.Rollback();
+        }
+
+        var user = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.Null(user);
+    }
+
+    [Fact]
+    public void Begin_transaction_rejects_completion_after_already_completed()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        using var transaction = db.BeginTransaction();
+
+        transaction.Rollback();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => transaction.Commit());
+
+        Assert.Contains("already been completed", ex.Message);
+    }
+
+    [Fact]
+    public void Transaction_rejects_command_execution_after_commit()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        using var transaction = db.BeginTransaction();
+        var transactionDatabase = transaction.Database;
+
+        transaction.Commit();
+
+        var extensionEx = Assert.Throws<InvalidOperationException>(() =>
+            transaction
+                .Insert(new User { Id = 3, Name = "Charlie" })
+                .Execute());
+        var capturedFacadeEx = Assert.Throws<InvalidOperationException>(() =>
+            transactionDatabase
+                .Insert(new User { Id = 4, Name = "Dana" })
+                .Execute());
+
+        Assert.Contains("already been completed", extensionEx.Message);
+        Assert.Contains("already been completed", capturedFacadeEx.Message);
+    }
+
+    [Fact]
+    public void Transaction_rejects_database_access_after_dispose()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        var transaction = db.BeginTransaction();
+
+        transaction.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => transaction.Database);
+    }
+
+    [Fact]
+    public void Execute_in_transaction_commits_when_delegate_succeeds()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        db.ExecuteInTransaction(transaction =>
+        {
+            transaction
+                .Insert(new User { Id = 3, Name = "Charlie" })
+                .Execute();
+
+            transaction
+                .Update(new User { Id = 3, Name = "Charles" })
+                .Execute();
+        });
+
+        var user = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.NotNull(user);
+        Assert.Equal("Charles", user.Name);
+    }
+
+    [Fact]
+    public void Execute_in_transaction_rolls_back_when_delegate_throws()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            db.ExecuteInTransaction(transaction =>
+            {
+                transaction
+                    .Insert(new User { Id = 3, Name = "Charlie" })
+                    .Execute();
+
+                throw new InvalidOperationException("stop");
+            }));
+
+        var user = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.Null(user);
+    }
+
+    [Fact]
+    public async Task Execute_in_transaction_async_commits_when_delegate_succeeds()
+    {
+        await using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        await db.ExecuteInTransactionAsync(async transaction =>
+        {
+            await transaction
+                .Insert(new User { Id = 3, Name = "Charlie" })
+                .ExecuteAsync();
+
+            await transaction
+                .Update(new User { Id = 3, Name = "Charles" })
+                .ExecuteAsync();
+        });
+
+        var user = await db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefaultAsync();
+
+        Assert.NotNull(user);
+        Assert.Equal("Charles", user.Name);
+    }
+
+    [Fact]
+    public async Task Execute_in_transaction_async_rolls_back_when_delegate_throws()
+    {
+        await using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            db.ExecuteInTransactionAsync(async transaction =>
+            {
+                await transaction
+                    .Insert(new User { Id = 3, Name = "Charlie" })
+                    .ExecuteAsync();
+
+                throw new InvalidOperationException("stop");
+            }));
+
+        var user = await db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefaultAsync();
+
+        Assert.Null(user);
+    }
+
+    [Fact]
+    public void Transaction_scope_requires_bound_connection()
+    {
+        var db = Db4NetDatabase.Create(Db4NetOptions.Sqlite);
+
+        var beginEx = Assert.Throws<InvalidOperationException>(() => db.BeginTransaction());
+        var executeEx = Assert.Throws<InvalidOperationException>(() => db.ExecuteInTransaction(_ => { }));
+
+        Assert.Contains("Dapper execution requires an IDbConnection", beginEx.Message);
+        Assert.Contains("Dapper execution requires an IDbConnection", executeEx.Message);
+    }
+
+    [Fact]
+    public void Transaction_scope_applies_to_many_commands()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        using (var transaction = db.BeginTransaction())
+        {
+            transaction
+                .InsertMany(
+                [
+                    new User { Id = 3, Name = "Charlie" },
+                    new User { Id = 4, Name = "Dana" },
+                ])
+                .Execute();
+
+            transaction
+                .UpdateMany(
+                [
+                    new User { Id = 3, Name = "Charles" },
+                    new User { Id = 4, Name = "Daphne" },
+                ])
+                .Execute();
+
+            transaction
+                .DeleteMany(
+                [
+                    new User { Id = 1, Name = "Alice" },
+                    new User { Id = 2, Name = "Bob" },
+                ])
+                .Execute();
+
+            transaction.Rollback();
+        }
+
+        var users = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.In, new[] { 1, 2, 3, 4 })
+            .OrderBy(u => u.Id)
+            .Query()
+            .ToList();
+
+        Assert.Collection(
+            users,
+            user => Assert.Equal("Alice", user.Name),
+            user => Assert.Equal("Bob", user.Name));
+    }
+
+    [Fact]
+    public void Transaction_scope_applies_to_conflict_many_commands()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        using (var transaction = db.BeginTransaction())
+        {
+            transaction
+                .InsertOrIgnoreMany(
+                [
+                    new User { Id = 1, Name = "Ignored" },
+                    new User { Id = 3, Name = "Charlie" },
+                ])
+                .Execute();
+
+            transaction
+                .InsertOrUpdateMany(
+                [
+                    new User { Id = 2, Name = "Bobby" },
+                    new User { Id = 4, Name = "Dana" },
+                ])
+                .Execute();
+
+            transaction.Rollback();
+        }
+
+        var users = db
+            .SelectFrom<User>()
+            .OrderBy(u => u.Id)
+            .Query()
+            .ToList();
+
+        Assert.Collection(
+            users,
+            user => Assert.Equal("Alice", user.Name),
+            user => Assert.Equal("Bob", user.Name));
+    }
+
+    [Fact]
     public void Many_entity_command_conveniences_execute_parameterized_sql_with_dapper()
     {
         using var connection = CreateOpenConnection();

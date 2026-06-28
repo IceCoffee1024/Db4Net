@@ -16,6 +16,7 @@ All notable changes to Db4Net will be documented in this file.
 - Table/view target overrides for typed `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders.
 - SQL Server, SQLite, PostgreSQL, and MySQL dialect rendering.
 - Dapper execution options for transaction, command timeout, command type, and async cancellation tokens.
+- Lightweight transaction scopes through `WithTransaction(...)`, `BeginTransaction()`, `ExecuteInTransaction(...)`, and `ExecuteInTransactionAsync(...)`.
 - NuGet package assets for `net8.0` and `netstandard2.0`.
 - Optional PostgreSQL, MySQL, and SQL Server integration tests via environment variables or local runsettings.
 - SQLite integration coverage for single-entity command transaction execution.
@@ -29,7 +30,7 @@ All notable changes to Db4Net will be documented in this file.
 - String field names are CLR property names after a model is bound; database column names are supplied through `[Column]`.
 - `UPDATE` and `DELETE` require a `WHERE` clause by default unless `AllowAllRows()` is called explicitly.
 - Single-entity command conveniences now reject sequence values with messages that point to the matching `Many` API.
-- Transaction documentation now states that Db4Net passes transactions through to Dapper but does not manage transaction lifetimes.
+- Transaction documentation now separates existing transaction pass-through from Db4Net-owned lightweight transaction scopes.
 
 ### Known Limitations
 

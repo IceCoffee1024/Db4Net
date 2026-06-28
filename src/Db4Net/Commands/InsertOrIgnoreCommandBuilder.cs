@@ -16,8 +16,8 @@ public sealed class InsertOrIgnoreCommandBuilder<T> : CommandBuilderBase
     private readonly string _table;
     private ColumnMetadata[] _conflictColumns = [];
 
-    internal InsertOrIgnoreCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, T entity)
-        : base(connection)
+    internal InsertOrIgnoreCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, T entity, Db4NetExecutionOptions? executionOptions = null)
+        : base(connection, executionOptions)
     {
         _options = options;
         _table = table;

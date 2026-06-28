@@ -16,7 +16,74 @@ var users = connection
     });
 ```
 
-Db4Net 只会把事务传给 Dapper，不会自动开启、提交或回滚事务。事务应来自调用 `UseDb4Net(...)` 的同一个连接；需要参与同一事务的每个终结方法都要显式传入同一个 `Db4NetExecutionOptions`，最后由调用方自行提交或回滚。
+## 使用已有事务
+
+通过 `Db4NetExecutionOptions.Transaction` 提供事务时，Db4Net 会把这个已有事务传给 Dapper。事务应来自调用 `UseDb4Net(...)` 的同一个连接；需要参与同一事务的每个终结方法都要显式传入同一个 `Db4NetExecutionOptions`，最后由调用方自行提交或回滚。
+
+也可以把默认事务绑定到一个 facade：
+
+```csharp
+using var transaction = connection.BeginTransaction();
+
+var db = connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .WithTransaction(transaction);
+
+db.Insert(user).Execute();
+db.Update(otherUser).Execute();
+```
+
+`WithExecutionOptions(...)` 也可以绑定默认命令超时或命令类型：
+
+```csharp
+var db = connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .WithExecutionOptions(new Db4NetExecutionOptions
+    {
+        CommandTimeout = 30
+    });
+```
+
+连接扩展方法也可以直接接收默认执行选项：
+
+```csharp
+var db = connection.UseDb4Net(
+    Db4NetOptions.Sqlite,
+    new Db4NetExecutionOptions { CommandTimeout = 30 });
+```
+
+## 事务作用域
+
+需要由 Db4Net 拥有一个轻量事务作用域时，使用 `BeginTransaction()`：
+
+```csharp
+var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+using var tx = db.BeginTransaction();
+
+tx.Insert(user).Execute();
+tx.Update(otherUser).Execute();
+
+tx.Commit();
+```
+
+`Db4NetTransaction` 如果在没有调用 `Commit()` 的情况下被释放，会执行回滚。
+
+也可以使用委托式作用域：
+
+```csharp
+db.ExecuteInTransaction(tx =>
+{
+    tx.Insert(user).Execute();
+    tx.Update(otherUser).Execute();
+});
+```
+
+`ExecuteInTransaction(...)` 在委托成功时提交，委托抛异常时回滚。`ExecuteInTransactionAsync(...)` 可以在同一个事务里运行异步 Db4Net 操作，但事务开启、提交和回滚仍使用同步 `IDbTransaction` API，因为 Db4Net 是通过 `IDbConnection` 绑定连接的。
+
+如果原生 Dapper SQL 也需要加入同一个事务，请自己创建 `IDbTransaction`，再通过 `WithTransaction(transaction)` 绑定到 Db4Net。
+
+这不是 ORM Unit of Work：Db4Net 不跟踪实体、不检测变更、不批量保存，也不提供 `SaveChanges()`。
 
 异步终结方法也接受 `CancellationToken`：
 
@@ -35,5 +102,5 @@ var users = await connection
 - `ExecuteAsync()`
 
 ::: tip 提示
-多实体便捷方法不会自动创建事务。需要原子性时，把事务放入 `Db4NetExecutionOptions` 并传给执行方法。
+多实体便捷方法不会自己包一层事务。需要原子性时，使用 `BeginTransaction()` / `ExecuteInTransaction(...)`，或者通过 `Db4NetExecutionOptions.Transaction` 传入已有事务。
 :::

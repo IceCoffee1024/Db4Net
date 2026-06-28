@@ -12,12 +12,14 @@ namespace Db4Net;
 public sealed class Db4NetDatabase
 {
     private readonly IDbConnection? _connection;
+    private readonly Db4NetExecutionOptions? _executionOptions;
     private readonly Db4NetOptions _options;
 
-    private Db4NetDatabase(Db4NetOptions options, IDbConnection? connection = null)
+    private Db4NetDatabase(Db4NetOptions options, IDbConnection? connection = null, Db4NetExecutionOptions? executionOptions = null)
     {
         _options = options;
         _connection = connection;
+        _executionOptions = executionOptions;
     }
 
     /// <summary>
@@ -39,13 +41,113 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Creates a new facade that applies default execution options to terminal methods.
+    /// </summary>
+    /// <param name="executionOptions">Default Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <returns>A Db4Net facade with default execution options.</returns>
+    public Db4NetDatabase WithExecutionOptions(Db4NetExecutionOptions executionOptions)
+    {
+        ThrowHelper.ThrowIfNull(executionOptions);
+        return new Db4NetDatabase(_options, _connection, Db4NetExecutionOptions.Merge(_executionOptions, executionOptions));
+    }
+
+    /// <summary>
+    /// Creates a new facade that applies an existing transaction to terminal methods.
+    /// </summary>
+    /// <param name="transaction">The transaction passed to Dapper execution.</param>
+    /// <returns>A Db4Net facade with the transaction as a default execution option.</returns>
+    public Db4NetDatabase WithTransaction(IDbTransaction transaction)
+    {
+        ThrowHelper.ThrowIfNull(transaction);
+        return WithExecutionOptions(new Db4NetExecutionOptions { Transaction = transaction });
+    }
+
+    /// <summary>
+    /// Begins a transaction on the bound connection and returns a Db4Net transaction facade.
+    /// </summary>
+    /// <returns>A Db4Net transaction facade. Disposing it without committing rolls back the transaction.</returns>
+    public Db4NetTransaction BeginTransaction()
+    {
+        return new Db4NetTransaction(this, RequireConnection().BeginTransaction());
+    }
+
+    /// <summary>
+    /// Begins a transaction on the bound connection with the specified isolation level and returns a Db4Net transaction facade.
+    /// </summary>
+    /// <param name="isolationLevel">The transaction isolation level.</param>
+    /// <returns>A Db4Net transaction facade. Disposing it without committing rolls back the transaction.</returns>
+    public Db4NetTransaction BeginTransaction(IsolationLevel isolationLevel)
+    {
+        return new Db4NetTransaction(this, RequireConnection().BeginTransaction(isolationLevel));
+    }
+
+    /// <summary>
+    /// Executes work inside a Db4Net-owned transaction and commits when the delegate succeeds.
+    /// </summary>
+    /// <param name="work">The work to execute inside the transaction.</param>
+    public void ExecuteInTransaction(Action<Db4NetTransaction> work)
+    {
+        ThrowHelper.ThrowIfNull(work);
+
+        using var transaction = BeginTransaction();
+        work(transaction);
+        transaction.Commit();
+    }
+
+    /// <summary>
+    /// Executes work inside a Db4Net-owned transaction and commits when the delegate succeeds.
+    /// </summary>
+    /// <typeparam name="TResult">The result type returned by the delegate.</typeparam>
+    /// <param name="work">The work to execute inside the transaction.</param>
+    /// <returns>The result returned by the delegate.</returns>
+    public TResult ExecuteInTransaction<TResult>(Func<Db4NetTransaction, TResult> work)
+    {
+        ThrowHelper.ThrowIfNull(work);
+
+        using var transaction = BeginTransaction();
+        var result = work(transaction);
+        transaction.Commit();
+        return result;
+    }
+
+    /// <summary>
+    /// Asynchronously executes work inside a Db4Net-owned transaction and commits when the delegate succeeds.
+    /// </summary>
+    /// <param name="work">The work to execute inside the transaction.</param>
+    /// <returns>A task that completes when the work has finished and the transaction has committed.</returns>
+    public async Task ExecuteInTransactionAsync(Func<Db4NetTransaction, Task> work)
+    {
+        ThrowHelper.ThrowIfNull(work);
+
+        using var transaction = BeginTransaction();
+        await work(transaction).ConfigureAwait(false);
+        transaction.Commit();
+    }
+
+    /// <summary>
+    /// Asynchronously executes work inside a Db4Net-owned transaction and commits when the delegate succeeds.
+    /// </summary>
+    /// <typeparam name="TResult">The result type returned by the delegate.</typeparam>
+    /// <param name="work">The work to execute inside the transaction.</param>
+    /// <returns>A task containing the result returned by the delegate.</returns>
+    public async Task<TResult> ExecuteInTransactionAsync<TResult>(Func<Db4NetTransaction, Task<TResult>> work)
+    {
+        ThrowHelper.ThrowIfNull(work);
+
+        using var transaction = BeginTransaction();
+        var result = await work(transaction).ConfigureAwait(false);
+        transaction.Commit();
+        return result;
+    }
+
+    /// <summary>
     /// Starts a select query with explicit columns.
     /// </summary>
     /// <param name="columns">The columns to include in the SELECT list.</param>
     /// <returns>A select query builder.</returns>
     public SelectQueryBuilder Select(params string[] columns)
     {
-        return new SelectQueryBuilder(_options, _connection).Select(columns);
+        return new SelectQueryBuilder(_options, _connection, executionOptions: _executionOptions).Select(columns);
     }
 
     /// <summary>
@@ -55,7 +157,7 @@ public sealed class Db4NetDatabase
     /// <returns>A select query builder.</returns>
     public SelectQueryBuilder Select(IEnumerable<string> columns)
     {
-        return new SelectQueryBuilder(_options, _connection).Select(columns);
+        return new SelectQueryBuilder(_options, _connection, executionOptions: _executionOptions).Select(columns);
     }
 
     /// <summary>
@@ -67,7 +169,7 @@ public sealed class Db4NetDatabase
     public SelectQueryBuilder<T> Select<T>(params Expression<Func<T, object?>>[] memberSelectors)
     {
         EnsureEntityType<T>();
-        return new SelectQueryBuilder(_options, _connection).From<T>().Select(memberSelectors);
+        return new SelectQueryBuilder(_options, _connection, executionOptions: _executionOptions).From<T>().Select(memberSelectors);
     }
 
     /// <summary>
@@ -78,7 +180,7 @@ public sealed class Db4NetDatabase
     public SelectQueryBuilder<T> SelectFrom<T>()
     {
         EnsureEntityType<T>();
-        return new SelectQueryBuilder(_options, _connection).From<T>().SelectAllMappedColumns();
+        return new SelectQueryBuilder(_options, _connection, executionOptions: _executionOptions).From<T>().SelectAllMappedColumns();
     }
 
     /// <summary>
@@ -90,7 +192,7 @@ public sealed class Db4NetDatabase
     public SelectQueryBuilder<T> SelectFrom<T>(string table)
     {
         EnsureEntityType<T>();
-        return new SelectQueryBuilder(_options, _connection).From<T>(table).SelectAllMappedColumns();
+        return new SelectQueryBuilder(_options, _connection, executionOptions: _executionOptions).From<T>(table).SelectAllMappedColumns();
     }
 
     /// <summary>
@@ -101,7 +203,7 @@ public sealed class Db4NetDatabase
     public InsertCommandBuilder<T> InsertInto<T>()
     {
         EnsureEntityType<T>();
-        return new InsertCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
+        return new InsertCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, _executionOptions);
     }
 
     /// <summary>
@@ -113,7 +215,7 @@ public sealed class Db4NetDatabase
     public InsertCommandBuilder<T> InsertInto<T>(string table)
     {
         EnsureEntityType<T>();
-        return new InsertCommandBuilder<T>(_options, _connection, table);
+        return new InsertCommandBuilder<T>(_options, _connection, table, _executionOptions);
     }
 
     /// <summary>
@@ -153,7 +255,7 @@ public sealed class Db4NetDatabase
     {
         ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>("InsertOrIgnoreMany");
-        return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity);
+        return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity, _executionOptions);
     }
 
     /// <summary>
@@ -167,7 +269,7 @@ public sealed class Db4NetDatabase
     {
         ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>("InsertOrIgnoreMany");
-        return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, table, entity);
+        return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, table, entity, _executionOptions);
     }
 
     /// <summary>
@@ -180,7 +282,7 @@ public sealed class Db4NetDatabase
     {
         ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>("InsertOrUpdateMany");
-        return new InsertOrUpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity);
+        return new InsertOrUpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity, _executionOptions);
     }
 
     /// <summary>
@@ -194,7 +296,7 @@ public sealed class Db4NetDatabase
     {
         ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>("InsertOrUpdateMany");
-        return new InsertOrUpdateCommandBuilder<T>(_options, _connection, table, entity);
+        return new InsertOrUpdateCommandBuilder<T>(_options, _connection, table, entity, _executionOptions);
     }
 
     /// <summary>
@@ -206,7 +308,7 @@ public sealed class Db4NetDatabase
     public InsertManyCommandBuilder<T> InsertMany<T>(IEnumerable<T> entities)
     {
         EnsureEntityType<T>();
-        return new InsertManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+        return new InsertManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities, _executionOptions);
     }
 
     /// <summary>
@@ -219,7 +321,7 @@ public sealed class Db4NetDatabase
     public InsertManyCommandBuilder<T> InsertMany<T>(IEnumerable<T> entities, string table)
     {
         EnsureEntityType<T>();
-        return new InsertManyCommandBuilder<T>(_options, _connection, table, entities);
+        return new InsertManyCommandBuilder<T>(_options, _connection, table, entities, _executionOptions);
     }
 
     /// <summary>
@@ -231,7 +333,7 @@ public sealed class Db4NetDatabase
     public InsertOrIgnoreManyCommandBuilder<T> InsertOrIgnoreMany<T>(IEnumerable<T> entities)
     {
         EnsureEntityType<T>();
-        return new InsertOrIgnoreManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+        return new InsertOrIgnoreManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities, _executionOptions);
     }
 
     /// <summary>
@@ -244,7 +346,7 @@ public sealed class Db4NetDatabase
     public InsertOrIgnoreManyCommandBuilder<T> InsertOrIgnoreMany<T>(IEnumerable<T> entities, string table)
     {
         EnsureEntityType<T>();
-        return new InsertOrIgnoreManyCommandBuilder<T>(_options, _connection, table, entities);
+        return new InsertOrIgnoreManyCommandBuilder<T>(_options, _connection, table, entities, _executionOptions);
     }
 
     /// <summary>
@@ -256,7 +358,7 @@ public sealed class Db4NetDatabase
     public InsertOrUpdateManyCommandBuilder<T> InsertOrUpdateMany<T>(IEnumerable<T> entities)
     {
         EnsureEntityType<T>();
-        return new InsertOrUpdateManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+        return new InsertOrUpdateManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities, _executionOptions);
     }
 
     /// <summary>
@@ -269,7 +371,7 @@ public sealed class Db4NetDatabase
     public InsertOrUpdateManyCommandBuilder<T> InsertOrUpdateMany<T>(IEnumerable<T> entities, string table)
     {
         EnsureEntityType<T>();
-        return new InsertOrUpdateManyCommandBuilder<T>(_options, _connection, table, entities);
+        return new InsertOrUpdateManyCommandBuilder<T>(_options, _connection, table, entities, _executionOptions);
     }
 
     /// <summary>
@@ -280,7 +382,7 @@ public sealed class Db4NetDatabase
     public UpdateCommandBuilder<T> Update<T>()
     {
         EnsureEntityType<T>();
-        return new UpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
+        return new UpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, _executionOptions);
     }
 
     /// <summary>
@@ -292,7 +394,7 @@ public sealed class Db4NetDatabase
     public UpdateCommandBuilder<T> Update<T>(string table)
     {
         EnsureEntityType<T>();
-        return new UpdateCommandBuilder<T>(_options, _connection, table);
+        return new UpdateCommandBuilder<T>(_options, _connection, table, _executionOptions);
     }
 
     /// <summary>
@@ -331,7 +433,7 @@ public sealed class Db4NetDatabase
     public UpdateManyCommandBuilder<T> UpdateMany<T>(IEnumerable<T> entities)
     {
         EnsureEntityType<T>();
-        return new UpdateManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+        return new UpdateManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities, _executionOptions);
     }
 
     /// <summary>
@@ -344,7 +446,7 @@ public sealed class Db4NetDatabase
     public UpdateManyCommandBuilder<T> UpdateMany<T>(IEnumerable<T> entities, string table)
     {
         EnsureEntityType<T>();
-        return new UpdateManyCommandBuilder<T>(_options, _connection, table, entities);
+        return new UpdateManyCommandBuilder<T>(_options, _connection, table, entities, _executionOptions);
     }
 
     /// <summary>
@@ -355,7 +457,7 @@ public sealed class Db4NetDatabase
     public DeleteCommandBuilder<T> DeleteFrom<T>()
     {
         EnsureEntityType<T>();
-        return new DeleteCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName);
+        return new DeleteCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, _executionOptions);
     }
 
     /// <summary>
@@ -367,7 +469,7 @@ public sealed class Db4NetDatabase
     public DeleteCommandBuilder<T> DeleteFrom<T>(string table)
     {
         EnsureEntityType<T>();
-        return new DeleteCommandBuilder<T>(_options, _connection, table);
+        return new DeleteCommandBuilder<T>(_options, _connection, table, _executionOptions);
     }
 
     /// <summary>
@@ -406,7 +508,7 @@ public sealed class Db4NetDatabase
     public DeleteManyCommandBuilder<T> DeleteMany<T>(IEnumerable<T> entities)
     {
         EnsureEntityType<T>();
-        return new DeleteManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities);
+        return new DeleteManyCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entities, _executionOptions);
     }
 
     /// <summary>
@@ -419,7 +521,7 @@ public sealed class Db4NetDatabase
     public DeleteManyCommandBuilder<T> DeleteMany<T>(IEnumerable<T> entities, string table)
     {
         EnsureEntityType<T>();
-        return new DeleteManyCommandBuilder<T>(_options, _connection, table, entities);
+        return new DeleteManyCommandBuilder<T>(_options, _connection, table, entities, _executionOptions);
     }
 
     private static void EnsureEntityType<T>(string? sequenceAlternative = null)
@@ -431,5 +533,10 @@ public sealed class Db4NetDatabase
         }
 
         ModelMetadataProvider.EnsureMappedModelType(type);
+    }
+
+    private IDbConnection RequireConnection()
+    {
+        return _connection ?? throw new InvalidOperationException("Dapper execution requires an IDbConnection. Use connection.UseDb4Net(options) to create the database facade.");
     }
 }

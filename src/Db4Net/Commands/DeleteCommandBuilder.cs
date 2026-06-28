@@ -16,8 +16,8 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     private readonly FilterClauseBuilder _filters;
     private readonly Db4NetOptions _options;
 
-    internal DeleteCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table)
-        : base(connection)
+    internal DeleteCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, Db4NetExecutionOptions? executionOptions = null)
+        : base(connection, executionOptions)
     {
         _options = options;
         _model = new DeleteCommandModel { Table = table };

@@ -19,10 +19,10 @@ public sealed class InsertOrUpdateManyCommandBuilder<T>
     private ColumnMetadata[] _conflictColumns = [];
     private ColumnMetadata[] _updateColumns = [];
 
-    internal InsertOrUpdateManyCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, IEnumerable<T> entities)
+    internal InsertOrUpdateManyCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, IEnumerable<T> entities, Db4NetExecutionOptions? executionOptions = null)
     {
         _options = options;
-        _executor = new DapperCommandExecutor(connection);
+        _executor = new DapperCommandExecutor(connection, executionOptions);
         _table = table;
         _entities = ManyCommandBuilderSupport<T>.Materialize(entities);
     }

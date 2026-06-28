@@ -29,21 +29,19 @@ var commands = db.InsertMany(users)
 
 ## Transactions
 
-Db4Net does not create an automatic transaction around many operations. Pass one through `Db4NetExecutionOptions` when the whole operation must be atomic.
+Many APIs do not self-wrap in a transaction. Use `BeginTransaction()` or `ExecuteInTransaction(...)` when the whole sequence must be atomic.
 
 ```csharp
-using var transaction = connection.BeginTransaction();
+var db = connection.UseDb4Net(Db4NetOptions.SqlServer);
 
-var affected = connection
-    .UseDb4Net(Db4NetOptions.SqlServer)
-    .UpdateMany(users)
-    .Execute(new Db4NetExecutionOptions
-    {
-        Transaction = transaction
-    });
+db.ExecuteInTransaction(tx =>
+{
+    tx.InsertMany(users).Execute();
+    tx.UpdateMany(users).Execute();
+});
 ```
 
-Db4Net does not commit or roll back that transaction. Manage the transaction lifetime in application code.
+For an existing transaction, keep using `Db4NetExecutionOptions.Transaction`. Db4Net forwards that transaction to Dapper and does not own its lifetime.
 
 ::: warning
 `Many` APIs are Dapper multi-execute conveniences, not provider-native copy/import APIs, set-based synchronization, or optimized batching.

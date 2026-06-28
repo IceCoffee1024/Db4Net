@@ -14,8 +14,8 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
     private readonly InsertCommandModel _model;
     private readonly Db4NetOptions _options;
 
-    internal InsertCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table)
-        : base(connection)
+    internal InsertCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, Db4NetExecutionOptions? executionOptions = null)
+        : base(connection, executionOptions)
     {
         _options = options;
         _model = new InsertCommandModel { Table = table };

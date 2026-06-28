@@ -120,7 +120,7 @@ await connection
 
 Single-entity convenience methods reject sequence values such as `List<User>` or `User[]`; use the matching `Many` method instead.
 
-For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`; Db4Net does not create an automatic transaction, so pass one through `Db4NetExecutionOptions` when the operation must be atomic:
+For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`:
 
 ```csharp
 var inserted = db
@@ -136,7 +136,27 @@ var deleted = db
     .Execute();
 ```
 
-Db4Net passes transactions through to Dapper; it does not begin, commit, or roll back them. Create the transaction from the same connection used by `UseDb4Net(...)`, pass it to each terminal method that must participate, and manage commit or rollback in application code.
+Use an existing transaction through `Db4NetExecutionOptions.Transaction`, or let Db4Net own a lightweight transaction scope when several operations must be atomic:
+
+```csharp
+using var tx = db.BeginTransaction();
+
+tx.Insert(user).Execute();
+tx.Update(otherUser).Execute();
+
+tx.Commit();
+```
+
+```csharp
+db.ExecuteInTransaction(tx =>
+{
+    tx.Insert(user).Execute();
+    tx.Update(otherUser).Execute();
+});
+```
+
+This is a connection-bound `IDbTransaction` convenience, not an ORM unit of work. Db4Net still does not track entities, detect changes, batch saves, or add `SaveChanges()`.
+When raw Dapper SQL must participate in the same transaction, create the `IDbTransaction` yourself and bind it with `WithTransaction(transaction)`.
 
 Use conflict-aware insert conveniences when inserts should ignore or update rows that already match a conflict target:
 
@@ -249,7 +269,7 @@ Included in the current alpha:
 - `Where`, `OrWhere`, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders
 - Sync and async Dapper-style query terminal methods
-- Transaction, command timeout, command type, and async cancellation token support
+- Existing transaction pass-through, lightweight transaction scopes, command timeout, command type, and async cancellation token support
 
 Intentionally out of scope for now:
 

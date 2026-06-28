@@ -10,9 +10,9 @@ public abstract class CommandBuilderBase
 {
     private readonly DapperCommandExecutor _executor;
 
-    internal CommandBuilderBase(IDbConnection? connection)
+    internal CommandBuilderBase(IDbConnection? connection, Db4NetExecutionOptions? executionOptions = null)
     {
-        _executor = new DapperCommandExecutor(connection);
+        _executor = new DapperCommandExecutor(connection, executionOptions);
     }
 
     /// <summary>

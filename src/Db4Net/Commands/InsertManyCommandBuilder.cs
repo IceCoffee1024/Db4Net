@@ -15,10 +15,10 @@ public sealed class InsertManyCommandBuilder<T>
     private readonly Db4NetOptions _options;
     private readonly string _table;
 
-    internal InsertManyCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, IEnumerable<T> entities)
+    internal InsertManyCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, IEnumerable<T> entities, Db4NetExecutionOptions? executionOptions = null)
     {
         _options = options;
-        _executor = new DapperCommandExecutor(connection);
+        _executor = new DapperCommandExecutor(connection, executionOptions);
         _table = table;
         _entities = ManyCommandBuilderSupport<T>.Materialize(entities);
     }

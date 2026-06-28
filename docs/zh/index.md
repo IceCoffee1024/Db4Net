@@ -20,4 +20,6 @@ features:
     details: 标识符由方言验证并引用，值始终通过 Dapper 参数传递。
   - title: 不做 ORM
     details: 不提供跟踪、关系加载、迁移或 SaveChanges()，复杂 SQL 仍交给 Dapper。
+  - title: 轻量事务作用域
+    details: 可以传入已有事务，也可以用 BeginTransaction() 组合多条显式操作。
 ---

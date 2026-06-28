@@ -17,8 +17,8 @@ public sealed class InsertOrUpdateCommandBuilder<T> : CommandBuilderBase
     private ColumnMetadata[] _conflictColumns = [];
     private ColumnMetadata[] _updateColumns = [];
 
-    internal InsertOrUpdateCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, T entity)
-        : base(connection)
+    internal InsertOrUpdateCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, T entity, Db4NetExecutionOptions? executionOptions = null)
+        : base(connection, executionOptions)
     {
         _options = options;
         _table = table;

@@ -17,4 +17,16 @@ public static class Db4NetConnectionExtensions
     {
         return Db4NetDatabase.Create(options, connection);
     }
+
+    /// <summary>
+    /// Creates a Db4Net facade bound to an <see cref="IDbConnection"/> with default execution options.
+    /// </summary>
+    /// <param name="connection">The connection Dapper will execute against.</param>
+    /// <param name="options">The SQL generation options to use.</param>
+    /// <param name="executionOptions">Default Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <returns>A Db4Net facade for building and executing queries.</returns>
+    public static Db4NetDatabase UseDb4Net(this IDbConnection connection, Db4NetOptions options, Db4NetExecutionOptions executionOptions)
+    {
+        return Db4NetDatabase.Create(options, connection).WithExecutionOptions(executionOptions);
+    }
 }

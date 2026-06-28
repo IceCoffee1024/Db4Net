@@ -132,7 +132,7 @@ await connection
 
 Single-entity convenience methods reject sequence values such as `List<User>` or `User[]`; use the matching `Many` method instead.
 
-For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`; Db4Net does not create an automatic transaction, so pass one through `Db4NetExecutionOptions` when the operation must be atomic:
+For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`:
 
 ```csharp
 var inserted = db
@@ -148,7 +148,26 @@ var deleted = db
     .Execute();
 ```
 
-Db4Net passes transactions through to Dapper; it does not begin, commit, or roll back them. Create the transaction from the same connection used by `UseDb4Net(...)`, pass it to each terminal method that must participate, and manage commit or rollback in application code.
+Use an existing transaction through `Db4NetExecutionOptions.Transaction`, or let Db4Net own a lightweight transaction scope when several operations must be atomic:
+
+```csharp
+using var tx = db.BeginTransaction();
+
+tx.Insert(user).Execute();
+tx.Update(otherUser).Execute();
+
+tx.Commit();
+```
+
+```csharp
+db.ExecuteInTransaction(tx =>
+{
+    tx.Insert(user).Execute();
+    tx.Update(otherUser).Execute();
+});
+```
+
+This is a connection-bound `IDbTransaction` convenience, not an ORM unit of work. Db4Net still does not track entities, detect changes, batch saves, or add `SaveChanges()`.
 
 Use conflict-aware insert conveniences when inserts should ignore or update rows that already match a conflict target:
 
@@ -323,7 +342,35 @@ var users = connection
     });
 ```
 
-Db4Net passes the transaction to Dapper. It does not start, commit, or roll back transactions for you.
+Db4Net passes an existing transaction to Dapper when you provide one through `Db4NetExecutionOptions.Transaction`. In that mode it does not own the transaction lifetime.
+
+For a Db4Net-owned lightweight transaction scope, use `BeginTransaction()`:
+
+```csharp
+using var tx = connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .BeginTransaction();
+
+tx.Insert(user).Execute();
+tx.Update(otherUser).Execute();
+tx.Commit();
+```
+
+Disposing a `Db4NetTransaction` without calling `Commit()` rolls it back. `ExecuteInTransaction(...)` commits when the delegate succeeds and rolls back when it throws:
+
+```csharp
+connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .ExecuteInTransaction(tx =>
+    {
+        tx.Insert(user).Execute();
+        tx.Update(otherUser).Execute();
+    });
+```
+
+The async `ExecuteInTransactionAsync(...)` overloads run async Db4Net operations inside the same transaction. Transaction begin, commit, and rollback use the synchronous `IDbTransaction` APIs because Db4Net is connection-bound through `IDbConnection`.
+
+When raw Dapper SQL must participate in the same transaction, create the `IDbTransaction` yourself and bind it with `WithTransaction(transaction)`.
 
 Async terminal methods also accept a `CancellationToken`:
 
@@ -342,7 +389,7 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, but joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, and lightweight transaction scopes are available for grouping explicit operations. Joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
 
 SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. SQL Server renders a dialect-specific conflict-aware command; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
 

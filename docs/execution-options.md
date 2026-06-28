@@ -22,7 +22,74 @@ Execution options can carry:
 - `CommandTimeout`
 - `CommandType`
 
-Db4Net passes the transaction through to Dapper. It does not begin, commit, or roll back transactions. Create the transaction from the same connection used by `UseDb4Net(...)`, pass it to every terminal method that must participate, and commit or roll back it yourself.
+## Existing Transactions
+
+Db4Net passes an existing transaction through to Dapper when you provide `Db4NetExecutionOptions.Transaction`. Create the transaction from the same connection used by `UseDb4Net(...)`, pass it to every terminal method that must participate, and commit or roll back it yourself.
+
+You can also bind default execution options to a facade:
+
+```csharp
+using var transaction = connection.BeginTransaction();
+
+var db = connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .WithTransaction(transaction);
+
+db.Insert(user).Execute();
+db.Update(otherUser).Execute();
+```
+
+`WithExecutionOptions(...)` can also bind default timeout or command type values:
+
+```csharp
+var db = connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .WithExecutionOptions(new Db4NetExecutionOptions
+    {
+        CommandTimeout = 30
+    });
+```
+
+The connection extension also accepts default execution options directly:
+
+```csharp
+var db = connection.UseDb4Net(
+    Db4NetOptions.Sqlite,
+    new Db4NetExecutionOptions { CommandTimeout = 30 });
+```
+
+## Transaction Scopes
+
+Use `BeginTransaction()` when Db4Net should own a lightweight transaction scope.
+
+```csharp
+var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+using var tx = db.BeginTransaction();
+
+tx.Insert(user).Execute();
+tx.Update(otherUser).Execute();
+
+tx.Commit();
+```
+
+Disposing a `Db4NetTransaction` without calling `Commit()` rolls it back.
+
+Use `ExecuteInTransaction(...)` for delegate-based scopes:
+
+```csharp
+db.ExecuteInTransaction(tx =>
+{
+    tx.Insert(user).Execute();
+    tx.Update(otherUser).Execute();
+});
+```
+
+`ExecuteInTransaction(...)` commits when the delegate succeeds and rolls back when it throws. `ExecuteInTransactionAsync(...)` runs async Db4Net operations in the same transaction, but transaction begin, commit, and rollback use synchronous `IDbTransaction` APIs because Db4Net is bound through `IDbConnection`.
+
+When raw Dapper SQL must participate in the same transaction, create the `IDbTransaction` yourself and bind it with `WithTransaction(transaction)`.
+
+This is not an ORM unit of work: Db4Net does not track entities, detect changes, batch saves, or add `SaveChanges()`.
 
 ## Async Cancellation
 

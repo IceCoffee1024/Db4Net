@@ -78,12 +78,14 @@ public partial class SelectQueryBuilder
     private CommandDefinition CreateDapperCommand(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         var command = ToCommand();
+        var executionOptions = Db4NetExecutionOptions.Merge(_executionOptions, options);
+        executionOptions?.Validate();
         return new CommandDefinition(
             command.Sql,
             command.Parameters,
-            options?.Transaction,
-            options?.CommandTimeout,
-            options?.CommandType,
+            executionOptions?.Transaction,
+            executionOptions?.CommandTimeout,
+            executionOptions?.CommandType,
             cancellationToken: cancellationToken);
     }
 

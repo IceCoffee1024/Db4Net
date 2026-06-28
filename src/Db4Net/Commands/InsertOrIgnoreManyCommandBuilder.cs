@@ -18,10 +18,10 @@ public sealed class InsertOrIgnoreManyCommandBuilder<T>
     private readonly string _table;
     private ColumnMetadata[] _conflictColumns = [];
 
-    internal InsertOrIgnoreManyCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, IEnumerable<T> entities)
+    internal InsertOrIgnoreManyCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, IEnumerable<T> entities, Db4NetExecutionOptions? executionOptions = null)
     {
         _options = options;
-        _executor = new DapperCommandExecutor(connection);
+        _executor = new DapperCommandExecutor(connection, executionOptions);
         _table = table;
         _entities = ManyCommandBuilderSupport<T>.Materialize(entities);
     }
