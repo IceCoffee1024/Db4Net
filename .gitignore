@@ -26,3 +26,9 @@ local.runsettings
 
 # CodeGraph local index
 .codegraph/
+
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/.vitepress/.temp/
+
+node_modules

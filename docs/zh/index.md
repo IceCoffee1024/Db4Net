@@ -1,0 +1,23 @@
+---
+layout: home
+
+hero:
+  name: "Db4Net"
+  text: "面向 Dapper 的安全 SQL 风格构建器"
+  tagline: "轻量、参数化、单表优先，不接管 Dapper 的执行与对象映射。"
+  actions:
+    - theme: brand
+      text: 快速开始
+      link: /zh/getting-started
+    - theme: alt
+      text: 查看查询示例
+      link: /zh/select
+
+features:
+  - title: SQL 风格 API
+    details: SelectFrom<T>()、InsertInto<T>()、Update<T>()、DeleteFrom<T>() 保持语句顺序清晰。
+  - title: 安全参数化
+    details: 标识符由方言验证并引用，值始终通过 Dapper 参数传递。
+  - title: 不做 ORM
+    details: 不提供跟踪、关系加载、迁移或 SaveChanges()，复杂 SQL 仍交给 Dapper。
+---
