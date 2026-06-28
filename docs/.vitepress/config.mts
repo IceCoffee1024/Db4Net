@@ -3,7 +3,11 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Db4Net',
   description: 'Safe, SQL-shaped fluent query and command builder for Dapper.',
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }]
+  ],
   themeConfig: {
+    logo: '/favicon.svg',
     socialLinks: [
       { icon: 'github', link: 'https://github.com/IceCoffee1024/Db4Net' }
     ]
