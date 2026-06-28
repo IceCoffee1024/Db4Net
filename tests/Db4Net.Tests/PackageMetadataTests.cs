@@ -11,10 +11,10 @@ public sealed class PackageMetadataTests
         var properties = project.Root!.Elements("PropertyGroup").Elements().ToDictionary(element => element.Name.LocalName, element => element.Value);
 
         Assert.Equal("Db4Net", properties["PackageId"]);
-        Assert.Equal("0.2.0-alpha.1", properties["Version"]);
+        Assert.Equal("0.1.0-alpha.1", properties["Version"]);
         Assert.Equal("IceCoffee", properties["Authors"]);
         Assert.Equal("Safe, SQL-shaped fluent query and command builder for Dapper.", properties["Description"]);
-        Assert.Equal("0.2.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, and explicit filter groups.", properties["PackageReleaseNotes"]);
+        Assert.Equal("0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, explicit filter groups, and bilingual documentation.", properties["PackageReleaseNotes"]);
         Assert.Equal("dapper;sql;fluent;query-builder", properties["PackageTags"]);
         Assert.Equal("README.md", properties["PackageReadmeFile"]);
         Assert.Equal("MIT", properties["PackageLicenseExpression"]);

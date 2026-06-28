@@ -143,7 +143,7 @@ db.SelectFrom<User>()
 
 ## 当前实现状态
 
-当前 alpha 阶段实现已完成，当前包版本为 `0.2.0-alpha.1`。当前 alpha 已经不只是最初的 SELECT builder，而是安全、SQL-shaped、单表 query/command builder 的早期完整形态。
+当前 alpha 阶段实现已完成，计划中的首个公开包版本为 `0.1.0-alpha.1`。当前 alpha 已经不只是最初的 SELECT builder，而是安全、SQL-shaped、单表 query/command builder 的早期完整形态。
 
 已实现：
 
@@ -179,7 +179,7 @@ db.SelectFrom<User>()
 
 - `dotnet test`：当前本机配置下 223 个测试全部通过；外部数据库测试是否执行取决于 `local.runsettings` 或环境变量。
 - `dotnet build -c Release`：最近验证为 0 warning，0 error。
-- `dotnet pack src/Db4Net/Db4Net.csproj -c Release`：可生成 `Db4Net.0.2.0-alpha.1.nupkg` 和 `Db4Net.0.2.0-alpha.1.snupkg`。
+- `dotnet pack src/Db4Net/Db4Net.csproj -c Release`：可生成 `Db4Net.0.1.0-alpha.1.nupkg` 和 `Db4Net.0.1.0-alpha.1.snupkg`。
 
 测试策略：
 
@@ -221,10 +221,10 @@ SQL 渲染和 Dapper 执行保持分离。
 当前 NuGet 元数据：
 
 - `PackageId`: `Db4Net`
-- `Version`: `0.2.0-alpha.1`
+- `Version`: `0.1.0-alpha.1`
 - `Authors`: `IceCoffee`
 - `Description`: `Safe, SQL-shaped fluent query and command builder for Dapper.`
-- `PackageReleaseNotes`: `0.2.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, and explicit filter groups.`
+- `PackageReleaseNotes`: `0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, explicit filter groups, and bilingual documentation.`
 - `PackageTags`: `dapper;sql;fluent;query-builder`
 - `PackageReadmeFile`: `README.md`
 - `PackageLicenseExpression`: `MIT`

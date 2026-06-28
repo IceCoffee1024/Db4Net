@@ -2,7 +2,7 @@
 
 All notable changes to Db4Net will be documented in this file.
 
-## 0.2.0-alpha.1 - 2026-06-27
+## Unreleased
 
 ### Added
 
@@ -17,6 +17,9 @@ All notable changes to Db4Net will be documented in this file.
 - SQL Server, SQLite, PostgreSQL, and MySQL dialect rendering.
 - Dapper execution options for transaction, command timeout, command type, and async cancellation tokens.
 - Optional PostgreSQL, MySQL, and SQL Server integration tests via environment variables or local runsettings.
+- Bilingual VitePress documentation site with English and Simplified Chinese user guides.
+- Documentation-site changelog entry that links back to this root `CHANGELOG.md`.
+- Documentation-site favicon and navbar logo.
 
 ### Changed
 
@@ -30,4 +33,3 @@ All notable changes to Db4Net will be documented in this file.
 - No LINQ provider or full predicate expression translation such as `Where(u => u.Id == 1)`.
 - No change tracking, relationship loading, migrations, automatic concurrency tokens, or unit-of-work behavior.
 - Many-entity conveniences are not optimized bulk import/copy or set-based synchronization APIs.
-

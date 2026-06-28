@@ -8,7 +8,7 @@ The API is intentionally SQL-shaped: `SelectFrom<T>()`, `InsertInto<T>()`, `Upda
 
 ## Status
 
-Current version: `0.2.0-alpha.1`
+Current version: `0.1.0-alpha.1`
 
 This alpha focuses on safe, SQL-shaped, single-table query and command builders for Dapper, including typed `SELECT`, `INSERT`, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
