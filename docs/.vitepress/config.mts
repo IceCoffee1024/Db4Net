@@ -8,6 +8,36 @@ export default defineConfig({
   ],
   themeConfig: {
     logo: '/favicon.svg',
+    search: {
+      provider: 'local',
+      options: {
+        locales: {
+          zh: {
+            translations: {
+              button: {
+                buttonText: '搜索',
+                buttonAriaLabel: '搜索'
+              },
+              modal: {
+                displayDetails: '显示详细列表',
+                resetButtonTitle: '重置搜索',
+                backButtonTitle: '关闭搜索',
+                noResultsText: '没有找到相关结果',
+                footer: {
+                  selectText: '选择',
+                  selectKeyAriaLabel: '回车',
+                  navigateText: '切换',
+                  navigateUpKeyAriaLabel: '向上箭头',
+                  navigateDownKeyAriaLabel: '向下箭头',
+                  closeText: '关闭',
+                  closeKeyAriaLabel: 'Esc'
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/IceCoffee1024/Db4Net' }
     ]
