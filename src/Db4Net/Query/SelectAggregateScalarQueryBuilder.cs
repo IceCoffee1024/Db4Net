@@ -1,4 +1,3 @@
-using System.Data;
 using System.Linq.Expressions;
 using System.Threading;
 using Db4Net.Rendering;
@@ -6,20 +5,27 @@ using Db4Net.Rendering;
 namespace Db4Net.Query;
 
 /// <summary>
-/// Builds SELECT EXISTS statements using typed member selectors for filtering.
+/// Builds and executes a typed scalar aggregate query.
 /// </summary>
 /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
-public sealed class SelectExistsQueryBuilder<T>
+/// <typeparam name="TResult">The scalar result type returned by the aggregate query.</typeparam>
+public sealed class SelectAggregateScalarQueryBuilder<T, TResult>
 {
     private readonly DapperScalarExecutor _executor;
     private readonly Db4NetOptions _options;
     private readonly ScalarQueryBuilderState<T> _state;
 
-    internal SelectExistsQueryBuilder(Db4NetOptions options, IDbConnection? connection, string table, Db4NetExecutionOptions? executionOptions = null)
+    internal SelectAggregateScalarQueryBuilder(
+        Db4NetOptions options,
+        System.Data.IDbConnection? connection,
+        string table,
+        ScalarProjectionKind projectionKind,
+        string column,
+        Db4NetExecutionOptions? executionOptions = null)
     {
         _options = options;
         _executor = new DapperScalarExecutor(connection, executionOptions);
-        _state = new ScalarQueryBuilderState<T>(table, ScalarProjectionKind.Exists);
+        _state = new ScalarQueryBuilderState<T>(table, projectionKind, column);
     }
 
     /// <summary>
@@ -29,7 +35,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// <param name="op">The SQL comparison operator.</param>
     /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> Where(string propertyName, Op op, object? value)
+    public SelectAggregateScalarQueryBuilder<T, TResult> Where(string propertyName, Op op, object? value)
     {
         _state.AddFilter(FilterBooleanOperator.And, propertyName, op, value);
         return this;
@@ -41,7 +47,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// <param name="propertyName">The CLR property name to filter by.</param>
     /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> Where(string propertyName, Op op)
+    public SelectAggregateScalarQueryBuilder<T, TResult> Where(string propertyName, Op op)
     {
         _state.AddValueFreeFilter(FilterBooleanOperator.And, propertyName, op);
         return this;
@@ -55,7 +61,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// <param name="op">The SQL comparison operator.</param>
     /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
+    public SelectAggregateScalarQueryBuilder<T, TResult> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
         _state.AddFilter(FilterBooleanOperator.And, memberSelector, op, value);
         return this;
@@ -68,7 +74,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.DeletedAt</c>.</param>
     /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
+    public SelectAggregateScalarQueryBuilder<T, TResult> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
         _state.AddValueFreeFilter(FilterBooleanOperator.And, memberSelector, op);
         return this;
@@ -79,7 +85,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// </summary>
     /// <param name="configure">Configures the nested filter group.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> WhereGroup(Action<FilterGroupBuilder<T>> configure)
+    public SelectAggregateScalarQueryBuilder<T, TResult> WhereGroup(Action<FilterGroupBuilder<T>> configure)
     {
         AddGroup(FilterBooleanOperator.And, configure);
         return this;
@@ -92,7 +98,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// <param name="op">The SQL comparison operator.</param>
     /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> OrWhere(string propertyName, Op op, object? value)
+    public SelectAggregateScalarQueryBuilder<T, TResult> OrWhere(string propertyName, Op op, object? value)
     {
         _state.AddFilter(FilterBooleanOperator.Or, propertyName, op, value);
         return this;
@@ -104,7 +110,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// <param name="propertyName">The CLR property name to filter by.</param>
     /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> OrWhere(string propertyName, Op op)
+    public SelectAggregateScalarQueryBuilder<T, TResult> OrWhere(string propertyName, Op op)
     {
         _state.AddValueFreeFilter(FilterBooleanOperator.Or, propertyName, op);
         return this;
@@ -118,7 +124,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// <param name="op">The SQL comparison operator.</param>
     /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
+    public SelectAggregateScalarQueryBuilder<T, TResult> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
         _state.AddFilter(FilterBooleanOperator.Or, memberSelector, op, value);
         return this;
@@ -131,7 +137,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.DeletedAt</c>.</param>
     /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
+    public SelectAggregateScalarQueryBuilder<T, TResult> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
         _state.AddValueFreeFilter(FilterBooleanOperator.Or, memberSelector, op);
         return this;
@@ -142,7 +148,7 @@ public sealed class SelectExistsQueryBuilder<T>
     /// </summary>
     /// <param name="configure">Configures the nested filter group.</param>
     /// <returns>The current query builder.</returns>
-    public SelectExistsQueryBuilder<T> OrWhereGroup(Action<FilterGroupBuilder<T>> configure)
+    public SelectAggregateScalarQueryBuilder<T, TResult> OrWhereGroup(Action<FilterGroupBuilder<T>> configure)
     {
         AddGroup(FilterBooleanOperator.Or, configure);
         return this;
@@ -158,24 +164,24 @@ public sealed class SelectExistsQueryBuilder<T>
     }
 
     /// <summary>
-    /// Executes the existence query through Dapper.
+    /// Executes the scalar aggregate query through Dapper.
     /// </summary>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
-    /// <returns><see langword="true"/> when at least one row matches; otherwise, <see langword="false"/>.</returns>
-    public bool Execute(Db4NetExecutionOptions? options = null)
+    /// <returns>The aggregate result returned by the database.</returns>
+    public TResult Execute(Db4NetExecutionOptions? options = null)
     {
-        return _executor.Execute<int>(ToCommand(), options) != 0;
+        return _executor.Execute<TResult>(ToCommand(), options);
     }
 
     /// <summary>
-    /// Asynchronously executes the existence query through Dapper.
+    /// Asynchronously executes the scalar aggregate query through Dapper.
     /// </summary>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
-    /// <returns><see langword="true"/> when at least one row matches; otherwise, <see langword="false"/>.</returns>
-    public async Task<bool> ExecuteAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    /// <returns>The aggregate result returned by the database.</returns>
+    public Task<TResult> ExecuteAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return await _executor.ExecuteAsync<int>(ToCommand(), options, cancellationToken).ConfigureAwait(false) != 0;
+        return _executor.ExecuteAsync<TResult>(ToCommand(), options, cancellationToken);
     }
 
     private void AddGroup(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder<T>> configure)

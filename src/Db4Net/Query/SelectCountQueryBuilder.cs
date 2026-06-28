@@ -1,8 +1,6 @@
 using System.Data;
 using System.Linq.Expressions;
 using System.Threading;
-using Dapper;
-using Db4Net.Metadata;
 using Db4Net.Rendering;
 
 namespace Db4Net.Query;
@@ -13,19 +11,15 @@ namespace Db4Net.Query;
 /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
 public sealed class SelectCountQueryBuilder<T>
 {
-    private readonly IDbConnection? _connection;
-    private readonly Db4NetExecutionOptions? _executionOptions;
-    private readonly FilterClauseBuilder _filters;
-    private readonly SelectCountQueryModel _model;
+    private readonly DapperScalarExecutor _executor;
     private readonly Db4NetOptions _options;
+    private readonly ScalarQueryBuilderState<T> _state;
 
     internal SelectCountQueryBuilder(Db4NetOptions options, IDbConnection? connection, string table, Db4NetExecutionOptions? executionOptions = null)
     {
         _options = options;
-        _connection = connection;
-        _executionOptions = executionOptions;
-        _model = new SelectCountQueryModel { Table = table };
-        _filters = new FilterClauseBuilder(_model.Filters);
+        _executor = new DapperScalarExecutor(connection, executionOptions);
+        _state = new ScalarQueryBuilderState<T>(table, ScalarProjectionKind.CountAll);
     }
 
     /// <summary>
@@ -37,7 +31,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The current query builder.</returns>
     public SelectCountQueryBuilder<T> Where(string propertyName, Op op, object? value)
     {
-        _filters.Add(FilterBooleanOperator.And, () => MapPropertyName(propertyName), op, value);
+        _state.AddFilter(FilterBooleanOperator.And, propertyName, op, value);
         return this;
     }
 
@@ -49,7 +43,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The current query builder.</returns>
     public SelectCountQueryBuilder<T> Where(string propertyName, Op op)
     {
-        _filters.AddValueFree(FilterBooleanOperator.And, () => MapPropertyName(propertyName), op);
+        _state.AddValueFreeFilter(FilterBooleanOperator.And, propertyName, op);
         return this;
     }
 
@@ -63,7 +57,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The current query builder.</returns>
     public SelectCountQueryBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
-        _filters.Add(FilterBooleanOperator.And, () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
+        _state.AddFilter(FilterBooleanOperator.And, memberSelector, op, value);
         return this;
     }
 
@@ -76,7 +70,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The current query builder.</returns>
     public SelectCountQueryBuilder<T> Where<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
-        _filters.AddValueFree(FilterBooleanOperator.And, () => ModelMetadataProvider.GetColumnName(memberSelector), op);
+        _state.AddValueFreeFilter(FilterBooleanOperator.And, memberSelector, op);
         return this;
     }
 
@@ -100,7 +94,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The current query builder.</returns>
     public SelectCountQueryBuilder<T> OrWhere(string propertyName, Op op, object? value)
     {
-        _filters.Add(FilterBooleanOperator.Or, () => MapPropertyName(propertyName), op, value);
+        _state.AddFilter(FilterBooleanOperator.Or, propertyName, op, value);
         return this;
     }
 
@@ -112,7 +106,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The current query builder.</returns>
     public SelectCountQueryBuilder<T> OrWhere(string propertyName, Op op)
     {
-        _filters.AddValueFree(FilterBooleanOperator.Or, () => MapPropertyName(propertyName), op);
+        _state.AddValueFreeFilter(FilterBooleanOperator.Or, propertyName, op);
         return this;
     }
 
@@ -126,7 +120,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The current query builder.</returns>
     public SelectCountQueryBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op, object? value)
     {
-        _filters.Add(FilterBooleanOperator.Or, () => ModelMetadataProvider.GetColumnName(memberSelector), op, value);
+        _state.AddFilter(FilterBooleanOperator.Or, memberSelector, op, value);
         return this;
     }
 
@@ -139,7 +133,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The current query builder.</returns>
     public SelectCountQueryBuilder<T> OrWhere<TValue>(Expression<Func<T, TValue>> memberSelector, Op op)
     {
-        _filters.AddValueFree(FilterBooleanOperator.Or, () => ModelMetadataProvider.GetColumnName(memberSelector), op);
+        _state.AddValueFreeFilter(FilterBooleanOperator.Or, memberSelector, op);
         return this;
     }
 
@@ -160,7 +154,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The rendered SQL command definition.</returns>
     public RenderedSqlCommand ToCommand()
     {
-        return new SelectCountSqlRenderer(_options.Dialect).Render(_model);
+        return new ScalarSqlRenderer(_options.Dialect).Render(_state.Model);
     }
 
     /// <summary>
@@ -170,7 +164,7 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The count returned by the database.</returns>
     public long Execute(Db4NetExecutionOptions? options = null)
     {
-        return RequireConnection().ExecuteScalar<long>(CreateDapperCommand(options));
+        return _executor.Execute<long>(ToCommand(), options);
     }
 
     /// <summary>
@@ -181,39 +175,11 @@ public sealed class SelectCountQueryBuilder<T>
     /// <returns>The count returned by the database.</returns>
     public Task<long> ExecuteAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return RequireConnection().ExecuteScalarAsync<long>(CreateDapperCommand(options, cancellationToken));
-    }
-
-    private static string MapPropertyName(string propertyName)
-    {
-        return ModelMetadata<T>.GetColumn(propertyName).ColumnName;
+        return _executor.ExecuteAsync<long>(ToCommand(), options, cancellationToken);
     }
 
     private void AddGroup(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder<T>> configure)
     {
-        ThrowHelper.ThrowIfNull(configure);
-
-        var group = new FilterGroupBuilder<T>();
-        configure(group);
-        _filters.AddGroup(booleanOperator, group.Filters);
-    }
-
-    private CommandDefinition CreateDapperCommand(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        var command = ToCommand();
-        var executionOptions = Db4NetExecutionOptions.Merge(_executionOptions, options);
-        executionOptions?.Validate();
-        return new CommandDefinition(
-            command.Sql,
-            command.Parameters,
-            executionOptions?.Transaction,
-            executionOptions?.CommandTimeout,
-            executionOptions?.CommandType,
-            cancellationToken: cancellationToken);
-    }
-
-    private IDbConnection RequireConnection()
-    {
-        return _connection ?? throw new InvalidOperationException("Dapper execution requires an IDbConnection. Use connection.UseDb4Net(options) to create the database facade.");
+        _state.AddGroup(booleanOperator, configure);
     }
 }

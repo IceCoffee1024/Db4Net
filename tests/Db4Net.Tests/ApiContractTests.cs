@@ -168,6 +168,68 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public void Select_aggregate_query_builder_exposes_aggregate_selection_api()
+    {
+        AssertPublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>), "Max", "Min", "CountDistinct");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
+            method.Name is "Where"
+                or "OrWhere"
+                or "WhereGroup"
+                or "OrWhereGroup"
+                or "ToCommand"
+                or "Execute"
+                or "ExecuteAsync"
+                or "Sum"
+                or "Average"
+                or "Avg"
+                or "Count");
+
+        Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
+            method.Name == "CountDistinct"
+                && method.ReturnType.IsGenericType
+                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<,>)
+                && method.ReturnType.GetGenericArguments()[1] == typeof(long));
+    }
+
+    [Fact]
+    public void Select_aggregate_scalar_query_builder_exposes_scalar_api()
+    {
+        AssertPublicInstanceMethods(
+            typeof(SelectAggregateScalarQueryBuilder<,>),
+            "Where",
+            "OrWhere",
+            "WhereGroup",
+            "OrWhereGroup",
+            "ToCommand",
+            "Execute",
+            "ExecuteAsync");
+    }
+
+    [Fact]
+    public void Select_aggregate_scalar_query_builder_does_not_expose_row_query_or_paging_api()
+    {
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateScalarQueryBuilder<,>)), method =>
+            method.Name is "Select"
+                or "OrderBy"
+                or "OrderByDescending"
+                or "Limit"
+                or "Offset"
+                or "Page"
+                or "Query"
+                or "QueryAsync"
+                or "QuerySingle"
+                or "QuerySingleAsync"
+                or "QuerySingleOrDefault"
+                or "QuerySingleOrDefaultAsync"
+                or "QueryFirstOrDefault"
+                or "QueryFirstOrDefaultAsync"
+                or "Sum"
+                or "Average"
+                or "Avg"
+                or "Count");
+    }
+
+    [Fact]
     public void Insert_command_builder_exposes_command_api()
     {
         AssertPublicInstanceMethods(typeof(InsertCommandBuilder<>), "Value", "Values", "ToCommand", "Execute", "ExecuteAsync");
@@ -242,6 +304,7 @@ public sealed class ApiContractTests
             "Select",
             "SelectCountFrom",
             "SelectExistsFrom",
+            "SelectAggregateFrom",
             "SelectFrom",
             "Insert",
             "InsertInto",
@@ -322,6 +385,9 @@ public sealed class ApiContractTests
 
         AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "SelectExistsFrom", typeof(SelectExistsQueryBuilder<>));
         AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "SelectExistsFrom", typeof(SelectExistsQueryBuilder<>));
+
+        AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "SelectAggregateFrom", typeof(SelectAggregateQueryBuilder<>));
+        AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "SelectAggregateFrom", typeof(SelectAggregateQueryBuilder<>));
 
         AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
         AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
@@ -494,7 +560,7 @@ public sealed class ApiContractTests
 
     private static bool IsNonGenericStringOnlyCommandEntryPoint(MethodInfo method)
     {
-        return method.Name is "SelectExistsFrom" or "InsertInto" or "InsertOrIgnore" or "InsertOrUpdate" or "InsertOrIgnoreMany" or "InsertOrUpdateMany" or "Update" or "DeleteFrom"
+        return method.Name is "SelectCountFrom" or "SelectExistsFrom" or "SelectAggregateFrom" or "InsertInto" or "InsertOrIgnore" or "InsertOrUpdate" or "InsertOrIgnoreMany" or "InsertOrUpdateMany" or "Update" or "DeleteFrom"
             && !method.IsGenericMethodDefinition
             && method.GetParameters() is [{ ParameterType: var parameterType }]
             && parameterType == typeof(string);

@@ -1215,6 +1215,56 @@ public sealed class CommandBuilderTests
         Assert.Equal(2, command.Parameters.Get<int>("p1"));
     }
 
+    [Fact]
+    public void Select_aggregate_from_type_renders_max_with_typed_filters_and_groups()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<User>()
+            .Max(u => u.Id)
+            .Where(u => u.Id, Op.Gte, 1)
+            .WhereGroup(group => group
+                .Where(u => u.Name, Op.Like, "A%")
+                .OrWhere(u => u.Id, Op.Eq, 2))
+            .OrWhereGroup(group => group
+                .Where(u => u.Name, Op.Eq, "Bob")
+                .OrWhere(u => u.Id, Op.Eq, 3))
+            .ToCommand();
+
+        Assert.Equal("""SELECT MAX("Id") FROM "Users" WHERE "Id" >= @p0 AND ("Name" LIKE @p1 OR "Id" = @p2) OR ("Name" = @p3 OR "Id" = @p4)""", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("A%", command.Parameters.Get<string>("p1"));
+        Assert.Equal(2, command.Parameters.Get<int>("p2"));
+        Assert.Equal("Bob", command.Parameters.Get<string>("p3"));
+        Assert.Equal(3, command.Parameters.Get<int>("p4"));
+    }
+
+    [Fact]
+    public void Select_aggregate_from_type_renders_min()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<User>()
+            .Min(u => u.Id)
+            .ToCommand();
+
+        Assert.Equal("SELECT MIN(\"Id\") FROM \"Users\"", command.Sql);
+    }
+
+    [Fact]
+    public void Select_aggregate_from_type_can_override_table_with_mapped_column()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<MappedUser>("app_users_staging")
+            .CountDistinct(u => u.DisplayName)
+            .Where("DisplayName", Op.Eq, "Alice")
+            .ToCommand();
+
+        Assert.Equal("""SELECT COUNT(DISTINCT "display_name") FROM "app_users_staging" WHERE "display_name" = @p0""", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
     [Table("Users")]
     private sealed class User
     {

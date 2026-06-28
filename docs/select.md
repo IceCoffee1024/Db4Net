@@ -36,7 +36,7 @@ var rows = connection
 
 String fields are CLR property names, not database column names or SQL fragments. If `[Column("display_name")]` maps `DisplayName`, pass `"DisplayName"`.
 
-## Existence and Count Queries
+## Existence, Count, and Aggregate Queries
 
 Use `SelectExistsFrom<T>()` for existence checks. It is the supported existence-check API and is preferable to `SelectCountFrom<T>().Execute() > 0` when only existence matters:
 
@@ -66,7 +66,22 @@ var matchingCount = await db
     .ExecuteAsync();
 ```
 
-Do not use `Select("COUNT(*)")` for count queries. String select values are validated identifiers, not raw SQL expressions.
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)` and `Min(...)` operate on mapped value-type columns and return nullable values. `CountDistinct(...)` returns a `long`:
+
+```csharp
+var latestId = db
+    .SelectAggregateFrom<User>()
+    .Max(u => u.Id)
+    .Where(u => u.Name, Op.Like, "A%")
+    .Execute();
+
+var distinctNames = await db
+    .SelectAggregateFrom<User>("users_2026")
+    .CountDistinct(u => u.Name)
+    .ExecuteAsync();
+```
+
+Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
 
 ## Terminal Methods
 
@@ -81,4 +96,4 @@ Typed select builders materialize `T`:
 
 The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()`.
 
-Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`.
+Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. Aggregate query builders return scalar results through `Execute()` and `ExecuteAsync()`.

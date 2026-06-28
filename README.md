@@ -4,13 +4,13 @@ Db4Net is a lightweight fluent SQL builder for safe, parameterized Dapper querie
 
 It is designed for developers who want more structure than hand-written SQL string concatenation, while still keeping Dapper in charge of execution and object mapping. Db4Net is not an ORM and does not try to become a LINQ provider.
 
-The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectExistsFrom<T>()`, `SelectCountFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
+The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectExistsFrom<T>()`, `SelectCountFrom<T>()`, `SelectAggregateFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
 
 ## Status
 
 Current version: `0.1.0-alpha.1`
 
-This alpha focuses on safe, SQL-shaped, single-table query and command builders for Dapper, including typed `SELECT`, `INSERT`, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
+This alpha focuses on safe, SQL-shaped, single-table query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, `INSERT`, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
 NuGet packages include XML documentation and a symbols package for source debugging.
 
@@ -92,7 +92,24 @@ var matchingCount = await connection
     .ExecuteAsync();
 ```
 
-Do not use `Select("COUNT(*)")` for count queries. String select values are validated identifiers, not raw SQL expressions.
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)` and `Min(...)` operate on mapped value-type columns and return nullable values because SQL aggregates return `NULL` for empty result sets. `CountDistinct(...)` returns a `long`:
+
+```csharp
+var latestId = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectAggregateFrom<User>()
+    .Max(u => u.Id)
+    .Where(u => u.Name, Op.Like, "A%")
+    .Execute();
+
+var distinctNames = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectAggregateFrom<User>("users_2026")
+    .CountDistinct(u => u.Name)
+    .ExecuteAsync();
+```
+
+Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
 
 Insert, update, and delete rows with command builders:
 
@@ -296,6 +313,7 @@ Included in the current alpha:
 - Typed `SELECT` builders
 - Typed existence query builders through `SelectExistsFrom<T>()`
 - Typed count query builders through `SelectCountFrom<T>()`
+- Typed scalar aggregate query builders through `SelectAggregateFrom<T>()` with `Max`, `Min`, and `CountDistinct`
 - Typed `INSERT`, `UPDATE`, and `DELETE` builders
 - SQL-shaped command target overrides such as `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")`
 - Entity command conveniences such as `Values(entity)`, `WhereKey(entity)`, `Insert(entity)`, `Insert(entity, table)`, `Update(entity)`, `Update(entity, table)`, `Delete(entity)`, and `Delete(entity, table)`

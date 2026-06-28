@@ -297,6 +297,100 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Select_aggregate_max_execute_returns_filtered_value()
+    {
+        using var connection = CreateOpenConnection();
+
+        var max = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<User>()
+            .Max(u => u.Id)
+            .Where(u => u.Id, Op.Gt, 1)
+            .Execute();
+
+        Assert.Equal(2, max);
+    }
+
+    [Fact]
+    public void Select_aggregate_min_execute_returns_filtered_value()
+    {
+        using var connection = CreateOpenConnection();
+
+        var min = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<User>()
+            .Min(u => u.Id)
+            .Execute();
+
+        Assert.Equal(1, min);
+    }
+
+    [Fact]
+    public void Select_aggregate_max_execute_returns_null_when_no_rows_match()
+    {
+        using var connection = CreateOpenConnection();
+
+        var max = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<User>()
+            .Max(u => u.Id)
+            .Where(u => u.Id, Op.Eq, 99)
+            .Execute();
+
+        Assert.Null(max);
+    }
+
+    [Fact]
+    public async Task Select_aggregate_count_distinct_execute_async_returns_result_from_explicit_table()
+    {
+        await using var connection = CreateOpenShardedConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        db.InsertMany(
+            [
+                new MappedUser { Id = 1, DisplayName = "Alice" },
+                new MappedUser { Id = 2, DisplayName = "Alice" },
+                new MappedUser { Id = 3, DisplayName = "Bob" },
+            ],
+            table: "app_users_staging")
+            .Execute();
+
+        var count = await db
+            .SelectAggregateFrom<MappedUser>("app_users_staging")
+            .CountDistinct(u => u.DisplayName)
+            .ExecuteAsync();
+
+        Assert.Equal(2L, count);
+    }
+
+    [Fact]
+    public void Select_aggregate_transaction_extension_uses_transaction_scope()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        using var transaction = db.BeginTransaction();
+
+        transaction
+            .Insert(new User { Id = 3, Name = "Charlie" })
+            .Execute();
+
+        var maxInTransaction = transaction
+            .SelectAggregateFrom<User>()
+            .Max(u => u.Id)
+            .Execute(new Db4NetExecutionOptions { CommandTimeout = 30 });
+
+        transaction.Rollback();
+
+        var maxAfterRollback = db
+            .SelectAggregateFrom<User>()
+            .Max(u => u.Id)
+            .Execute();
+
+        Assert.Equal(3, maxInTransaction);
+        Assert.Equal(2, maxAfterRollback);
+    }
+
+    [Fact]
     public void Query_uses_transaction_from_command_options()
     {
         using var connection = CreateOpenConnection();

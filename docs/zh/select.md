@@ -36,7 +36,7 @@ var rows = connection
 字符串字段是 CLR 属性名，不是数据库列名或 SQL 片段。应用 `[Column("display_name")]` 后，仍应写 `"Name"` 或你的 CLR 属性名，而不是 `"display_name"`。
 :::
 
-## 存在性和计数查询
+## 存在性、计数和聚合查询
 
 使用 `SelectExistsFrom<T>()` 执行存在性检查。它是受支持的存在性检查 API；如果只关心是否存在，优先使用它，而不是 `SelectCountFrom<T>().Execute() > 0`：
 
@@ -66,7 +66,22 @@ var matchingCount = await db
     .ExecuteAsync();
 ```
 
-不要用 `Select("COUNT(*)")` 表达计数查询。字符串选择值会被当作已验证的标识符，而不是原始 SQL 表达式。
+需要列级标量聚合时，使用 `SelectAggregateFrom<T>()`。`Max(...)` 和 `Min(...)` 用于已映射的值类型列，并返回可空值；`CountDistinct(...)` 返回 `long`：
+
+```csharp
+var latestId = db
+    .SelectAggregateFrom<User>()
+    .Max(u => u.Id)
+    .Where(u => u.Name, Op.Like, "A%")
+    .Execute();
+
+var distinctNames = await db
+    .SelectAggregateFrom<User>("users_2026")
+    .CountDistinct(u => u.Name)
+    .ExecuteAsync();
+```
+
+不要用 `Select("COUNT(*)")`、`Select("MAX(...)")` 或类似字符串表达标量查询。字符串选择值会被当作已验证的标识符，而不是原始 SQL 表达式。
 
 ## 终结方法
 
@@ -81,4 +96,4 @@ var matchingCount = await db
 
 非泛型 `SELECT` 构建器也保留了 `Query<T>()` 和 `QueryAsync<T>()` 等显式结果类型重载，用于高级物化场景。
 
-存在性查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回 `bool`。计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。
+存在性查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回 `bool`。计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。聚合查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回标量结果。

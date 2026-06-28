@@ -16,7 +16,7 @@ public sealed class PackageMetadataTests
         Assert.Equal("0.1.0-alpha.1", properties["Version"]);
         Assert.Equal("IceCoffee1024", properties["Authors"]);
         Assert.Equal("Safe, SQL-shaped fluent query and command builder for Dapper.", properties["Description"]);
-        Assert.Equal("0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence and count queries, entity and many conveniences, conflict-aware inserts, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.", properties["PackageReleaseNotes"]);
+        Assert.Equal("0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, and scalar aggregate queries, entity and many conveniences, conflict-aware inserts, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.", properties["PackageReleaseNotes"]);
         Assert.Equal("dapper;sql;fluent;query-builder", properties["PackageTags"]);
         Assert.Equal("README.md", properties["PackageReadmeFile"]);
         Assert.Equal("MIT", properties["PackageLicenseExpression"]);

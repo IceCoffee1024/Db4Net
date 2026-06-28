@@ -71,6 +71,20 @@ public static class Db4NetTransactionExtensions
         return transaction.Database.SelectExistsFrom<T>(table);
     }
 
+    /// <inheritdoc cref="Db4NetDatabase.SelectAggregateFrom{T}()" />
+    public static SelectAggregateQueryBuilder<T> SelectAggregateFrom<T>(this Db4NetTransaction transaction)
+    {
+        ThrowHelper.ThrowIfNull(transaction);
+        return transaction.Database.SelectAggregateFrom<T>();
+    }
+
+    /// <inheritdoc cref="Db4NetDatabase.SelectAggregateFrom{T}(string)" />
+    public static SelectAggregateQueryBuilder<T> SelectAggregateFrom<T>(this Db4NetTransaction transaction, string table)
+    {
+        ThrowHelper.ThrowIfNull(transaction);
+        return transaction.Database.SelectAggregateFrom<T>(table);
+    }
+
     /// <inheritdoc cref="Db4NetDatabase.InsertInto{T}()" />
     public static InsertCommandBuilder<T> InsertInto<T>(this Db4NetTransaction transaction)
     {

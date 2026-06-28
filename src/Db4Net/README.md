@@ -2,7 +2,7 @@
 
 Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, parameterized single-table queries and commands while leaving execution and SELECT result materialization to Dapper.
 
-The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectExistsFrom<T>()`, `SelectCountFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
+The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectExistsFrom<T>()`, `SelectCountFrom<T>()`, `SelectAggregateFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
 
 Db4Net is not an ORM and does not try to become a LINQ provider.
 
@@ -94,7 +94,24 @@ var matchingCount = await connection
     .ExecuteAsync();
 ```
 
-Do not use `Select("COUNT(*)")` for count queries. String select values are validated identifiers, not raw SQL expressions.
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)` and `Min(...)` operate on mapped value-type columns and return nullable values because SQL aggregates return `NULL` for empty result sets. `CountDistinct(...)` returns a `long`:
+
+```csharp
+var latestId = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectAggregateFrom<User>()
+    .Max(u => u.Id)
+    .Where(u => u.Name, Op.Like, "A%")
+    .Execute();
+
+var distinctNames = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectAggregateFrom<User>("users_2026")
+    .CountDistinct(u => u.Name)
+    .ExecuteAsync();
+```
+
+Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
 
 Use `InsertInto<T>()` when inserting explicit mapped properties:
 
@@ -353,7 +370,7 @@ Typed SELECT builders provide Dapper-style query terminal methods that materiali
 
 The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()` for advanced materialization scenarios.
 
-Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`.
+Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. Aggregate query builders return scalar results through `Execute()` and `ExecuteAsync()`.
 
 INSERT, UPDATE, DELETE, and conflict-aware insert builders provide command terminal methods:
 
@@ -425,7 +442,7 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed single-table `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, and lightweight transaction scopes are available for grouping explicit operations. Joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed single-table `SELECT`, scalar aggregate, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, and lightweight transaction scopes are available for grouping explicit operations. Joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
 
 SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. SQL Server renders a dialect-specific conflict-aware command; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
 

@@ -156,6 +156,7 @@ db.SelectFrom<User>()
 - typed builder 终止方法：`Query()`、`QueryFirstOrDefault()`、`QuerySingleOrDefault()`
 - typed builder async 终止方法：`QueryAsync()`、`QueryFirstOrDefaultAsync()`、`QuerySingleOrDefaultAsync()`
 - 非泛型 builder 显式结果类型终止方法：`Query<T>()`、`QueryFirstOrDefault<T>()`、`QuerySingleOrDefault<T>()` 及对应 async 方法
+- `SelectExistsFrom<T>()`、`SelectCountFrom<T>()`、`SelectAggregateFrom<T>()` 标量查询入口；`SelectAggregateFrom<T>()` 支持 `Max`、`Min`、`CountDistinct`，其中 `Max` / `Min` 面向值类型列并保留 SQL 空结果的可空语义
 - `InsertInto<T>()`、`Update<T>()`、`DeleteFrom<T>()`
 - `InsertInto<T>(string)`、`Update<T>(string)`、`DeleteFrom<T>(string)`
 - `Value(...)`、`Values(entity)`、`Set(...)`、`WhereKey(entity)`、命令 builder 上的 `Execute()`、`ExecuteAsync()`
@@ -177,7 +178,7 @@ db.SelectFrom<User>()
 
 验证状态：
 
-- `dotnet test`：当前本机配置下 223 个测试全部通过；外部数据库测试是否执行取决于 `local.runsettings` 或环境变量。
+- `dotnet test`：当前本机配置下测试全部通过；外部数据库测试是否执行取决于 `local.runsettings` 或环境变量。
 - `dotnet build -c Release`：最近验证为 0 warning，0 error。
 - `dotnet pack src/Db4Net/Db4Net.csproj -c Release`：可生成 `Db4Net.0.1.0-alpha.1.nupkg` 和 `Db4Net.0.1.0-alpha.1.snupkg`。
 
@@ -199,6 +200,7 @@ SQL 渲染和 Dapper 执行保持分离。
 当前内部组件：
 
 - `SelectQueryBuilder`：面向用户的 SELECT Fluent API，并在 query 终止方法中调用 Dapper。
+- `SelectCountQueryBuilder<T>`、`SelectExistsQueryBuilder<T>`、`SelectAggregateQueryBuilder<T>`、`SelectAggregateScalarQueryBuilder<T, TResult>`：面向用户的标量查询 API，覆盖行数、存在性和列级聚合。
 - `FilterNode`、`FilterClause`、`FilterGroup`：记录过滤条件树，支持普通条件和显式括号分组。
 - `FilterClauseBuilder`：内部集中追加过滤条件和校验操作符值规则。
 - `FilterGroupBuilder`、`FilterGroupBuilder<T>`：面向用户的显式分组 API，只暴露过滤方法，不暴露排序、分页或命令渲染。
@@ -206,8 +208,10 @@ SQL 渲染和 Dapper 执行保持分离。
 - `InsertManyCommandBuilder<T>`、`UpdateManyCommandBuilder<T>`、`DeleteManyCommandBuilder<T>`：面向用户的多实体命令 convenience；`ToCommands()` 可检查逐实体命令，`Execute()` / `ExecuteAsync()` 使用 Dapper 对实体序列执行同一条参数化命令并累加影响行数。
 - `InsertOrIgnoreCommandBuilder<T>`、`InsertOrUpdateCommandBuilder<T>`、`InsertOrIgnoreManyCommandBuilder<T>`、`InsertOrUpdateManyCommandBuilder<T>`：面向用户的 conflict-aware insert API，支持可检查 SQL 和 Dapper 执行。
 - `SelectQueryModel`：记录选择列、表、过滤条件、排序、分页。
+- `ScalarQueryModel`：记录标量查询表、投影类型、聚合列和过滤条件，由 count、exists、aggregate 查询共享。
 - `InsertCommandModel`、`UpdateCommandModel`、`DeleteCommandModel`：记录命令表、赋值、过滤条件和整表操作放行状态。
 - `SelectSqlRenderer`：把查询模型渲染成 SQL 和参数。
+- `ScalarSqlRenderer`：把 `COUNT(*)`、`EXISTS`、`MAX`、`MIN`、`COUNT(DISTINCT ...)` 渲染成 SQL 和参数。
 - `CommandSqlRenderer`：把 Insert/Update/Delete 命令模型渲染成 SQL 和参数。
 - `ManyCommandSqlRenderer`：把多实体 convenience 的逐实体命令模板和可检查命令渲染成 SQL 和参数。
 - `ConflictInsertSqlRenderer`：把 `InsertOrIgnore` / `InsertOrUpdate` 渲染成各方言的 conflict-aware insert SQL。
@@ -222,9 +226,9 @@ SQL 渲染和 Dapper 执行保持分离。
 
 - `PackageId`: `Db4Net`
 - `Version`: `0.1.0-alpha.1`
-- `Authors`: `IceCoffee`
+- `Authors`: `IceCoffee1024`
 - `Description`: `Safe, SQL-shaped fluent query and command builder for Dapper.`
-- `PackageReleaseNotes`: `0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, explicit filter groups, and bilingual documentation.`
+- `PackageReleaseNotes`: `0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, and scalar aggregate queries, entity and many conveniences, conflict-aware inserts, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.`
 - `PackageTags`: `dapper;sql;fluent;query-builder`
 - `PackageReadmeFile`: `README.md`
 - `PackageLicenseExpression`: `MIT`
