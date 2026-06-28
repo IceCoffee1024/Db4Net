@@ -2,7 +2,7 @@
 
 Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, parameterized single-table queries and commands while leaving execution and SELECT result materialization to Dapper.
 
-The API is intentionally SQL-shaped: `SelectFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
+The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectCountFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
 
 Db4Net is not an ORM and does not try to become a LINQ provider.
 
@@ -61,6 +61,24 @@ var rows = connection
 ```
 
 String fields are CLR property names, not database column names or SQL fragments. They are validated against the mapped CLR model and converted to database column names. For example, use `"DisplayName"` rather than `"display_name"` when `[Column("display_name")]` is applied. Table or view names can be overridden with `SelectFrom<T>("view_name")` or `From<T>("view_name")`; those identifiers are validated and quoted by the configured dialect. Values are always passed as Dapper parameters.
+
+Use `SelectCountFrom<T>()` for count queries:
+
+```csharp
+var count = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectCountFrom<User>()
+    .Where(u => u.Id, Op.Gt, 0)
+    .Execute();
+
+var matchingCount = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectCountFrom<User>("users_2026")
+    .Where(u => u.Name, Op.Like, "A%")
+    .ExecuteAsync();
+```
+
+Do not use `Select("COUNT(*)")` for count queries. String select values are validated identifiers, not raw SQL expressions.
 
 Use `InsertInto<T>()` when inserting explicit mapped properties:
 
@@ -318,6 +336,8 @@ Typed SELECT builders provide Dapper-style query terminal methods that materiali
 - `QuerySingleOrDefaultAsync()`
 
 The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()` for advanced materialization scenarios.
+
+Count query builders provide `Execute()` and `ExecuteAsync()`.
 
 INSERT, UPDATE, DELETE, and conflict-aware insert builders provide command terminal methods:
 

@@ -4,7 +4,7 @@ Db4Net is a lightweight fluent SQL builder for safe, parameterized Dapper querie
 
 It is designed for developers who want more structure than hand-written SQL string concatenation, while still keeping Dapper in charge of execution and object mapping. Db4Net is not an ORM and does not try to become a LINQ provider.
 
-The API is intentionally SQL-shaped: `SelectFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
+The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectCountFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
 
 ## Status
 
@@ -59,6 +59,24 @@ var rows = connection
 ```
 
 String fields are CLR property names, not database column names or SQL fragments. They are validated against the mapped CLR model and converted to quoted database column names. For example, use `"DisplayName"` rather than `"display_name"` when `[Column("display_name")]` is applied. Values are always passed as Dapper parameters.
+
+Use `SelectCountFrom<T>()` for count queries:
+
+```csharp
+var count = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectCountFrom<User>()
+    .Where(u => u.Id, Op.Gt, 0)
+    .Execute();
+
+var matchingCount = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectCountFrom<User>("users_2026")
+    .Where(u => u.Name, Op.Like, "A%")
+    .ExecuteAsync();
+```
+
+Do not use `Select("COUNT(*)")` for count queries. String select values are validated identifiers, not raw SQL expressions.
 
 Insert, update, and delete rows with command builders:
 
@@ -260,6 +278,7 @@ SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPL
 Included in the current alpha:
 
 - Typed `SELECT` builders
+- Typed count query builders through `SelectCountFrom<T>()`
 - Typed `INSERT`, `UPDATE`, and `DELETE` builders
 - SQL-shaped command target overrides such as `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")`
 - Entity command conveniences such as `Values(entity)`, `WhereKey(entity)`, `Insert(entity)`, `Insert(entity, table)`, `Update(entity)`, `Update(entity, table)`, `Delete(entity)`, and `Delete(entity, table)`

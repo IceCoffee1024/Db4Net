@@ -36,6 +36,24 @@ var rows = connection
 
 String fields are CLR property names, not database column names or SQL fragments. If `[Column("display_name")]` maps `DisplayName`, pass `"DisplayName"`.
 
+## Count Queries
+
+Use `SelectCountFrom<T>()` for count queries:
+
+```csharp
+var count = db
+    .SelectCountFrom<User>()
+    .Where(u => u.Id, Op.Gt, 0)
+    .Execute();
+
+var matchingCount = await db
+    .SelectCountFrom<User>("users_2026")
+    .Where(u => u.Name, Op.Like, "A%")
+    .ExecuteAsync();
+```
+
+Do not use `Select("COUNT(*)")` for count queries. String select values are validated identifiers, not raw SQL expressions.
+
 ## Terminal Methods
 
 Typed select builders materialize `T`:
@@ -48,3 +66,5 @@ Typed select builders materialize `T`:
 - `QuerySingleOrDefaultAsync()`
 
 The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()`.
+
+Count query builders return the count through `Execute()` and `ExecuteAsync()`.

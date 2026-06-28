@@ -36,6 +36,24 @@ var rows = connection
 字符串字段是 CLR 属性名，不是数据库列名或 SQL 片段。应用 `[Column("display_name")]` 后，仍应写 `"Name"` 或你的 CLR 属性名，而不是 `"display_name"`。
 :::
 
+## 计数查询
+
+使用 `SelectCountFrom<T>()` 执行计数查询：
+
+```csharp
+var count = db
+    .SelectCountFrom<User>()
+    .Where(u => u.Id, Op.Gt, 0)
+    .Execute();
+
+var matchingCount = await db
+    .SelectCountFrom<User>("users_2026")
+    .Where(u => u.Name, Op.Like, "A%")
+    .ExecuteAsync();
+```
+
+不要用 `Select("COUNT(*)")` 表达计数查询。字符串选择值会被当作已验证的标识符，而不是原始 SQL 表达式。
+
 ## 终结方法
 
 类型化 `SELECT` 构建器提供 Dapper 风格的查询终结方法：
@@ -48,3 +66,5 @@ var rows = connection
 - `QuerySingleOrDefaultAsync()`
 
 非泛型 `SELECT` 构建器也保留了 `Query<T>()` 和 `QueryAsync<T>()` 等显式结果类型重载，用于高级物化场景。
+
+计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。

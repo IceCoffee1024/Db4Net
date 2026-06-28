@@ -79,6 +79,112 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Select_count_execute_returns_filtered_count()
+    {
+        using var connection = CreateOpenConnection();
+
+        var count = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectCountFrom<User>()
+            .Where(u => u.Id, Op.Gt, 1)
+            .Execute();
+
+        Assert.Equal(1L, count);
+    }
+
+    [Fact]
+    public async Task Select_count_execute_async_returns_filtered_count_from_explicit_table()
+    {
+        await using var connection = CreateOpenShardedConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        db.InsertMany(
+            [
+                new MappedUser { Id = 1, DisplayName = "Alice" },
+                new MappedUser { Id = 2, DisplayName = "Bob" },
+            ],
+            table: "app_users_staging")
+            .Execute();
+
+        var count = await db
+            .SelectCountFrom<MappedUser>("app_users_staging")
+            .Where(u => u.DisplayName, Op.Like, "A%")
+            .ExecuteAsync();
+
+        Assert.Equal(1L, count);
+    }
+
+    [Fact]
+    public void Select_count_uses_transaction_from_execution_options()
+    {
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using var insert = connection.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = "insert into Users (Id, Name) values (3, 'Charlie');";
+        insert.ExecuteNonQuery();
+
+        var countInTransaction = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectCountFrom<User>()
+            .Where(u => u.Id, Op.Gt, 2)
+            .Execute(new Db4NetExecutionOptions { Transaction = transaction });
+
+        transaction.Rollback();
+
+        var countAfterRollback = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectCountFrom<User>()
+            .Where(u => u.Id, Op.Gt, 2)
+            .Execute();
+
+        Assert.Equal(1L, countInTransaction);
+        Assert.Equal(0L, countAfterRollback);
+    }
+
+    [Fact]
+    public void Select_count_transaction_extension_uses_transaction_scope()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        using var transaction = db.BeginTransaction();
+
+        transaction
+            .Insert(new User { Id = 3, Name = "Charlie" })
+            .Execute();
+
+        var countInTransaction = transaction
+            .SelectCountFrom<User>()
+            .Where(u => u.Id, Op.Gt, 2)
+            .Execute(new Db4NetExecutionOptions { CommandTimeout = 30 });
+
+        transaction.Rollback();
+
+        var countAfterRollback = db
+            .SelectCountFrom<User>()
+            .Where(u => u.Id, Op.Gt, 2)
+            .Execute();
+
+        Assert.Equal(1L, countInTransaction);
+        Assert.Equal(0L, countAfterRollback);
+    }
+
+    [Fact]
+    public async Task Select_count_execute_async_uses_cancellation_token()
+    {
+        await using var connection = CreateOpenConnection();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectCountFrom<User>()
+                .ExecuteAsync(cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
     public void Query_uses_transaction_from_command_options()
     {
         using var connection = CreateOpenConnection();

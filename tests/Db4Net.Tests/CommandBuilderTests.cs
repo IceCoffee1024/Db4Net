@@ -1141,6 +1141,42 @@ public sealed class CommandBuilderTests
         Assert.Contains("default key value", defaultKeyEx.Message);
     }
 
+    [Fact]
+    public void Select_count_from_type_renders_count_with_typed_filters()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectCountFrom<User>()
+            .Where(u => u.Id, Op.Gte, 1)
+            .WhereGroup(group => group
+                .Where(u => u.Name, Op.Like, "A%")
+                .OrWhere(u => u.Id, Op.Eq, 2))
+            .OrWhereGroup(group => group
+                .Where(u => u.Name, Op.Eq, "Bob")
+                .OrWhere(u => u.Id, Op.Eq, 3))
+            .ToCommand();
+
+        Assert.Equal("""SELECT COUNT(*) FROM "Users" WHERE "Id" >= @p0 AND ("Name" LIKE @p1 OR "Id" = @p2) OR ("Name" = @p3 OR "Id" = @p4)""", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("A%", command.Parameters.Get<string>("p1"));
+        Assert.Equal(2, command.Parameters.Get<int>("p2"));
+        Assert.Equal("Bob", command.Parameters.Get<string>("p3"));
+        Assert.Equal(3, command.Parameters.Get<int>("p4"));
+    }
+
+    [Fact]
+    public void Select_count_from_type_can_override_table_with_model_mapping()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectCountFrom<MappedUser>("app_users_staging")
+            .Where(u => u.DisplayName, Op.Eq, "Alice")
+            .ToCommand();
+
+        Assert.Equal("""SELECT COUNT(*) FROM "app_users_staging" WHERE "display_name" = @p0""", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
     [Table("Users")]
     private sealed class User
     {

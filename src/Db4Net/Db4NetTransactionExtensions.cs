@@ -43,6 +43,20 @@ public static class Db4NetTransactionExtensions
         return transaction.Database.SelectFrom<T>(table);
     }
 
+    /// <inheritdoc cref="Db4NetDatabase.SelectCountFrom{T}()" />
+    public static SelectCountQueryBuilder<T> SelectCountFrom<T>(this Db4NetTransaction transaction)
+    {
+        ThrowHelper.ThrowIfNull(transaction);
+        return transaction.Database.SelectCountFrom<T>();
+    }
+
+    /// <inheritdoc cref="Db4NetDatabase.SelectCountFrom{T}(string)" />
+    public static SelectCountQueryBuilder<T> SelectCountFrom<T>(this Db4NetTransaction transaction, string table)
+    {
+        ThrowHelper.ThrowIfNull(transaction);
+        return transaction.Database.SelectCountFrom<T>(table);
+    }
+
     /// <inheritdoc cref="Db4NetDatabase.InsertInto{T}()" />
     public static InsertCommandBuilder<T> InsertInto<T>(this Db4NetTransaction transaction)
     {

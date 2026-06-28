@@ -97,6 +97,40 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public void Select_count_query_builder_exposes_count_api()
+    {
+        AssertPublicInstanceMethods(
+            typeof(SelectCountQueryBuilder<>),
+            "Where",
+            "OrWhere",
+            "WhereGroup",
+            "OrWhereGroup",
+            "ToCommand",
+            "Execute",
+            "ExecuteAsync");
+    }
+
+    [Fact]
+    public void Select_count_query_builder_does_not_expose_row_query_or_paging_api()
+    {
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectCountQueryBuilder<>)), method =>
+            method.Name is "Select"
+                or "OrderBy"
+                or "OrderByDescending"
+                or "Limit"
+                or "Offset"
+                or "Page"
+                or "Query"
+                or "QueryAsync"
+                or "QuerySingle"
+                or "QuerySingleAsync"
+                or "QuerySingleOrDefault"
+                or "QuerySingleOrDefaultAsync"
+                or "QueryFirstOrDefault"
+                or "QueryFirstOrDefaultAsync");
+    }
+
+    [Fact]
     public void Insert_command_builder_exposes_command_api()
     {
         AssertPublicInstanceMethods(typeof(InsertCommandBuilder<>), "Value", "Values", "ToCommand", "Execute", "ExecuteAsync");
@@ -169,6 +203,7 @@ public sealed class ApiContractTests
         AssertPublicStaticMethods(
             typeof(Db4NetTransactionExtensions),
             "Select",
+            "SelectCountFrom",
             "SelectFrom",
             "Insert",
             "InsertInto",
@@ -244,6 +279,9 @@ public sealed class ApiContractTests
     [Fact]
     public void Database_exposes_sql_shaped_command_builder_entry_points()
     {
+        AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "SelectCountFrom", typeof(SelectCountQueryBuilder<>));
+        AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "SelectCountFrom", typeof(SelectCountQueryBuilder<>));
+
         AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
         AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
 
