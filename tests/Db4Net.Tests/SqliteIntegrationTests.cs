@@ -185,6 +185,118 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Select_exists_execute_returns_true_when_row_matches_and_false_when_no_row_matches()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var exists = db
+            .SelectExistsFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .Execute();
+
+        var missing = db
+            .SelectExistsFrom<User>()
+            .Where(u => u.Id, Op.Eq, 99)
+            .Execute();
+
+        Assert.True(exists);
+        Assert.False(missing);
+    }
+
+    [Fact]
+    public async Task Select_exists_execute_async_returns_result_from_explicit_table()
+    {
+        await using var connection = CreateOpenShardedConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        db.InsertMany(
+            [
+                new MappedUser { Id = 1, DisplayName = "Alice" },
+                new MappedUser { Id = 2, DisplayName = "Bob" },
+            ],
+            table: "app_users_staging")
+            .Execute();
+
+        var exists = await db
+            .SelectExistsFrom<MappedUser>("app_users_staging")
+            .Where(u => u.DisplayName, Op.Like, "A%")
+            .ExecuteAsync();
+
+        Assert.True(exists);
+    }
+
+    [Fact]
+    public void Select_exists_uses_transaction_from_execution_options()
+    {
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using var insert = connection.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = "insert into Users (Id, Name) values (3, 'Charlie');";
+        insert.ExecuteNonQuery();
+
+        var existsInTransaction = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectExistsFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .Execute(new Db4NetExecutionOptions { Transaction = transaction });
+
+        transaction.Rollback();
+
+        var existsAfterRollback = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectExistsFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .Execute();
+
+        Assert.True(existsInTransaction);
+        Assert.False(existsAfterRollback);
+    }
+
+    [Fact]
+    public void Select_exists_transaction_extension_uses_transaction_scope()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        using var transaction = db.BeginTransaction();
+
+        transaction
+            .Insert(new User { Id = 3, Name = "Charlie" })
+            .Execute();
+
+        var existsInTransaction = transaction
+            .SelectExistsFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .Execute(new Db4NetExecutionOptions { CommandTimeout = 30 });
+
+        transaction.Rollback();
+
+        var existsAfterRollback = db
+            .SelectExistsFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .Execute();
+
+        Assert.True(existsInTransaction);
+        Assert.False(existsAfterRollback);
+    }
+
+    [Fact]
+    public async Task Select_exists_execute_async_uses_cancellation_token()
+    {
+        await using var connection = CreateOpenConnection();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectExistsFrom<User>()
+                .ExecuteAsync(cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
     public void Query_uses_transaction_from_command_options()
     {
         using var connection = CreateOpenConnection();

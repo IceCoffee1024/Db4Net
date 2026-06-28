@@ -57,6 +57,20 @@ public static class Db4NetTransactionExtensions
         return transaction.Database.SelectCountFrom<T>(table);
     }
 
+    /// <inheritdoc cref="Db4NetDatabase.SelectExistsFrom{T}()" />
+    public static SelectExistsQueryBuilder<T> SelectExistsFrom<T>(this Db4NetTransaction transaction)
+    {
+        ThrowHelper.ThrowIfNull(transaction);
+        return transaction.Database.SelectExistsFrom<T>();
+    }
+
+    /// <inheritdoc cref="Db4NetDatabase.SelectExistsFrom{T}(string)" />
+    public static SelectExistsQueryBuilder<T> SelectExistsFrom<T>(this Db4NetTransaction transaction, string table)
+    {
+        ThrowHelper.ThrowIfNull(transaction);
+        return transaction.Database.SelectExistsFrom<T>(table);
+    }
+
     /// <inheritdoc cref="Db4NetDatabase.InsertInto{T}()" />
     public static InsertCommandBuilder<T> InsertInto<T>(this Db4NetTransaction transaction)
     {

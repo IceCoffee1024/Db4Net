@@ -36,9 +36,23 @@ var rows = connection
 字符串字段是 CLR 属性名，不是数据库列名或 SQL 片段。应用 `[Column("display_name")]` 后，仍应写 `"Name"` 或你的 CLR 属性名，而不是 `"display_name"`。
 :::
 
-## 计数查询
+## 存在性和计数查询
 
-使用 `SelectCountFrom<T>()` 执行计数查询：
+使用 `SelectExistsFrom<T>()` 执行存在性检查。它是受支持的存在性检查 API；如果只关心是否存在，优先使用它，而不是 `SelectCountFrom<T>().Execute() > 0`：
+
+```csharp
+var exists = db
+    .SelectExistsFrom<User>()
+    .Where(u => u.Id, Op.Eq, id)
+    .Execute();
+
+var existsInArchive = await db
+    .SelectExistsFrom<User>("users_2026")
+    .Where(u => u.Name, Op.Like, "A%")
+    .ExecuteAsync();
+```
+
+需要匹配行数时，使用 `SelectCountFrom<T>()`：
 
 ```csharp
 var count = db
@@ -67,4 +81,4 @@ var matchingCount = await db
 
 非泛型 `SELECT` 构建器也保留了 `Query<T>()` 和 `QueryAsync<T>()` 等显式结果类型重载，用于高级物化场景。
 
-计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。
+存在性查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回 `bool`。计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。

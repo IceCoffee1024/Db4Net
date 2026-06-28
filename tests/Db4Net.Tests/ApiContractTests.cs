@@ -131,6 +131,43 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public void Select_exists_query_builder_exposes_exists_api()
+    {
+        AssertPublicInstanceMethods(
+            typeof(SelectExistsQueryBuilder<>),
+            "Where",
+            "OrWhere",
+            "WhereGroup",
+            "OrWhereGroup",
+            "ToCommand",
+            "Execute",
+            "ExecuteAsync");
+
+        Assert.Contains(PublicInstanceMethods(typeof(SelectExistsQueryBuilder<>)), method => method.Name == "Execute" && method.ReturnType == typeof(bool));
+        Assert.Contains(PublicInstanceMethods(typeof(SelectExistsQueryBuilder<>)), method => method.Name == "ExecuteAsync" && method.ReturnType == typeof(Task<bool>));
+    }
+
+    [Fact]
+    public void Select_exists_query_builder_does_not_expose_row_query_or_paging_api()
+    {
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectExistsQueryBuilder<>)), method =>
+            method.Name is "Select"
+                or "OrderBy"
+                or "OrderByDescending"
+                or "Limit"
+                or "Offset"
+                or "Page"
+                or "Query"
+                or "QueryAsync"
+                or "QuerySingle"
+                or "QuerySingleAsync"
+                or "QuerySingleOrDefault"
+                or "QuerySingleOrDefaultAsync"
+                or "QueryFirstOrDefault"
+                or "QueryFirstOrDefaultAsync");
+    }
+
+    [Fact]
     public void Insert_command_builder_exposes_command_api()
     {
         AssertPublicInstanceMethods(typeof(InsertCommandBuilder<>), "Value", "Values", "ToCommand", "Execute", "ExecuteAsync");
@@ -204,6 +241,7 @@ public sealed class ApiContractTests
             typeof(Db4NetTransactionExtensions),
             "Select",
             "SelectCountFrom",
+            "SelectExistsFrom",
             "SelectFrom",
             "Insert",
             "InsertInto",
@@ -281,6 +319,9 @@ public sealed class ApiContractTests
     {
         AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "SelectCountFrom", typeof(SelectCountQueryBuilder<>));
         AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "SelectCountFrom", typeof(SelectCountQueryBuilder<>));
+
+        AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "SelectExistsFrom", typeof(SelectExistsQueryBuilder<>));
+        AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "SelectExistsFrom", typeof(SelectExistsQueryBuilder<>));
 
         AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
         AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "InsertInto", typeof(InsertCommandBuilder<>));
@@ -453,7 +494,7 @@ public sealed class ApiContractTests
 
     private static bool IsNonGenericStringOnlyCommandEntryPoint(MethodInfo method)
     {
-        return method.Name is "InsertInto" or "InsertOrIgnore" or "InsertOrUpdate" or "InsertOrIgnoreMany" or "InsertOrUpdateMany" or "Update" or "DeleteFrom"
+        return method.Name is "SelectExistsFrom" or "InsertInto" or "InsertOrIgnore" or "InsertOrUpdate" or "InsertOrIgnoreMany" or "InsertOrUpdateMany" or "Update" or "DeleteFrom"
             && !method.IsGenericMethodDefinition
             && method.GetParameters() is [{ ParameterType: var parameterType }]
             && parameterType == typeof(string);

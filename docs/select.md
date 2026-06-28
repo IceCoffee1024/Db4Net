@@ -36,9 +36,23 @@ var rows = connection
 
 String fields are CLR property names, not database column names or SQL fragments. If `[Column("display_name")]` maps `DisplayName`, pass `"DisplayName"`.
 
-## Count Queries
+## Existence and Count Queries
 
-Use `SelectCountFrom<T>()` for count queries:
+Use `SelectExistsFrom<T>()` for existence checks. It is the supported existence-check API and is preferable to `SelectCountFrom<T>().Execute() > 0` when only existence matters:
+
+```csharp
+var exists = db
+    .SelectExistsFrom<User>()
+    .Where(u => u.Id, Op.Eq, id)
+    .Execute();
+
+var existsInArchive = await db
+    .SelectExistsFrom<User>("users_2026")
+    .Where(u => u.Name, Op.Like, "A%")
+    .ExecuteAsync();
+```
+
+Use `SelectCountFrom<T>()` when you need the number of matching rows:
 
 ```csharp
 var count = db
@@ -67,4 +81,4 @@ Typed select builders materialize `T`:
 
 The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()`.
 
-Count query builders return the count through `Execute()` and `ExecuteAsync()`.
+Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`.

@@ -1177,6 +1177,44 @@ public sealed class CommandBuilderTests
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
     }
 
+    [Fact]
+    public void Select_exists_from_type_renders_exists_with_typed_filters_and_groups()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectExistsFrom<User>()
+            .Where(u => u.Id, Op.Gte, 1)
+            .WhereGroup(group => group
+                .Where(u => u.Name, Op.Like, "A%")
+                .OrWhere(u => u.Id, Op.Eq, 2))
+            .OrWhereGroup(group => group
+                .Where(u => u.Name, Op.Eq, "Bob")
+                .OrWhere(u => u.Id, Op.Eq, 3))
+            .ToCommand();
+
+        Assert.Equal("""SELECT CASE WHEN EXISTS (SELECT 1 FROM "Users" WHERE "Id" >= @p0 AND ("Name" LIKE @p1 OR "Id" = @p2) OR ("Name" = @p3 OR "Id" = @p4)) THEN 1 ELSE 0 END""", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("A%", command.Parameters.Get<string>("p1"));
+        Assert.Equal(2, command.Parameters.Get<int>("p2"));
+        Assert.Equal("Bob", command.Parameters.Get<string>("p3"));
+        Assert.Equal(3, command.Parameters.Get<int>("p4"));
+    }
+
+    [Fact]
+    public void Select_exists_from_type_can_override_table_with_string_mapped_column()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectExistsFrom<MappedUser>("app_users_staging")
+            .Where("DisplayName", Op.Eq, "Alice")
+            .OrWhere("Id", Op.Eq, 2)
+            .ToCommand();
+
+        Assert.Equal("""SELECT CASE WHEN EXISTS (SELECT 1 FROM "app_users_staging" WHERE "display_name" = @p0 OR "Id" = @p1) THEN 1 ELSE 0 END""", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal(2, command.Parameters.Get<int>("p1"));
+    }
+
     [Table("Users")]
     private sealed class User
     {

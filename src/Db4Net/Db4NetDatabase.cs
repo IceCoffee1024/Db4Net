@@ -219,6 +219,29 @@ public sealed class Db4NetDatabase
     }
 
     /// <summary>
+    /// Starts a typed SELECT EXISTS query using the table mapped from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <returns>A typed existence query builder.</returns>
+    public SelectExistsQueryBuilder<T> SelectExistsFrom<T>()
+    {
+        EnsureEntityType<T>();
+        return new SelectExistsQueryBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, _executionOptions);
+    }
+
+    /// <summary>
+    /// Starts a typed SELECT EXISTS query using an explicit table or view name while mapping columns from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="table">The table or view identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <returns>A typed existence query builder.</returns>
+    public SelectExistsQueryBuilder<T> SelectExistsFrom<T>(string table)
+    {
+        EnsureEntityType<T>();
+        return new SelectExistsQueryBuilder<T>(_options, _connection, table, _executionOptions);
+    }
+
+    /// <summary>
     /// Starts an INSERT command using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>

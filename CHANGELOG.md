@@ -7,6 +7,7 @@ All notable changes to Db4Net will be documented in this file.
 ### Added
 
 - Typed single-table `SELECT` builders with mapped projections, Dapper-style query terminal methods, async terminal methods, and explicit SQL inspection through `ToCommand()`.
+- Typed existence query builders through `SelectExistsFrom<T>()` and `table` override overloads.
 - Typed count query builders through `SelectCountFrom<T>()` and `table` override overloads.
 - Typed `INSERT`, `UPDATE`, and `DELETE` command builders with `Execute()` / `ExecuteAsync()`.
 - Entity command conveniences: `Insert(entity)`, `Update(entity)`, `Delete(entity)`, and `table` override overloads.
