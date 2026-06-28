@@ -29,7 +29,7 @@ public partial class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder Select(params string[] columns)
     {
-        ArgumentNullException.ThrowIfNull(columns);
+        ThrowHelper.ThrowIfNull(columns);
         foreach (var column in columns)
         {
             AddSelectColumn(column);
@@ -45,7 +45,7 @@ public partial class SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder Select(IEnumerable<string> columns)
     {
-        ArgumentNullException.ThrowIfNull(columns);
+        ThrowHelper.ThrowIfNull(columns);
         foreach (var column in columns)
         {
             AddSelectColumn(column);
@@ -292,7 +292,7 @@ public partial class SelectQueryBuilder
 
     private static IReadOnlyList<FilterNode> CreateFilterGroup(Action<FilterGroupBuilder> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
+        ThrowHelper.ThrowIfNull(configure);
 
         var group = new FilterGroupBuilder();
         configure(group);

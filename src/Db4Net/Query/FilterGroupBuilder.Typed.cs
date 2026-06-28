@@ -137,7 +137,7 @@ public sealed class FilterGroupBuilder<T> : FilterGroupBuilder
 
     private void AddGroup(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder<T>> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
+        ThrowHelper.ThrowIfNull(configure);
 
         var group = new FilterGroupBuilder<T>();
         configure(group);

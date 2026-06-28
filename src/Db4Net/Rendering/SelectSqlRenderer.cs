@@ -15,7 +15,8 @@ internal sealed class SelectSqlRenderer
 
     public RenderedSqlCommand Render(SelectQueryModel model)
     {
-        if (string.IsNullOrWhiteSpace(model.Table))
+        var table = model.Table ?? throw new InvalidOperationException("A table must be specified before rendering SQL.");
+        if (string.IsNullOrWhiteSpace(table))
         {
             throw new InvalidOperationException("A table must be specified before rendering SQL.");
         }
@@ -27,7 +28,7 @@ internal sealed class SelectSqlRenderer
         sql.Append("SELECT ");
         sql.Append(RenderColumns(model));
         sql.Append(" FROM ");
-        sql.Append(_dialect.QuoteIdentifier(model.Table));
+        sql.Append(_dialect.QuoteIdentifier(table));
 
         filters.Render(sql, model.Filters);
         RenderOrdering(sql, model);

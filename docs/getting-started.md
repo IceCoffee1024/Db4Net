@@ -8,6 +8,8 @@ Db4Net is a lightweight fluent SQL builder for safe, parameterized Dapper querie
 dotnet add package Db4Net --prerelease
 ```
 
+Package assets target `net8.0` and `netstandard2.0`.
+
 ## First Query
 
 ```csharp

@@ -83,7 +83,7 @@ public class FilterGroupBuilder
 
     internal void AddGroup(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
+        ThrowHelper.ThrowIfNull(configure);
 
         var group = new FilterGroupBuilder();
         configure(group);

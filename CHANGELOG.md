@@ -16,6 +16,7 @@ All notable changes to Db4Net will be documented in this file.
 - Table/view target overrides for typed `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders.
 - SQL Server, SQLite, PostgreSQL, and MySQL dialect rendering.
 - Dapper execution options for transaction, command timeout, command type, and async cancellation tokens.
+- NuGet package assets for `net8.0` and `netstandard2.0`.
 - Optional PostgreSQL, MySQL, and SQL Server integration tests via environment variables or local runsettings.
 - Bilingual VitePress documentation site with English and Simplified Chinese user guides.
 - Documentation-site changelog entry that links back to this root `CHANGELOG.md`.

@@ -67,7 +67,7 @@ internal static class ConflictInsertBuilderSupport<T>
 
     public static List<AssignmentClause> GetInsertValues(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         return ModelMetadata<T>.InsertColumns
             .Select(column => new AssignmentClause(column.ColumnName, column.GetValue(entity)))
             .ToList();

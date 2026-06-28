@@ -12,6 +12,8 @@ Db4Net is not an ORM and does not try to become a LINQ provider.
 dotnet add package Db4Net --prerelease
 ```
 
+Package assets target `net8.0` and `netstandard2.0`.
+
 ## Quick Start
 
 ```csharp

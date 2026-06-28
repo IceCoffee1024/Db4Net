@@ -9,7 +9,7 @@ internal sealed class FilterClauseBuilder
 
     public FilterClauseBuilder(List<FilterNode> filters)
     {
-        ArgumentNullException.ThrowIfNull(filters);
+        ThrowHelper.ThrowIfNull(filters);
         Filters = filters;
     }
 
@@ -23,7 +23,7 @@ internal sealed class FilterClauseBuilder
 
     public void Add(FilterBooleanOperator booleanOperator, Func<string> columnFactory, Op op, object? value)
     {
-        ArgumentNullException.ThrowIfNull(columnFactory);
+        ThrowHelper.ThrowIfNull(columnFactory);
         EnsureValidOperatorValue(op, value);
         Filters.Add(new FilterClause(booleanOperator, columnFactory(), op, value));
     }
@@ -36,14 +36,14 @@ internal sealed class FilterClauseBuilder
 
     public void AddValueFree(FilterBooleanOperator booleanOperator, Func<string> columnFactory, Op op)
     {
-        ArgumentNullException.ThrowIfNull(columnFactory);
+        ThrowHelper.ThrowIfNull(columnFactory);
         EnsureValueFreeOperator(op);
         Filters.Add(new FilterClause(booleanOperator, columnFactory(), op, null));
     }
 
     public void AddGroup(FilterBooleanOperator booleanOperator, IReadOnlyList<FilterNode> filters)
     {
-        ArgumentNullException.ThrowIfNull(filters);
+        ThrowHelper.ThrowIfNull(filters);
         if (filters.Count == 0)
         {
             throw new ArgumentException("Filter group requires at least one filter.", nameof(filters));

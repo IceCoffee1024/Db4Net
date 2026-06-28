@@ -14,6 +14,8 @@ This alpha focuses on safe, SQL-shaped, single-table query and command builders 
 
 NuGet packages include XML documentation and a symbols package for source debugging.
 
+Package assets target `net8.0` and `netstandard2.0`.
+
 ## Install
 
 ```bash

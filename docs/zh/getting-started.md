@@ -10,6 +10,8 @@ Db4Net 不是 ORM，也不是 LINQ Provider。它的 API 有意保持 SQL 风格
 dotnet add package Db4Net --prerelease
 ```
 
+NuGet 包提供 `net8.0` 和 `netstandard2.0` 两组目标框架资产。
+
 ## 第一个查询
 
 ```csharp

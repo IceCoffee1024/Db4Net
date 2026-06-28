@@ -27,14 +27,14 @@ public sealed class Db4NetDatabase
     /// <returns>A Db4Net facade for building queries.</returns>
     public static Db4NetDatabase Create(Db4NetOptions options)
     {
-        ArgumentNullException.ThrowIfNull(options);
+        ThrowHelper.ThrowIfNull(options);
         return new Db4NetDatabase(options);
     }
 
     internal static Db4NetDatabase Create(Db4NetOptions options, IDbConnection connection)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(connection);
+        ThrowHelper.ThrowIfNull(options);
+        ThrowHelper.ThrowIfNull(connection);
         return new Db4NetDatabase(options, connection);
     }
 
@@ -119,7 +119,7 @@ public sealed class Db4NetDatabase
     /// <returns>An insert command builder.</returns>
     public InsertCommandBuilder<T> Insert<T>(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return InsertInto<T>().Values(entity);
     }
@@ -133,7 +133,7 @@ public sealed class Db4NetDatabase
     /// <returns>An insert command builder.</returns>
     public InsertCommandBuilder<T> Insert<T>(T entity, string table)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return InsertInto<T>(table).Values(entity);
     }
@@ -146,7 +146,7 @@ public sealed class Db4NetDatabase
     /// <returns>An insert-or-ignore command builder.</returns>
     public InsertOrIgnoreCommandBuilder<T> InsertOrIgnore<T>(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity);
     }
@@ -160,7 +160,7 @@ public sealed class Db4NetDatabase
     /// <returns>An insert-or-ignore command builder.</returns>
     public InsertOrIgnoreCommandBuilder<T> InsertOrIgnore<T>(T entity, string table)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return new InsertOrIgnoreCommandBuilder<T>(_options, _connection, table, entity);
     }
@@ -173,7 +173,7 @@ public sealed class Db4NetDatabase
     /// <returns>An insert-or-update command builder.</returns>
     public InsertOrUpdateCommandBuilder<T> InsertOrUpdate<T>(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return new InsertOrUpdateCommandBuilder<T>(_options, _connection, ModelMetadata<T>.TableName, entity);
     }
@@ -187,7 +187,7 @@ public sealed class Db4NetDatabase
     /// <returns>An insert-or-update command builder.</returns>
     public InsertOrUpdateCommandBuilder<T> InsertOrUpdate<T>(T entity, string table)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return new InsertOrUpdateCommandBuilder<T>(_options, _connection, table, entity);
     }
@@ -296,7 +296,7 @@ public sealed class Db4NetDatabase
     /// <returns>An update command builder.</returns>
     public UpdateCommandBuilder<T> Update<T>(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return Update<T>().SetEntityValues(entity).WhereKey(entity);
     }
@@ -310,7 +310,7 @@ public sealed class Db4NetDatabase
     /// <returns>An update command builder.</returns>
     public UpdateCommandBuilder<T> Update<T>(T entity, string table)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return Update<T>(table).SetEntityValues(entity).WhereKey(entity);
     }
@@ -369,7 +369,7 @@ public sealed class Db4NetDatabase
     /// <returns>A delete command builder.</returns>
     public DeleteCommandBuilder<T> Delete<T>(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return DeleteFrom<T>().WhereKey(entity);
     }
@@ -383,7 +383,7 @@ public sealed class Db4NetDatabase
     /// <returns>A delete command builder.</returns>
     public DeleteCommandBuilder<T> Delete<T>(T entity, string table)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
         EnsureEntityType<T>();
         return DeleteFrom<T>(table).WhereKey(entity);
     }

@@ -94,7 +94,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public DeleteCommandBuilder<T> WhereKey(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
 
         foreach (var column in ModelMetadata<T>.RequireKeyColumns())
         {
@@ -192,7 +192,7 @@ public sealed class DeleteCommandBuilder<T> : CommandBuilderBase
 
     private void AddGroup(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder<T>> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
+        ThrowHelper.ThrowIfNull(configure);
 
         var group = new FilterGroupBuilder<T>();
         configure(group);

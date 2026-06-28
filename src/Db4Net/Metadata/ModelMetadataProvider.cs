@@ -9,27 +9,27 @@ internal static class ModelMetadataProvider
 {
     public static string GetTableName(Type type)
     {
-        ArgumentNullException.ThrowIfNull(type);
+        ThrowHelper.ThrowIfNull(type);
         return BuildTableName(type);
     }
 
     public static string GetColumnName<T, TValue>(Expression<Func<T, TValue>> memberSelector)
     {
-        ArgumentNullException.ThrowIfNull(memberSelector);
+        ThrowHelper.ThrowIfNull(memberSelector);
         var member = GetMemberInfo(memberSelector);
         return ModelMetadata<T>.GetColumn(member.Name).ColumnName;
     }
 
     public static ColumnMetadata GetColumnMetadata<T, TValue>(Expression<Func<T, TValue>> memberSelector)
     {
-        ArgumentNullException.ThrowIfNull(memberSelector);
+        ThrowHelper.ThrowIfNull(memberSelector);
         var member = GetMemberInfo(memberSelector);
         return ModelMetadata<T>.GetColumn(member.Name);
     }
 
     public static IReadOnlyList<ColumnMetadata> GetColumnMetadata(Type type)
     {
-        ArgumentNullException.ThrowIfNull(type);
+        ThrowHelper.ThrowIfNull(type);
         return BuildColumnMetadata(type);
     }
 
@@ -46,9 +46,8 @@ internal static class ModelMetadataProvider
         }
 
         var properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-        var explicitKeyProperties = properties
-            .Where(property => property.GetCustomAttribute<KeyAttribute>() is not null)
-            .ToHashSet();
+        var explicitKeyProperties = new HashSet<PropertyInfo>(
+            properties.Where(property => property.GetCustomAttribute<KeyAttribute>() is not null));
 
         return type
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
@@ -102,7 +101,7 @@ internal static class ModelMetadataProvider
             && property.GetIndexParameters().Length == 0;
     }
 
-    private static bool IsKeyProperty(Type type, PropertyInfo property, IReadOnlySet<PropertyInfo> explicitKeyProperties)
+    private static bool IsKeyProperty(Type type, PropertyInfo property, ISet<PropertyInfo> explicitKeyProperties)
     {
         if (explicitKeyProperties.Count > 0)
         {

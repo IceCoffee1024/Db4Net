@@ -23,7 +23,7 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public new SelectQueryBuilder<T> Select(params string[] propertyNames)
     {
-        ArgumentNullException.ThrowIfNull(propertyNames);
+        ThrowHelper.ThrowIfNull(propertyNames);
         ClearSelectColumns();
 
         foreach (var propertyName in propertyNames)
@@ -41,7 +41,7 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public new SelectQueryBuilder<T> Select(IEnumerable<string> propertyNames)
     {
-        ArgumentNullException.ThrowIfNull(propertyNames);
+        ThrowHelper.ThrowIfNull(propertyNames);
         ClearSelectColumns();
 
         foreach (var propertyName in propertyNames)
@@ -59,7 +59,7 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder<T> Select(params Expression<Func<T, object?>>[] memberSelectors)
     {
-        ArgumentNullException.ThrowIfNull(memberSelectors);
+        ThrowHelper.ThrowIfNull(memberSelectors);
         if (memberSelectors.Length == 0)
         {
             throw new ArgumentException("At least one member selector is required.", nameof(memberSelectors));
@@ -152,7 +152,7 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder<T> WhereGroup(Action<FilterGroupBuilder<T>> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
+        ThrowHelper.ThrowIfNull(configure);
 
         var group = new FilterGroupBuilder<T>();
         configure(group);
@@ -219,7 +219,7 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     /// <returns>The current query builder.</returns>
     public SelectQueryBuilder<T> OrWhereGroup(Action<FilterGroupBuilder<T>> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
+        ThrowHelper.ThrowIfNull(configure);
 
         var group = new FilterGroupBuilder<T>();
         configure(group);

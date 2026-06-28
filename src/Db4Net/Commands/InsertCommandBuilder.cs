@@ -53,7 +53,7 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
     /// <returns>The current command builder.</returns>
     public InsertCommandBuilder<T> Values(T entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        ThrowHelper.ThrowIfNull(entity);
 
         foreach (var column in ModelMetadata<T>.InsertColumns)
         {

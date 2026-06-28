@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -9,7 +10,7 @@
     <Version>0.1.0-alpha.1</Version>
     <Authors>IceCoffee</Authors>
     <Description>Safe, SQL-shaped fluent query and command builder for Dapper.</Description>
-    <PackageReleaseNotes>0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, explicit filter groups, and bilingual documentation.</PackageReleaseNotes>
+    <PackageReleaseNotes>0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, explicit filter groups, net8.0/netstandard2.0 package assets, and bilingual documentation.</PackageReleaseNotes>
     <PackageTags>dapper;sql;fluent;query-builder</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -24,6 +25,14 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.79" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageReference Include="PolySharp" Version="1.16.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

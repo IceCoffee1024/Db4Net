@@ -10,11 +10,13 @@ public sealed class PackageMetadataTests
         var project = XDocument.Load(Path.Combine(GetRepositoryRoot(), "src", "Db4Net", "Db4Net.csproj"));
         var properties = project.Root!.Elements("PropertyGroup").Elements().ToDictionary(element => element.Name.LocalName, element => element.Value);
 
+        Assert.Equal("net8.0;netstandard2.0", properties["TargetFrameworks"]);
+        Assert.Equal("latest", properties["LangVersion"]);
         Assert.Equal("Db4Net", properties["PackageId"]);
         Assert.Equal("0.1.0-alpha.1", properties["Version"]);
         Assert.Equal("IceCoffee", properties["Authors"]);
         Assert.Equal("Safe, SQL-shaped fluent query and command builder for Dapper.", properties["Description"]);
-        Assert.Equal("0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, explicit filter groups, and bilingual documentation.", properties["PackageReleaseNotes"]);
+        Assert.Equal("0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, entity and many conveniences, conflict-aware inserts, explicit filter groups, net8.0/netstandard2.0 package assets, and bilingual documentation.", properties["PackageReleaseNotes"]);
         Assert.Equal("dapper;sql;fluent;query-builder", properties["PackageTags"]);
         Assert.Equal("README.md", properties["PackageReadmeFile"]);
         Assert.Equal("MIT", properties["PackageLicenseExpression"]);
@@ -26,6 +28,27 @@ public sealed class PackageMetadataTests
         Assert.Equal("true", properties["EmbedUntrackedSources"]);
         Assert.Equal("snupkg", properties["SymbolPackageFormat"]);
         Assert.Equal("true", properties["IncludeSymbols"]);
+    }
+
+    [Fact]
+    public void Netstandard_target_uses_private_polysharp_build_dependency()
+    {
+        var project = XDocument.Load(Path.Combine(GetRepositoryRoot(), "src", "Db4Net", "Db4Net.csproj"));
+        var netstandardItemGroup = project.Root!
+            .Elements("ItemGroup")
+            .Single(element => (string?)element.Attribute("Condition") == "'$(TargetFramework)' == 'netstandard2.0'");
+
+        var polySharp = netstandardItemGroup
+            .Elements("PackageReference")
+            .Single(element => (string?)element.Attribute("Include") == "PolySharp");
+        var annotations = netstandardItemGroup
+            .Elements("PackageReference")
+            .Single(element => (string?)element.Attribute("Include") == "System.ComponentModel.Annotations");
+
+        Assert.Equal("5.0.0", (string?)annotations.Attribute("Version"));
+        Assert.Equal("1.16.0", (string?)polySharp.Attribute("Version"));
+        Assert.Equal("all", polySharp.Element("PrivateAssets")?.Value);
+        Assert.Equal("runtime; build; native; contentfiles; analyzers; buildtransitive", polySharp.Element("IncludeAssets")?.Value);
     }
 
     private static string GetRepositoryRoot()

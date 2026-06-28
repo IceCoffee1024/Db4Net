@@ -6,12 +6,12 @@ internal static class ManyCommandBuilderSupport<T>
 {
     public static T[] Materialize(IEnumerable<T> entities)
     {
-        ArgumentNullException.ThrowIfNull(entities);
+        ThrowHelper.ThrowIfNull(entities);
 
         var materialized = entities.ToArray();
         foreach (var entity in materialized)
         {
-            ArgumentNullException.ThrowIfNull(entity, nameof(entities));
+            ThrowHelper.ThrowIfNull(entity, nameof(entities));
         }
 
         return materialized;
