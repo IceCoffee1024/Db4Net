@@ -79,7 +79,8 @@ export default defineConfig({
               { text: 'Entity Convenience', link: '/entity-convenience' },
               { text: 'Many Convenience', link: '/many-convenience' },
               { text: 'Conflict Inserts', link: '/conflict-inserts' },
-              { text: 'Table Overrides', link: '/table-overrides' }
+              { text: 'Table Overrides', link: '/table-overrides' },
+              { text: 'Repository Pattern', link: '/repository-pattern' }
             ]
           },
           {
@@ -133,7 +134,8 @@ export default defineConfig({
               { text: '实体便捷方法', link: '/zh/entity-convenience' },
               { text: '批量便捷方法', link: '/zh/many-convenience' },
               { text: '冲突插入', link: '/zh/conflict-inserts' },
-              { text: '表名覆盖', link: '/zh/table-overrides' }
+              { text: '表名覆盖', link: '/zh/table-overrides' },
+              { text: '仓储模式', link: '/zh/repository-pattern' }
             ]
           },
           {
