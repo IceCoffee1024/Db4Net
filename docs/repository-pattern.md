@@ -121,6 +121,70 @@ services.AddScoped<UserRepository>();
 
 Opening the connection in the scoped factory does not conflict with Dapper. Dapper uses an already-open connection and leaves it open; the DI scope disposes the connection at the end of the request.
 
+## Multiple Databases
+
+When repositories target different fixed databases, register keyed scoped services for each database.
+
+```csharp
+public enum DatabaseId
+{
+    Main,
+    Audit
+}
+
+services.AddKeyedScoped<DbConnection>(DatabaseId.Main, (sp, key) =>
+{
+    var connectionString = sp.GetRequiredService<IConfiguration>()
+        .GetConnectionString("Main")!;
+
+    var connection = new SqliteConnection(connectionString);
+    connection.Open();
+    return connection;
+});
+
+services.AddKeyedScoped<Db4NetDatabase>(DatabaseId.Main, (sp, key) =>
+{
+    var connection = sp.GetRequiredKeyedService<DbConnection>(DatabaseId.Main);
+    return connection.UseDb4Net(Db4NetOptions.Sqlite);
+});
+
+services.AddKeyedScoped<DbConnection>(DatabaseId.Audit, (sp, key) =>
+{
+    var connectionString = sp.GetRequiredService<IConfiguration>()
+        .GetConnectionString("Audit")!;
+
+    var connection = new SqliteConnection(connectionString);
+    connection.Open();
+    return connection;
+});
+
+services.AddKeyedScoped<Db4NetDatabase>(DatabaseId.Audit, (sp, key) =>
+{
+    var connection = sp.GetRequiredKeyedService<DbConnection>(DatabaseId.Audit);
+    return connection.UseDb4Net(Db4NetOptions.Sqlite);
+});
+```
+
+Bind each repository to the database it owns:
+
+```csharp
+services.AddScoped<UserRepository>(sp =>
+{
+    var db = sp.GetRequiredKeyedService<Db4NetDatabase>(DatabaseId.Main);
+    return new UserRepository(db);
+});
+
+services.AddScoped<AuditRepository>(sp =>
+{
+    var db = sp.GetRequiredKeyedService<Db4NetDatabase>(DatabaseId.Audit);
+    return new AuditRepository(db);
+});
+```
+
+Use keyed scoped services for fixed database boundaries such as `Main` and `Audit`. If the database must be selected at runtime, for example by tenant or request data, put that selection behind an application-level factory instead of binding a repository to one fixed keyed database.
+
+Db4Net transaction scopes are single-connection scopes. Do not assume one `ExecuteInTransaction(...)` call can make work across multiple databases atomic.
+
 For applications without DI, create the connection and Db4Net facade at the application, request, service, or unit-of-work boundary, then pass the facade into repositories for that scope.
 
 ```csharp

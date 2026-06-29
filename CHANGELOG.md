@@ -28,7 +28,7 @@ All notable changes to Db4Net will be documented in this file.
 - SQLite integration coverage for single-entity command transaction execution.
 - Bilingual VitePress documentation site with English and Simplified Chinese user guides.
 - Bilingual complete example documentation page with recommended usage patterns.
-- Bilingual repository pattern documentation page for data access layering, scoped DI registration, and transaction scopes.
+- Bilingual repository pattern documentation page for data access layering, scoped/keyed DI registration, and transaction scopes.
 - Documentation-site changelog entry that links back to this root `CHANGELOG.md`.
 - Documentation-site favicon and navbar logo.
 

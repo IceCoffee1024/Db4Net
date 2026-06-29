@@ -121,6 +121,70 @@ services.AddScoped<UserRepository>();
 
 在 scoped factory 中打开连接不会和 Dapper 冲突。Dapper 会使用已经打开的连接，并保持它打开；请求 scope 结束时 DI 容器会释放连接。
 
+## 多数据库
+
+当不同仓储固定访问不同数据库时，为每个数据库注册 keyed scoped service。
+
+```csharp
+public enum DatabaseId
+{
+    Main,
+    Audit
+}
+
+services.AddKeyedScoped<DbConnection>(DatabaseId.Main, (sp, key) =>
+{
+    var connectionString = sp.GetRequiredService<IConfiguration>()
+        .GetConnectionString("Main")!;
+
+    var connection = new SqliteConnection(connectionString);
+    connection.Open();
+    return connection;
+});
+
+services.AddKeyedScoped<Db4NetDatabase>(DatabaseId.Main, (sp, key) =>
+{
+    var connection = sp.GetRequiredKeyedService<DbConnection>(DatabaseId.Main);
+    return connection.UseDb4Net(Db4NetOptions.Sqlite);
+});
+
+services.AddKeyedScoped<DbConnection>(DatabaseId.Audit, (sp, key) =>
+{
+    var connectionString = sp.GetRequiredService<IConfiguration>()
+        .GetConnectionString("Audit")!;
+
+    var connection = new SqliteConnection(connectionString);
+    connection.Open();
+    return connection;
+});
+
+services.AddKeyedScoped<Db4NetDatabase>(DatabaseId.Audit, (sp, key) =>
+{
+    var connection = sp.GetRequiredKeyedService<DbConnection>(DatabaseId.Audit);
+    return connection.UseDb4Net(Db4NetOptions.Sqlite);
+});
+```
+
+把每个仓储绑定到它负责的数据库：
+
+```csharp
+services.AddScoped<UserRepository>(sp =>
+{
+    var db = sp.GetRequiredKeyedService<Db4NetDatabase>(DatabaseId.Main);
+    return new UserRepository(db);
+});
+
+services.AddScoped<AuditRepository>(sp =>
+{
+    var db = sp.GetRequiredKeyedService<Db4NetDatabase>(DatabaseId.Audit);
+    return new AuditRepository(db);
+});
+```
+
+固定的数据库边界，例如 `Main` 和 `Audit`，适合使用 keyed scoped services。如果数据库需要按租户或请求数据在运行时选择，请把选择逻辑放进应用层 factory，而不是把仓储固定绑定到某个 keyed database。
+
+Db4Net 的事务作用域是单连接作用域。不要假设一次 `ExecuteInTransaction(...)` 可以让跨多个数据库的操作具备原子性。
+
 不使用 DI 的应用，可以在应用、请求、service 或 unit-of-work 边界创建连接和 Db4Net facade，然后把同一个 facade 传给该作用域内的仓储。
 
 ```csharp
