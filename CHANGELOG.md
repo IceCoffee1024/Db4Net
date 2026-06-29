@@ -26,6 +26,7 @@ All notable changes to Db4Net will be documented in this file.
 - Optional PostgreSQL, MySQL, and SQL Server integration tests via environment variables or local runsettings.
 - SQLite integration coverage for single-entity command transaction execution.
 - Bilingual VitePress documentation site with English and Simplified Chinese user guides.
+- Bilingual complete example documentation page with recommended usage patterns.
 - Documentation-site changelog entry that links back to this root `CHANGELOG.md`.
 - Documentation-site favicon and navbar logo.
 
