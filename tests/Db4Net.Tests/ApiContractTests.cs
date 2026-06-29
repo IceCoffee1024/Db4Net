@@ -87,6 +87,72 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public void Select_query_builders_expose_query_page_api()
+    {
+        var exportedTypes = typeof(Db4NetDatabase).Assembly.GetExportedTypes();
+        Assert.Contains(exportedTypes, type => type == typeof(PagedResult<>));
+
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder), "QueryPage", "QueryPageAsync");
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder<>), "QueryPage", "QueryPageAsync");
+
+        Assert.Contains(
+            PublicInstanceMethods(typeof(SelectQueryBuilder)),
+            method => method.Name == "QueryPage"
+                && method.IsGenericMethodDefinition
+                && IsPagedResult(method.ReturnType)
+                && method.GetParameters() is [
+                    { ParameterType: var pageNumberType },
+                    { ParameterType: var pageSizeType },
+                    { ParameterType: var optionsType }]
+                && pageNumberType == typeof(int)
+                && pageSizeType == typeof(int)
+                && optionsType == typeof(Db4NetExecutionOptions));
+
+        Assert.Contains(
+            PublicInstanceMethods(typeof(SelectQueryBuilder)),
+            method => method.Name == "QueryPageAsync"
+                && method.IsGenericMethodDefinition
+                && IsTaskOfPagedResult(method.ReturnType)
+                && method.GetParameters() is [
+                    { ParameterType: var pageNumberType },
+                    { ParameterType: var pageSizeType },
+                    { ParameterType: var optionsType },
+                    { ParameterType: var cancellationTokenType }]
+                && pageNumberType == typeof(int)
+                && pageSizeType == typeof(int)
+                && optionsType == typeof(Db4NetExecutionOptions)
+                && cancellationTokenType == typeof(System.Threading.CancellationToken));
+
+        Assert.Contains(
+            PublicInstanceMethods(typeof(SelectQueryBuilder<>)),
+            method => method.Name == "QueryPage"
+                && !method.IsGenericMethodDefinition
+                && IsPagedResult(method.ReturnType)
+                && method.GetParameters() is [
+                    { ParameterType: var pageNumberType },
+                    { ParameterType: var pageSizeType },
+                    { ParameterType: var optionsType }]
+                && pageNumberType == typeof(int)
+                && pageSizeType == typeof(int)
+                && optionsType == typeof(Db4NetExecutionOptions));
+
+        Assert.Contains(
+            PublicInstanceMethods(typeof(SelectQueryBuilder<>)),
+            method => method.Name == "QueryPageAsync"
+                && !method.IsGenericMethodDefinition
+                && IsTaskOfPagedResult(method.ReturnType)
+                && method.GetParameters() is [
+                    { ParameterType: var pageNumberType },
+                    { ParameterType: var pageSizeType },
+                    { ParameterType: var optionsType },
+                    { ParameterType: var cancellationTokenType }]
+                && pageNumberType == typeof(int)
+                && pageSizeType == typeof(int)
+                && optionsType == typeof(Db4NetExecutionOptions)
+                && cancellationTokenType == typeof(System.Threading.CancellationToken));
+    }
+
+    [Fact]
     public void Filter_group_builders_expose_filter_only_api()
     {
         AssertPublicInstanceMethods(typeof(FilterGroupBuilder), "Where", "OrWhere", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "OrWhereGroup");
@@ -713,6 +779,18 @@ public sealed class ApiContractTests
             && method.IsGenericMethodDefinition
             && method.ReturnType.IsGenericType
             && method.ReturnType.GetGenericTypeDefinition() == genericReturnTypeDefinition;
+    }
+
+    private static bool IsPagedResult(Type type)
+    {
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(PagedResult<>);
+    }
+
+    private static bool IsTaskOfPagedResult(Type type)
+    {
+        return type.IsGenericType
+            && type.GetGenericTypeDefinition() == typeof(Task<>)
+            && IsPagedResult(type.GetGenericArguments()[0]);
     }
 
     private static bool IsGenericMemberSelectorSelectMethod(MethodInfo method)

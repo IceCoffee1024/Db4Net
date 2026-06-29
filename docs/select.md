@@ -100,7 +100,23 @@ Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, `Select("SUM(...)")`, `Se
 
 ## Paging
 
-Use `Page(...)` for one-based page pagination, or combine `Limit(...)` with `Offset(...)` when you need direct row counts:
+Use `QueryPage(...)` when you need one page of rows and the total count of rows matching the same table and filters:
+
+```csharp
+var page = await db
+    .SelectFrom<User>()
+    .Where(u => u.Name, Op.Like, "A%")
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber: 2, pageSize: 20);
+
+var users = page.Items;
+var totalCount = page.TotalCount;
+var totalPages = page.TotalPages;
+```
+
+`QueryPage(...)` is a convenience terminal. It executes a count query and a paged row query internally, using the same execution options for both commands. It owns paging, so do not call `Limit(...)`, `Offset(...)`, or `Page(...)` before `QueryPage(...)`.
+
+Use `Page(...)` for one-based page pagination when you only need rows, or combine `Limit(...)` with `Offset(...)` when you need direct row counts:
 
 ```csharp
 var page = db
@@ -122,7 +138,9 @@ Typed select builders materialize `T`:
 - `QueryAsync()`
 - `QueryFirstOrDefaultAsync()`
 - `QuerySingleOrDefaultAsync()`
+- `QueryPage()`
+- `QueryPageAsync()`
 
-The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()`.
+The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()`, `QueryAsync<T>()`, `QueryPage<T>()`, and `QueryPageAsync<T>()`.
 
 Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. For `SelectAggregateFrom<T>()` aggregate queries, specify the scalar read type with terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()`.

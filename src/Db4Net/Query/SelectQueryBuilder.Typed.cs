@@ -429,6 +429,35 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Executes a count query and a paged row query through Dapper and returns rows as <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="pageNumber">The one-based page number.</param>
+    /// <param name="pageSize">The number of rows per page.</param>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <returns>The paged result and total row count.</returns>
+    public PagedResult<T> QueryPage(int pageNumber, int pageSize, Db4NetExecutionOptions? options = null)
+    {
+        return base.QueryPage<T>(pageNumber, pageSize, options);
+    }
+
+    /// <summary>
+    /// Asynchronously executes a count query and a paged row query through Dapper and returns rows as <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="pageNumber">The one-based page number.</param>
+    /// <param name="pageSize">The number of rows per page.</param>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
+    /// <returns>The paged result and total row count.</returns>
+    public Task<PagedResult<T>> QueryPageAsync(
+        int pageNumber,
+        int pageSize,
+        Db4NetExecutionOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        return base.QueryPageAsync<T>(pageNumber, pageSize, options, cancellationToken);
+    }
+
+    /// <summary>
     /// Executes the query through Dapper and returns the first row as <typeparamref name="T"/>, or the default value if no row exists.
     /// </summary>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>

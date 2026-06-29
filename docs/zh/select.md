@@ -100,7 +100,23 @@ var averageQuantity = db
 
 ## 分页
 
-使用 `Page(...)` 进行从 1 开始的分页；需要直接控制行数时，也可以组合 `Limit(...)` 和 `Offset(...)`：
+需要一页数据和同一组条件下的总数时，使用 `QueryPage(...)`：
+
+```csharp
+var page = await db
+    .SelectFrom<User>()
+    .Where(u => u.Name, Op.Like, "A%")
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber: 2, pageSize: 20);
+
+var users = page.Items;
+var totalCount = page.TotalCount;
+var totalPages = page.TotalPages;
+```
+
+`QueryPage(...)` 是分页便捷终结方法。它内部会执行一次 count 查询和一次分页行查询，并对两条命令使用同一组执行选项。它自己负责分页，所以不要在 `QueryPage(...)` 前调用 `Limit(...)`、`Offset(...)` 或 `Page(...)`。
+
+只需要分页行数据时，使用 `Page(...)` 进行从 1 开始的分页；需要直接控制行数时，也可以组合 `Limit(...)` 和 `Offset(...)`：
 
 ```csharp
 var page = db
@@ -122,7 +138,9 @@ var page = db
 - `QueryAsync()`
 - `QueryFirstOrDefaultAsync()`
 - `QuerySingleOrDefaultAsync()`
+- `QueryPage()`
+- `QueryPageAsync()`
 
-非泛型 `SELECT` 构建器也保留了 `Query<T>()` 和 `QueryAsync<T>()` 等显式结果类型重载，用于高级物化场景。
+非泛型 `SELECT` 构建器也保留了 `Query<T>()`、`QueryAsync<T>()`、`QueryPage<T>()` 和 `QueryPageAsync<T>()` 等显式结果类型重载，用于高级物化场景。
 
 存在性查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回 `bool`。计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。对于 `SelectAggregateFrom<T>()` 聚合查询，请使用终端 `Execute<TResult>()` 或 `ExecuteAsync<TResult>()` 指定标量读取类型。

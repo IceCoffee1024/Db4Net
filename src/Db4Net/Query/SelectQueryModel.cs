@@ -29,6 +29,18 @@ internal sealed class SelectQueryModel
         return clone;
     }
 
+    public ScalarQueryModel ToCountModel()
+    {
+        var count = new ScalarQueryModel
+        {
+            Table = Table,
+            ProjectionKind = ScalarProjectionKind.CountAll
+        };
+
+        count.Filters.AddRange(Filters.Select(CloneFilter));
+        return count;
+    }
+
     private static FilterNode CloneFilter(FilterNode filter)
     {
         return filter switch

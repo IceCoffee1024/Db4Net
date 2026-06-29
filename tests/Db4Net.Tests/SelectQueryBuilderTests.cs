@@ -37,6 +37,20 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
+    public void Query_page_rejects_pre_applied_paging()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.Sqlite)
+                .SelectFrom<User>()
+                .OrderBy(u => u.Id)
+                .Page(2, 10)
+                .QueryPage(pageNumber: 1, pageSize: 10));
+
+        Assert.Contains("Do not call Limit(), Offset(), or Page() before QueryPage().", ex.Message);
+    }
+
+    [Fact]
     public void Select_from_type_entry_renders_selected_member_columns()
     {
         var command = Db4NetDatabase

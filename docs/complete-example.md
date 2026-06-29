@@ -81,6 +81,22 @@ var activeCount = await db
 
 Prefer `SelectExistsFrom<T>()` for existence checks instead of counting rows and comparing with zero.
 
+## Query a Page With Total Count
+
+```csharp
+var page = await db
+    .SelectFrom<User>()
+    .Where(u => u.IsActive, Op.Eq, true)
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber: 1, pageSize: 20);
+
+var users = page.Items;
+var totalCount = page.TotalCount;
+var totalPages = page.TotalPages;
+```
+
+`QueryPage(...)` keeps the row query and count query aligned by reusing the same table and filters. It executes two commands internally, so use it for convenience and consistency rather than as a single-query optimization.
+
 ## Update in a Transaction
 
 ```csharp
@@ -142,6 +158,7 @@ Db4Net intentionally does not cover joins, CTEs, window functions, provider-spec
 - Use `Insert(user)`, `Update(user)`, and `Delete(user)` for common single-entity commands.
 - Use `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` when the command should read like SQL.
 - Use `SelectExistsFrom<T>()` for existence checks and `SelectCountFrom<T>()` only when the count matters.
+- Use `QueryPage(...)` when UI pagination needs both page rows and total count.
 - Use `SelectAggregateFrom<T>()` for scalar aggregates such as `Max`, `Min`, `Sum`, `Average`, and `CountDistinct`.
 - Use `table:` overloads for staging tables, archive tables, sharded tables, or views that share the same model mapping.
 - Use explicit transactions for workflows with more than one write.

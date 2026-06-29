@@ -34,6 +34,23 @@ var page = db.SelectFrom<User>()
     .Query();
 ```
 
+## Query Page With Total Count
+
+Use `QueryPage(pageNumber, pageSize)` when the caller needs both the current page and the total count of rows matching the same filters.
+
+```csharp
+var page = await db.SelectFrom<User>()
+    .Where(u => u.Name, Op.Like, "A%")
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber: 2, pageSize: 20);
+
+var users = page.Items;
+var totalCount = page.TotalCount;
+var totalPages = page.TotalPages;
+```
+
+`QueryPage(...)` executes a count query and a paged row query internally. It applies paging itself; do not call `Limit(...)`, `Offset(...)`, or `Page(...)` before `QueryPage(...)`.
+
 Db4Net renders paging through the configured dialect:
 
 - SQL Server: `OFFSET ... ROWS FETCH NEXT ... ROWS ONLY`

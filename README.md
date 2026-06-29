@@ -92,6 +92,23 @@ var matchingCount = await connection
     .ExecuteAsync();
 ```
 
+Use `QueryPage(...)` when UI pagination needs both page rows and the total count for the same filters:
+
+```csharp
+var page = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .Where(u => u.Name, Op.Like, "A%")
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber: 2, pageSize: 20);
+
+var users = page.Items;
+var totalCount = page.TotalCount;
+var totalPages = page.TotalPages;
+```
+
+`QueryPage(...)` executes a count query and a paged row query internally. It owns paging, so do not call `Limit(...)`, `Offset(...)`, or `Page(...)` before `QueryPage(...)`.
+
 Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
 ```csharp
@@ -388,6 +405,7 @@ Included in the current alpha:
 - Typed `SELECT` builders
 - Typed existence query builders through `SelectExistsFrom<T>()`
 - Typed count query builders through `SelectCountFrom<T>()`
+- Paged SELECT terminal methods through `QueryPage(...)` and `QueryPageAsync(...)`
 - Typed scalar aggregate query builders through `SelectAggregateFrom<T>()` with `Max`, `Min`, `Sum`, `Average`, `CountDistinct`, and terminal result typing for all scalar aggregates
 - Typed `INSERT`, `UPDATE`, and `DELETE` builders
 - Single-row insert key return through `ExecuteReturnKey<TResult>()`, `ExecuteReturnKeyAsync<TResult>()`, and `ReturnKey(...).Execute<TResult>()`

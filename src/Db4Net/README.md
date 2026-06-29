@@ -94,6 +94,23 @@ var matchingCount = await connection
     .ExecuteAsync();
 ```
 
+Use `QueryPage(...)` when UI pagination needs both page rows and the total count for the same filters:
+
+```csharp
+var page = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .Where(u => u.Name, Op.Like, "A%")
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber: 2, pageSize: 20);
+
+var users = page.Items;
+var totalCount = page.TotalCount;
+var totalPages = page.TotalPages;
+```
+
+`QueryPage(...)` executes a count query and a paged row query internally. It owns paging, so do not call `Limit(...)`, `Offset(...)`, or `Page(...)` before `QueryPage(...)`.
+
 Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
 ```csharp
@@ -389,6 +406,19 @@ var page = connection
     .Query();
 ```
 
+For page rows plus total count, use `QueryPage(...)` instead of composing separate select and count calls at the call site:
+
+```csharp
+var page = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .Where(u => u.Name, Op.Like, "A%")
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber: 2, pageSize: 20);
+```
+
+`QueryPage(...)` executes a count query and a paged row query internally and rejects builders that already have `Limit(...)`, `Offset(...)`, or `Page(...)` applied.
+
 Db4Net renders paging through the configured dialect:
 
 - SQL Server: `OFFSET ... ROWS FETCH NEXT ... ROWS ONLY`
@@ -443,8 +473,10 @@ Typed SELECT builders provide Dapper-style query terminal methods that materiali
 - `QueryAsync()`
 - `QueryFirstOrDefaultAsync()`
 - `QuerySingleOrDefaultAsync()`
+- `QueryPage()`
+- `QueryPageAsync()`
 
-The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()` for advanced materialization scenarios.
+The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()`, `QueryAsync<T>()`, `QueryPage<T>()`, and `QueryPageAsync<T>()` for advanced materialization scenarios.
 
 Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. For `SelectAggregateFrom<T>()` aggregate queries, specify the scalar read type with terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()`.
 

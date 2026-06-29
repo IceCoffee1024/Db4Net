@@ -139,6 +139,49 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Query_page_returns_items_and_total_count()
+    {
+        using var connection = CreateOpenConnection();
+
+        var page = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .OrderBy(u => u.Id)
+            .QueryPage(pageNumber: 2, pageSize: 1);
+
+        Assert.Equal(2, page.TotalCount);
+        Assert.Equal(2, page.PageNumber);
+        Assert.Equal(1, page.PageSize);
+        Assert.Equal(2, page.TotalPages);
+
+        var user = Assert.Single(page.Items);
+        Assert.Equal(2, user.Id);
+        Assert.Equal("Bob", user.Name);
+    }
+
+    [Fact]
+    public async Task Query_page_async_returns_items_and_total_count()
+    {
+        await using var connection = CreateOpenConnection();
+
+        var page = await connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Gt, 0)
+            .OrderBy(u => u.Id)
+            .QueryPageAsync(pageNumber: 1, pageSize: 1);
+
+        Assert.Equal(2, page.TotalCount);
+        Assert.Equal(1, page.PageNumber);
+        Assert.Equal(1, page.PageSize);
+        Assert.Equal(2, page.TotalPages);
+
+        var user = Assert.Single(page.Items);
+        Assert.Equal(1, user.Id);
+        Assert.Equal("Alice", user.Name);
+    }
+
+    [Fact]
     public void Select_count_execute_returns_filtered_count()
     {
         using var connection = CreateOpenConnection();

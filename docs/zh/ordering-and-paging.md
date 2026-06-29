@@ -11,6 +11,21 @@ var page = connection
     .Query();
 ```
 
+需要分页行数据和同一组筛选条件下的总数时，使用 `QueryPage(pageNumber, pageSize)`：
+
+```csharp
+var page = await db.SelectFrom<User>()
+    .Where(u => u.Name, Op.Like, "A%")
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber: 2, pageSize: 20);
+
+var users = page.Items;
+var totalCount = page.TotalCount;
+var totalPages = page.TotalPages;
+```
+
+`QueryPage(...)` 内部会执行一次 count 查询和一次分页行查询。它会自己应用分页；不要在 `QueryPage(...)` 前调用 `Limit(...)`、`Offset(...)` 或 `Page(...)`。
+
 Db4Net 会按配置的 SQL 方言渲染分页语法：
 
 - SQL Server: `OFFSET ... ROWS FETCH NEXT ... ROWS ONLY`

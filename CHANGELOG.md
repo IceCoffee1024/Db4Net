@@ -9,6 +9,7 @@ All notable changes to Db4Net will be documented in this file.
 - Typed single-table `SELECT` builders with mapped projections, Dapper-style query terminal methods, async terminal methods, and explicit SQL inspection through `ToCommand()`.
 - Typed existence query builders through `SelectExistsFrom<T>()` and `table` override overloads.
 - Typed count query builders through `SelectCountFrom<T>()` and `table` override overloads.
+- Paged SELECT terminal methods through `QueryPage(...)` and `QueryPageAsync(...)`, returning `PagedResult<T>` with rows, total count, page number, page size, and total pages.
 - Typed scalar aggregate query builders through `SelectAggregateFrom<T>()`, including `Max`, `Min`, `Sum`, `Average`, `CountDistinct`, terminal result typing for all scalar aggregates, and `table` override overloads.
 - Single-column SELECT subquery filters through `WhereIn`, `OrWhereIn`, `WhereNotIn`, and `OrWhereNotIn` on `SelectQueryBuilder`.
 - Typed `INSERT`, `UPDATE`, and `DELETE` command builders with `Execute()` / `ExecuteAsync()`.
