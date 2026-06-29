@@ -10,6 +10,17 @@ dotnet add package Db4Net --prerelease
 
 Package assets target `net8.0` and `netstandard2.0`.
 
+Install the database provider package for the database you use:
+
+```bash
+dotnet add package Microsoft.Data.SqlClient
+dotnet add package Microsoft.Data.Sqlite
+dotnet add package Npgsql
+dotnet add package MySqlConnector
+```
+
+Db4Net works with `IDbConnection`; the provider package supplies concrete connection types such as `SqlConnection`, `SqliteConnection`, `NpgsqlConnection`, and `MySqlConnection`.
+
 ## First Query
 
 ```csharp

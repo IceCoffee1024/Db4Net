@@ -12,6 +12,17 @@ dotnet add package Db4Net --prerelease
 
 NuGet 包提供 `net8.0` 和 `netstandard2.0` 两组目标框架资产。
 
+同时安装你所使用数据库的 provider 包：
+
+```bash
+dotnet add package Microsoft.Data.SqlClient
+dotnet add package Microsoft.Data.Sqlite
+dotnet add package Npgsql
+dotnet add package MySqlConnector
+```
+
+Db4Net 面向 `IDbConnection` 工作；provider 包会提供具体连接类型，例如 `SqlConnection`、`SqliteConnection`、`NpgsqlConnection` 和 `MySqlConnection`。
+
 ## 第一个查询
 
 ```csharp
