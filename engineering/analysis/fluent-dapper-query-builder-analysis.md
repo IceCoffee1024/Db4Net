@@ -35,7 +35,7 @@ SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0
 主 API 使用接近 Dapper 的终止方法名称：
 
 ```csharp
-db.Select<User>(u => u.Id, u => u.Name)
+db.SelectFrom<User>(u => u.Id, u => u.Name)
   .Where(u => u.Id, Op.Eq, 1)
   .QuerySingleOrDefault();
 
@@ -101,7 +101,7 @@ db.Select(["Id", "Name"])
 
 这样设计的原因：
 
-- `Select<T>(...)` 是推荐的类型化指定字段入口，会自动使用 `T` 的表映射，并把数据库列 alias 成属性名以适配 Dapper 默认映射。
+- `SelectFrom<T>(...)` 是推荐的类型化指定字段入口，会自动使用 `T` 的表映射，并把数据库列 alias 成属性名以适配 Dapper 默认映射。
 - `SelectFrom<T>()` 是推荐的类型化整实体入口，会展开 `T` 的可映射属性并按需 alias。
 - `Select("Id", "Name").From<User>()` 兼容动态字段集合场景；字符串字段名解释为 `User` 的 CLR 属性名，不接受数据库列名或 SQL 片段。
 - `SelectFrom<T>("view_or_table")` 可以覆盖报表视图、历史表、分表等场景，但字段仍然按 `T` 的属性映射。
@@ -114,7 +114,7 @@ db.Select(["Id", "Name"])
 - `Many` 版本只是逐实体 Dapper multi-execute convenience：对实体序列执行同一类参数化命令，空集合返回 0，不自动开启事务，不代表 provider-native copy/import，也不代表 set-based synchronization。
 - `GetList()` 和 `GetSingleOrDefault()` 可以作为可选别名后续再加。
 
-v1 先固定上述三条主线，不增加 `SelectFrom<T>(...)` 指定字段重载，避免 `SelectFrom` 同时承担整实体和指定字段两种含义。
+当前设计让 `SelectFrom<T>()` 表示整实体查询，`SelectFrom<T>(...)` 表示从同一模型表中选择指定映射属性，避免 facade 上再出现容易被误解为结果类型入口的泛型 `Select`。
 
 操作符示例：
 
@@ -147,7 +147,7 @@ db.SelectFrom<User>()
 
 已实现：
 
-- `Select<T>(...)`、`Select(...)`、`SelectFrom<T>()`、`SelectFrom<T>(string)`
+- `Select(...)`、`SelectFrom<T>()`、`SelectFrom<T>(...)`、`SelectFrom<T>(string)`
 - `From<T>()`、`From<T>(string)`
 - `Where(...)`、`OrWhere(...)`、`WhereGroup(...)`、`OrWhereGroup(...)`
 - `OrderBy(...)`、`OrderByDescending(...)`

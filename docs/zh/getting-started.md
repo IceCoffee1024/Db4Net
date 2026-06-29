@@ -33,7 +33,7 @@ var user = await connection
 ```csharp
 var command = Db4NetDatabase
     .Create(Db4NetOptions.SqlServer)
-    .Select<User>(u => u.Id, u => u.Name)
+    .SelectFrom<User>(u => u.Id, u => u.Name)
     .Where(u => u.Id, Op.Eq, 1)
     .ToCommand();
 

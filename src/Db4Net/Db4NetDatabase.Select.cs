@@ -27,18 +27,6 @@ public sealed partial class Db4NetDatabase
     }
 
     /// <summary>
-    /// Starts a typed select query with explicit columns from member selectors.
-    /// </summary>
-    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
-    /// <param name="memberSelectors">Simple member selectors for the columns to include in the SELECT list.</param>
-    /// <returns>A typed select query builder.</returns>
-    public SelectQueryBuilder<T> Select<T>(params Expression<Func<T, object?>>[] memberSelectors)
-    {
-        EnsureEntityType<T>();
-        return new SelectQueryBuilder(_options, _connection, executionOptions: _executionOptions).From<T>().Select(memberSelectors);
-    }
-
-    /// <summary>
     /// Starts a typed select query using the table mapped from <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
@@ -47,6 +35,18 @@ public sealed partial class Db4NetDatabase
     {
         EnsureEntityType<T>();
         return new SelectQueryBuilder(_options, _connection, executionOptions: _executionOptions).From<T>().SelectAllMappedColumns();
+    }
+
+    /// <summary>
+    /// Starts a typed select query with explicit mapped columns from member selectors using the table mapped from <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The CLR model type used for table and member mapping.</typeparam>
+    /// <param name="memberSelectors">Simple member selectors for the columns to include in the SELECT list.</param>
+    /// <returns>A typed select query builder.</returns>
+    public SelectQueryBuilder<T> SelectFrom<T>(params Expression<Func<T, object?>>[] memberSelectors)
+    {
+        EnsureEntityType<T>();
+        return new SelectQueryBuilder(_options, _connection, executionOptions: _executionOptions).From<T>().Select(memberSelectors);
     }
 
     /// <summary>

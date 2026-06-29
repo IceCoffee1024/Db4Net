@@ -11,12 +11,12 @@ var users = connection
     .Query();
 ```
 
-Use `Select<T>(...)` when selecting specific mapped properties:
+Use `SelectFrom<T>(...)` when selecting specific mapped properties:
 
 ```csharp
 var users = connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .Select<User>(u => u.Id, u => u.Name)
+    .SelectFrom<User>(u => u.Id, u => u.Name)
     .Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
     .Query();
 ```

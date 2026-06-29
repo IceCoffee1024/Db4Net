@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq.Expressions;
 using Db4Net;
 
 namespace Db4Net.Tests;
@@ -302,7 +303,7 @@ public sealed class SelectQueryBuilderEdgeCaseTests
         var ex = Assert.Throws<ArgumentException>(() =>
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
-                .Select<User>()
+                .SelectFrom<User>(Array.Empty<Expression<Func<User, object?>>>())
                 .ToCommand());
 
         Assert.Contains("At least one member selector is required.", ex.Message);

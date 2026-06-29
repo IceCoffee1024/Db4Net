@@ -37,11 +37,11 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
-    public void Typed_select_entry_renders_selected_member_columns()
+    public void Select_from_type_entry_renders_selected_member_columns()
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
-            .Select<User>(u => u.Id, u => u.Name)
+            .SelectFrom<User>(u => u.Id, u => u.Name)
             .Where(u => u.Id, Op.Eq, 1)
             .ToCommand();
 
@@ -50,22 +50,22 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
-    public void Typed_select_entry_uses_column_attribute()
+    public void Select_from_type_entry_uses_column_attribute()
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
-            .Select<MappedUser>(u => u.DisplayName)
+            .SelectFrom<MappedUser>(u => u.DisplayName)
             .ToCommand();
 
         Assert.Equal("SELECT [display_name] AS [DisplayName] FROM [app_users]", command.Sql);
     }
 
     [Fact]
-    public void Typed_select_entry_renders_sqlite_column_alias()
+    public void Select_from_type_entry_renders_sqlite_column_alias()
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.Sqlite)
-            .Select<MappedUser>(u => u.DisplayName)
+            .SelectFrom<MappedUser>(u => u.DisplayName)
             .ToCommand();
 
         Assert.Equal("SELECT \"display_name\" AS \"DisplayName\" FROM \"app_users\"", command.Sql);
@@ -150,24 +150,24 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
-    public void Typed_select_entry_requires_simple_member_selectors()
+    public void Select_from_type_entry_requires_simple_member_selectors()
     {
         var ex = Assert.Throws<ArgumentException>(() =>
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
-                .Select<User>(u => u.Id + 1)
+                .SelectFrom<User>(u => u.Id + 1)
                 .ToCommand());
 
         Assert.Contains("Only simple member selectors are supported", ex.Message);
     }
 
     [Fact]
-    public void Typed_select_entry_rejects_not_mapped_member_selectors()
+    public void Select_from_type_entry_rejects_not_mapped_member_selectors()
     {
         var ex = Assert.Throws<ArgumentException>(() =>
             Db4NetDatabase
                 .Create(Db4NetOptions.SqlServer)
-                .Select<MappedUser>(u => u.Ignored)
+                .SelectFrom<MappedUser>(u => u.Ignored)
                 .ToCommand());
 
         Assert.Contains("is not a mapped column", ex.Message);

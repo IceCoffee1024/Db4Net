@@ -39,12 +39,12 @@ var users = connection
     .Query();
 ```
 
-Use `Select<T>(...)` when querying specific mapped properties:
+Use `SelectFrom<T>(...)` when querying specific mapped properties:
 
 ```csharp
 var users = connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .Select<User>(u => u.Id, u => u.Name)
+    .SelectFrom<User>(u => u.Id, u => u.Name)
     .Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
     .Query();
 ```
@@ -356,7 +356,7 @@ Db4Net renders paging through the configured dialect:
 ```csharp
 var command = Db4NetDatabase
     .Create(Db4NetOptions.SqlServer)
-    .Select<User>(u => u.Id, u => u.Name)
+    .SelectFrom<User>(u => u.Id, u => u.Name)
     .Where(u => u.Id, Op.Eq, 1)
     .ToCommand();
 

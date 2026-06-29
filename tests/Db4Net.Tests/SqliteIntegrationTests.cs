@@ -1448,7 +1448,7 @@ public sealed class SqliteIntegrationTests
 
         var user = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
-            .Select<MappedUser>(u => u.DisplayName)
+            .SelectFrom<MappedUser>(u => u.DisplayName)
             .QuerySingleOrDefault();
 
         Assert.NotNull(user);

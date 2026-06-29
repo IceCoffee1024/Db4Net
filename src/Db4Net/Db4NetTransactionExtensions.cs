@@ -22,18 +22,18 @@ public static class Db4NetTransactionExtensions
         return transaction.Database.Select(columns);
     }
 
-    /// <inheritdoc cref="Db4NetDatabase.Select{T}(System.Linq.Expressions.Expression{System.Func{T, object?}}[])" />
-    public static SelectQueryBuilder<T> Select<T>(this Db4NetTransaction transaction, params System.Linq.Expressions.Expression<Func<T, object?>>[] memberSelectors)
-    {
-        ThrowHelper.ThrowIfNull(transaction);
-        return transaction.Database.Select(memberSelectors);
-    }
-
     /// <inheritdoc cref="Db4NetDatabase.SelectFrom{T}()" />
     public static SelectQueryBuilder<T> SelectFrom<T>(this Db4NetTransaction transaction)
     {
         ThrowHelper.ThrowIfNull(transaction);
         return transaction.Database.SelectFrom<T>();
+    }
+
+    /// <inheritdoc cref="Db4NetDatabase.SelectFrom{T}(System.Linq.Expressions.Expression{System.Func{T, object?}}[])" />
+    public static SelectQueryBuilder<T> SelectFrom<T>(this Db4NetTransaction transaction, params System.Linq.Expressions.Expression<Func<T, object?>>[] memberSelectors)
+    {
+        ThrowHelper.ThrowIfNull(transaction);
+        return transaction.Database.SelectFrom<T>(memberSelectors);
     }
 
     /// <inheritdoc cref="Db4NetDatabase.SelectFrom{T}(string)" />

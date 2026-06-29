@@ -11,12 +11,12 @@ var users = connection
     .Query();
 ```
 
-使用 `Select<T>(...)` 查询指定映射属性：
+使用 `SelectFrom<T>(...)` 查询指定映射属性：
 
 ```csharp
 var users = connection
     .UseDb4Net(Db4NetOptions.Sqlite)
-    .Select<User>(u => u.Id, u => u.Name)
+    .SelectFrom<User>(u => u.Id, u => u.Name)
     .Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
     .Query();
 ```

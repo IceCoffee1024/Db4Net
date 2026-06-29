@@ -363,6 +363,8 @@ public sealed class ApiContractTests
         Assert.Single(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name == "BeginTransaction" && method.GetParameters().Length == 0 && method.ReturnType == typeof(Db4NetTransaction));
         Assert.Contains(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name == "BeginTransaction" && method.GetParameters() is [{ ParameterType: var parameterType }] && parameterType == typeof(System.Data.IsolationLevel));
         Assert.Contains(PublicInstanceMethods(typeof(Db4NetDatabase)), method => method.Name == "ExecuteInTransaction" && method.GetParameters() is [{ ParameterType: var parameterType }] && parameterType == typeof(Action<Db4NetTransaction>));
+        AssertGenericMemberSelectorParamsExtensionSignature(typeof(Db4NetTransactionExtensions), "SelectFrom", typeof(SelectQueryBuilder<>));
+        Assert.DoesNotContain(typeof(Db4NetTransactionExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static), IsGenericMemberSelectorSelectExtensionMethod);
         Assert.Contains(typeof(Db4NetConnectionExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static), method => method.Name == "UseDb4Net"
             && method.GetParameters() is [{ ParameterType: var connection }, { ParameterType: var options }, { ParameterType: var executionOptions }]
             && connection == typeof(System.Data.IDbConnection)
@@ -421,6 +423,11 @@ public sealed class ApiContractTests
     [Fact]
     public void Database_exposes_sql_shaped_command_builder_entry_points()
     {
+        AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "SelectFrom", typeof(SelectQueryBuilder<>));
+        AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "SelectFrom", typeof(SelectQueryBuilder<>));
+        AssertGenericMemberSelectorParamsMethodSignature(typeof(Db4NetDatabase), "SelectFrom", typeof(SelectQueryBuilder<>));
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(Db4NetDatabase)), IsGenericMemberSelectorSelectMethod);
+
         AssertGenericParameterlessMethodSignature(typeof(Db4NetDatabase), "SelectCountFrom", typeof(SelectCountQueryBuilder<>));
         AssertGenericStringMethodSignature(typeof(Db4NetDatabase), "SelectCountFrom", typeof(SelectCountQueryBuilder<>));
 
@@ -519,6 +526,31 @@ public sealed class ApiContractTests
                 && parameterType == typeof(string));
     }
 
+    private static void AssertGenericMemberSelectorParamsMethodSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
+    {
+        var method = Assert.Single(
+            PublicInstanceMethods(declaringType),
+            candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
+                && candidate.GetParameters() is [{ ParameterType: var parameterType }]
+                && IsMemberSelectorParamsParameter(parameterType, candidate.GetGenericArguments()[0])
+                && candidate.GetParameters()[0].GetCustomAttribute<ParamArrayAttribute>() is not null);
+
+        Assert.Equal(method.GetGenericArguments()[0], method.GetParameters()[0].ParameterType.GetElementType()!.GetGenericArguments()[0].GetGenericArguments()[0]);
+    }
+
+    private static void AssertGenericMemberSelectorParamsExtensionSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
+    {
+        var method = Assert.Single(
+            declaringType.GetMethods(BindingFlags.Public | BindingFlags.Static),
+            candidate => IsGenericMethodWithReturn(candidate, methodName, genericReturnTypeDefinition)
+                && candidate.GetParameters() is [{ ParameterType: var transactionType }, { ParameterType: var parameterType }]
+                && transactionType == typeof(Db4NetTransaction)
+                && IsMemberSelectorParamsParameter(parameterType, candidate.GetGenericArguments()[0])
+                && candidate.GetParameters()[1].GetCustomAttribute<ParamArrayAttribute>() is not null);
+
+        Assert.Equal(method.GetGenericArguments()[0], method.GetParameters()[1].ParameterType.GetElementType()!.GetGenericArguments()[0].GetGenericArguments()[0]);
+    }
+
     private static void AssertGenericEntityMethodSignature(Type declaringType, string methodName, Type genericReturnTypeDefinition)
     {
         var method = Assert.Single(
@@ -597,6 +629,43 @@ public sealed class ApiContractTests
             && method.IsGenericMethodDefinition
             && method.ReturnType.IsGenericType
             && method.ReturnType.GetGenericTypeDefinition() == genericReturnTypeDefinition;
+    }
+
+    private static bool IsGenericMemberSelectorSelectMethod(MethodInfo method)
+    {
+        return method.Name == "Select"
+            && method.IsGenericMethodDefinition
+            && method.GetParameters() is [{ ParameterType: var parameterType }]
+            && IsMemberSelectorParamsParameter(parameterType, method.GetGenericArguments()[0]);
+    }
+
+    private static bool IsGenericMemberSelectorSelectExtensionMethod(MethodInfo method)
+    {
+        return method.Name == "Select"
+            && method.IsGenericMethodDefinition
+            && method.GetParameters() is [{ ParameterType: var transactionType }, { ParameterType: var parameterType }]
+            && transactionType == typeof(Db4NetTransaction)
+            && IsMemberSelectorParamsParameter(parameterType, method.GetGenericArguments()[0]);
+    }
+
+    private static bool IsMemberSelectorParamsParameter(Type parameterType, Type modelType)
+    {
+        if (!parameterType.IsArray)
+        {
+            return false;
+        }
+
+        var elementType = parameterType.GetElementType();
+        if (elementType is null || !elementType.IsGenericType || elementType.GetGenericTypeDefinition() != typeof(System.Linq.Expressions.Expression<>))
+        {
+            return false;
+        }
+
+        var delegateType = elementType.GetGenericArguments()[0];
+        return delegateType.IsGenericType
+            && delegateType.GetGenericTypeDefinition() == typeof(Func<,>)
+            && delegateType.GetGenericArguments()[0] == modelType
+            && delegateType.GetGenericArguments()[1] == typeof(object);
     }
 
     private static bool IsNonGenericStringOnlyCommandEntryPoint(MethodInfo method)

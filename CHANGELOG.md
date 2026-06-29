@@ -37,6 +37,7 @@ All notable changes to Db4Net will be documented in this file.
 - Conflict-aware insert defaults now allow composite key metadata; entity update/delete and many update/delete conveniences still require a single key.
 - Transaction documentation now separates existing transaction pass-through from Db4Net-owned lightweight transaction scopes.
 - `SELECT` rendering now rejects `Offset(...)` without `Limit(...)` and SQL Server paging without `OrderBy(...)` instead of ignoring or rendering invalid paging SQL.
+- Typed projected `SELECT` entry points now use `SelectFrom<T>(...)`; the older facade-level generic `Select` projection entry point was removed before the first public package.
 
 ### Known Limitations
 
