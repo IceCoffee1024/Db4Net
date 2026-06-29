@@ -199,6 +199,82 @@ var user = await users.FindByIdAsync(1, cancellationToken);
 
 Do not register a repository that captures a connection-bound `Db4NetDatabase` as a singleton. The facade is lightweight and should follow the lifetime of the connection or transaction it is bound to.
 
+## Raw Dapper SQL
+
+Db4Net does not wrap raw SQL. Keep complex joins, CTEs, window functions, and provider-specific SQL in Dapper, using the same scoped connection as Db4Net.
+
+```csharp
+using System.Data.Common;
+using Dapper;
+using Db4Net;
+
+public sealed class ReportRepository
+{
+    private readonly Db4NetDatabase _db;
+    private readonly DbConnection _connection;
+
+    public ReportRepository(Db4NetDatabase db, DbConnection connection)
+    {
+        _db = db;
+        _connection = connection;
+    }
+
+    public Task<IEnumerable<UserActivityRow>> GetUserActivityAsync()
+    {
+        return _connection.QueryAsync<UserActivityRow>(
+            """
+            SELECT u.Id, u.Name, COUNT(a.Id) AS ActivityCount
+            FROM Users u
+            LEFT JOIN Activities a ON a.UserId = u.Id
+            GROUP BY u.Id, u.Name
+            ORDER BY ActivityCount DESC
+            """);
+    }
+
+    public Task<User?> FindByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefaultAsync(cancellationToken: cancellationToken);
+    }
+}
+```
+
+For keyed database registrations, inject or resolve the matching keyed `DbConnection` with the matching keyed `Db4NetDatabase`.
+
+When raw Dapper SQL and Db4Net commands must share a transaction, create the transaction yourself, pass it to Dapper, and bind it to Db4Net with `WithTransaction(...)`.
+
+```csharp
+using var transaction = _connection.BeginTransaction();
+
+try
+{
+    var txDb = _db.WithTransaction(transaction);
+
+    await txDb
+        .Update<User>()
+        .Set(u => u.Name, "Alice")
+        .Where(u => u.Id, Op.Eq, userId)
+        .ExecuteAsync(cancellationToken: cancellationToken);
+
+    await _connection.ExecuteAsync(
+        """
+        INSERT INTO AuditLogs (EventName, EntityId)
+        VALUES (@EventName, @EntityId)
+        """,
+        new { EventName = "UserRenamed", EntityId = userId },
+        transaction);
+
+    transaction.Commit();
+}
+catch
+{
+    transaction.Rollback();
+    throw;
+}
+```
+
 ## Transactions
 
 When several repository calls must be atomic, keep the transaction in the service or unit-of-work layer and build repositories from the transaction-bound facade.

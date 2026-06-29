@@ -199,6 +199,82 @@ var user = await users.FindByIdAsync(1, cancellationToken);
 
 不要把捕获了连接绑定 `Db4NetDatabase` 的仓储注册成 singleton。Db4Net facade 很轻量，它的生命周期应该跟随绑定的连接或事务。
 
+## Dapper 原生 SQL
+
+Db4Net 不包装原生 SQL。复杂 join、CTE、窗口函数和数据库专有 SQL 继续放在 Dapper 中，并和 Db4Net 使用同一个 scoped connection。
+
+```csharp
+using System.Data.Common;
+using Dapper;
+using Db4Net;
+
+public sealed class ReportRepository
+{
+    private readonly Db4NetDatabase _db;
+    private readonly DbConnection _connection;
+
+    public ReportRepository(Db4NetDatabase db, DbConnection connection)
+    {
+        _db = db;
+        _connection = connection;
+    }
+
+    public Task<IEnumerable<UserActivityRow>> GetUserActivityAsync()
+    {
+        return _connection.QueryAsync<UserActivityRow>(
+            """
+            SELECT u.Id, u.Name, COUNT(a.Id) AS ActivityCount
+            FROM Users u
+            LEFT JOIN Activities a ON a.UserId = u.Id
+            GROUP BY u.Id, u.Name
+            ORDER BY ActivityCount DESC
+            """);
+    }
+
+    public Task<User?> FindByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefaultAsync(cancellationToken: cancellationToken);
+    }
+}
+```
+
+如果使用 keyed database 注册，请注入或解析匹配的 keyed `DbConnection` 和 keyed `Db4NetDatabase`。
+
+当 Dapper 原生 SQL 和 Db4Net 命令需要共用同一个事务时，请自行创建事务，把它传给 Dapper，并通过 `WithTransaction(...)` 绑定到 Db4Net。
+
+```csharp
+using var transaction = _connection.BeginTransaction();
+
+try
+{
+    var txDb = _db.WithTransaction(transaction);
+
+    await txDb
+        .Update<User>()
+        .Set(u => u.Name, "Alice")
+        .Where(u => u.Id, Op.Eq, userId)
+        .ExecuteAsync(cancellationToken: cancellationToken);
+
+    await _connection.ExecuteAsync(
+        """
+        INSERT INTO AuditLogs (EventName, EntityId)
+        VALUES (@EventName, @EntityId)
+        """,
+        new { EventName = "UserRenamed", EntityId = userId },
+        transaction);
+
+    transaction.Commit();
+}
+catch
+{
+    transaction.Rollback();
+    throw;
+}
+```
+
 ## 事务
 
 多个仓储调用需要原子性时，把事务放在 service 或 unit-of-work 层，用事务绑定的 facade 创建仓储。
