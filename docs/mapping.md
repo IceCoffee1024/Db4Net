@@ -10,10 +10,14 @@ using System.ComponentModel.DataAnnotations.Schema;
 public sealed class User
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
     [Column("display_name")]
     public string Name { get; set; } = "";
+
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public DateTime UpdatedAt { get; set; }
 
     [NotMapped]
     public string DisplayOnly { get; set; } = "";
@@ -43,4 +47,8 @@ Conflict-aware inserts use all key columns by default, including composite `[Key
 
 `[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed selectors such as `Select`, `Where`, `OrderBy`, `Value`, and `Set`.
 
+`[Key]` and `[DatabaseGenerated(...)]` are independent. A `[Key]` column can also be `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]`: Db4Net still uses it in `WHERE` predicates for entity updates and deletes, but omits it from automatic insert values because the database generates it.
+
 `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(entities)`, and conflict-aware insert values. Database-generated non-key properties are also omitted from entity-driven update assignments in `Update(entity)` and `UpdateMany(entities)`. Explicit `.Value(...)` and `.Set(...)` calls remain caller-controlled.
+
+Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`.

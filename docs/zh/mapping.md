@@ -10,10 +10,14 @@ using System.ComponentModel.DataAnnotations.Schema;
 public sealed class User
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
     [Column("display_name")]
     public string Name { get; set; } = "";
+
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public DateTime UpdatedAt { get; set; }
 
     [NotMapped]
     public string DisplayOnly { get; set; } = "";
@@ -30,9 +34,11 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 ## 键与数据库生成列
 
-`[Key]` 以及 `Id` / `<TypeName>Id` 约定会被实体命令便捷方法、`WhereKey(user)` 和冲突插入默认目标使用。
+`[Key]` 以及 `Id` / `<TypeName>Id` 约定用于定位记录，例如实体命令便捷方法、`WhereKey(user)` 和冲突插入默认目标。
 
 冲突插入默认使用所有键列，包括复合 `[Key]` 元数据。实体 update/delete 便捷方法以及 many update/delete 便捷方法仍要求只有一个键列。
+
+`[Key]` 和 `[DatabaseGenerated(...)]` 是独立概念。一个 `[Key]` 列也可以标记为 `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]`：Db4Net 仍会在实体 update/delete 的 `WHERE` 谓词中使用它，但会在自动 insert 值中跳过它，因为该值由数据库生成。
 
 带有 `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` 或 `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` 的映射属性，会被 `Values(entity)`、`Insert(entity)`、`InsertMany(users)` 和冲突插入值跳过。数据库生成的非键属性也会从 `Update(entity)` 和 `UpdateMany(users)` 的实体驱动更新赋值中跳过。
 

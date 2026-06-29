@@ -251,7 +251,7 @@ db.InsertOrIgnoreMany(users, table: "users_staging")
   .Execute();
 ```
 
-`InsertOrIgnore`, `InsertOrIgnoreMany`, `InsertOrUpdate`, and `InsertOrUpdateMany` also support `table` overloads. The explicit table changes only the SQL target table; CLR member-to-column mapping still comes from `T`. `OnConflict(...)` and `Update(...)` use mapped CLR member selectors, not database column-name strings or SQL fragments. The `Many` variants are Dapper multi-execute conveniences that run one parameterized command per entity; they are not provider-native import/copy APIs or set-based synchronization APIs.
+`InsertOrIgnore`, `InsertOrIgnoreMany`, `InsertOrUpdate`, and `InsertOrUpdateMany` also support `table` overloads. The explicit table changes only the SQL target table; CLR member-to-column mapping still comes from `T`. `OnConflict(...)` and `Update(...)` use mapped CLR member selectors, not database column-name strings or SQL fragments. When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target; default conflict targets must be non-database-generated keys. The `Many` variants are Dapper multi-execute conveniences that run one parameterized command per entity; they are not provider-native import/copy APIs or set-based synchronization APIs.
 
 Use the SQL-shaped command builders when you need explicit fields or predicates:
 
@@ -282,16 +282,21 @@ Single command builders generate inspectable SQL through `ToCommand()`, and `Man
 Db4Net supports standard mapping attributes:
 
 ```csharp
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 [Table("app_users")]
 public sealed class User
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
     [Column("display_name")]
     public string Name { get; set; } = "";
+
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public DateTime UpdatedAt { get; set; }
 
     [NotMapped]
     public string DisplayOnly { get; set; } = "";
@@ -306,7 +311,11 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 `[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, `OrderBy`, `Value`, and `Set` member selectors.
 
-`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, `WhereKey(user)`, and as the default conflict target for conflict-aware insert commands. Conflict-aware inserts use all key columns by default, including composite `[Key]` metadata; entity update/delete conveniences and many update/delete conveniences require a single key column. Key metadata identifies mapped columns for equality predicates or conflict targets; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(users)`, and conflict-aware insert values. Database-generated non-key properties are also omitted from entity-driven update assignments in `Update(entity)` and `UpdateMany(users)`. Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Explicit `.Value(...)` and `.Set(...)` calls remain caller-controlled.
+`[Key]` and the `Id` / `<TypeName>Id` convention identify columns used to locate rows for entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, and `WhereKey(user)`. Conflict-aware inserts use key metadata as the default conflict target and can use composite `[Key]` metadata; entity update/delete conveniences and many update/delete conveniences require a single key column.
+
+`[Key]` is independent from `[DatabaseGenerated(...)]`. A `[Key]` column can also be `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]`: it is still used in `WHERE` predicates for updates and deletes, but Db4Net omits it from automatic insert values because the database generates it.
+
+`[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(users)`, and conflict-aware insert values. Database-generated non-key properties are also omitted from entity-driven update assignments in `Update(entity)` and `UpdateMany(users)`. Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Explicit `.Value(...)` and `.Set(...)` calls remain caller-controlled.
 
 ## Filters
 

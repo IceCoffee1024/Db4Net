@@ -35,7 +35,7 @@ Available methods:
 
 `OnConflict(...)` uses mapped CLR member selectors for the conflict target. `InsertOrUpdate` and `InsertOrUpdateMany` use `Update(...)` to choose mapped columns updated on conflict.
 
-When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target. Conflict-aware inserts can use composite `[Key]` metadata as the default target.
+When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target. Conflict-aware inserts can use composite `[Key]` metadata as the default target. This requires non-database-generated key columns; an identity key such as `[Key]` plus `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` is still valid for entity update/delete predicates, but it is not a valid conflict target.
 
 ::: warning
 Database-generated mapped members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`.
