@@ -41,8 +41,9 @@ internal sealed class CommandSqlRenderer
         }
 
         var sql = new StringBuilder();
-        var parameters = new SqlParameterWriter();
-        var filters = new FilterSqlRenderer(_dialect, parameters);
+        var context = new SqlRenderContext(_dialect);
+        var parameters = context.Parameters;
+        var filters = new FilterSqlRenderer(context);
 
         sql.Append("UPDATE ");
         sql.Append(_dialect.QuoteIdentifier(model.Table));
@@ -51,7 +52,7 @@ internal sealed class CommandSqlRenderer
 
         filters.Render(sql, model.Filters);
 
-        return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
+        return new RenderedSqlCommand(sql.ToString(), context.DynamicParameters);
     }
 
     public RenderedSqlCommand Render(DeleteCommandModel model)
@@ -62,14 +63,15 @@ internal sealed class CommandSqlRenderer
         }
 
         var sql = new StringBuilder();
-        var parameters = new SqlParameterWriter();
-        var filters = new FilterSqlRenderer(_dialect, parameters);
+        var context = new SqlRenderContext(_dialect);
+        var parameters = context.Parameters;
+        var filters = new FilterSqlRenderer(context);
 
         sql.Append("DELETE FROM ");
         sql.Append(_dialect.QuoteIdentifier(model.Table));
 
         filters.Render(sql, model.Filters);
 
-        return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
+        return new RenderedSqlCommand(sql.ToString(), context.DynamicParameters);
     }
 }

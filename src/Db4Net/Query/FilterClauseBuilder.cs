@@ -41,6 +41,19 @@ internal sealed class FilterClauseBuilder
         Filters.Add(new FilterClause(booleanOperator, columnFactory(), op, null));
     }
 
+    public void AddSubquery(FilterBooleanOperator booleanOperator, string column, bool negated, SelectQueryModel subquery)
+    {
+        ThrowHelper.ThrowIfNull(subquery);
+        EnsureSingleColumnSubquery(subquery);
+        Filters.Add(new FilterSubqueryClause(booleanOperator, column, negated, subquery));
+    }
+
+    public void AddSubquery(FilterBooleanOperator booleanOperator, Func<string> columnFactory, bool negated, SelectQueryModel subquery)
+    {
+        ThrowHelper.ThrowIfNull(columnFactory);
+        AddSubquery(booleanOperator, columnFactory(), negated, subquery);
+    }
+
     public void AddGroup(FilterBooleanOperator booleanOperator, IReadOnlyList<FilterNode> filters)
     {
         ThrowHelper.ThrowIfNull(filters);
@@ -65,6 +78,14 @@ internal sealed class FilterClauseBuilder
         if (op is (Op.IsNull or Op.IsNotNull) && value is not null)
         {
             throw new ArgumentException($"Operator {op} does not accept a value.", nameof(value));
+        }
+    }
+
+    private static void EnsureSingleColumnSubquery(SelectQueryModel subquery)
+    {
+        if (subquery.Columns.Count != 1)
+        {
+            throw new InvalidOperationException("Subquery filter requires exactly one selected column.");
         }
     }
 }

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Db4Net"
   text: "Safe, SQL-shaped fluent SQL for Dapper"
-  tagline: Build parameterized single-table queries and commands without turning Dapper into an ORM.
+  tagline: Build parameterized SQL-shaped queries and commands without turning Dapper into an ORM.
   actions:
     - theme: brand
       text: Get Started

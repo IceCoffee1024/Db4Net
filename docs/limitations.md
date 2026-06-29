@@ -1,6 +1,6 @@
 # Limitations
 
-Db4Net is intentionally focused on safe, SQL-shaped, single-table Dapper queries and commands.
+Db4Net is intentionally focused on safe, SQL-shaped Dapper queries and commands. The query builder is still intentionally compact: it supports typed table/view sources plus single-column `IN` subquery filters, but it is not a full SQL DSL.
 
 Included in the current alpha:
 
@@ -9,7 +9,7 @@ Included in the current alpha:
 - table and view overrides
 - entity and many-entity command conveniences
 - conflict-aware insert conveniences
-- `Where`, `OrWhere`, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
+- `Where`, `OrWhere`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - sync and async Dapper-style terminal methods
 - existing transaction pass-through, lightweight transaction scopes, command timeout, command type, and async cancellation token support
 

@@ -10,7 +10,7 @@ The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectExistsFrom<T>()`,
 
 Current version: `0.1.0-alpha.1`
 
-This alpha focuses on safe, SQL-shaped, single-table query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, `INSERT`, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
+This alpha focuses on safe, SQL-shaped query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, single-column `IN` subquery filters, `INSERT`, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
 NuGet packages include XML documentation and a symbols package for source debugging.
 
@@ -264,6 +264,19 @@ var users = db.SelectFrom<User>()
 
 This renders grouped SQL such as `WHERE ([Id] = @p0 OR [Name] = @p1) AND [Id] > @p2`. Plain `Where(...)` and `OrWhere(...)` chains follow SQL's normal operator precedence and do not add parentheses automatically.
 
+Use `WhereIn(...)`, `OrWhereIn(...)`, `WhereNotIn(...)`, and `OrWhereNotIn(...)` when an `IN` predicate should read from another single-column Db4Net `SELECT` query:
+
+```csharp
+var users = db.SelectFrom<User>()
+  .WhereIn(
+      u => u.Id,
+      db.SelectFrom<Order>(o => o.UserId)
+        .Where(o => o.Amount, Op.Gt, 100m))
+  .Query();
+```
+
+The subquery must select exactly one column. Db4Net renders outer and nested query parameters through the same parameter writer, so parameter names remain collision-free.
+
 Single command builders still support `ToCommand()`, and `Many` command builders support `ToCommands()` for inspecting the per-entity commands. None of these APIs add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
 
 Inspect SQL without executing it:
@@ -348,7 +361,7 @@ Included in the current alpha:
 - Many entity command conveniences such as `InsertMany(users)`, `InsertMany(users, table)`, `UpdateMany(users)`, `UpdateMany(users, table)`, `DeleteMany(users)`, and `DeleteMany(users, table)`
 - Conflict-aware insert conveniences such as `InsertOrIgnore(user)`, `InsertOrIgnoreMany(users)`, `InsertOrUpdate(user)`, `InsertOrUpdateMany(users)`, and their `table` overloads
 - Dynamic property-name projection with model validation
-- `Where`, `OrWhere`, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
+- `Where`, `OrWhere`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders
 - Sync and async Dapper-style query terminal methods
 - Existing transaction pass-through, lightweight transaction scopes, command timeout, command type, and async cancellation token support

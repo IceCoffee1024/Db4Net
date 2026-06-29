@@ -60,6 +60,65 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Query_where_in_subquery_executes_with_dapper()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var users = db
+            .SelectFrom<User>()
+            .WhereIn(
+                u => u.Id,
+                db.SelectFrom<User>(u => u.Id)
+                    .Where(u => u.Name, Op.Like, "A%"))
+            .Query()
+            .ToList();
+
+        Assert.Collection(users, user => Assert.Equal("Alice", user.Name));
+    }
+
+    [Fact]
+    public void Query_where_not_in_subquery_executes_with_dapper()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var users = db
+            .SelectFrom<User>()
+            .WhereNotIn(
+                u => u.Id,
+                db.SelectFrom<User>(u => u.Id)
+                    .Where(u => u.Name, Op.Like, "A%"))
+            .Query()
+            .ToList();
+
+        Assert.Collection(users, user => Assert.Equal("Bob", user.Name));
+    }
+
+    [Fact]
+    public void Query_or_where_in_subquery_executes_with_dapper()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var users = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 2)
+            .OrWhereIn(
+                u => u.Id,
+                db.SelectFrom<User>(u => u.Id)
+                    .Where(u => u.Name, Op.Like, "A%"))
+            .OrderBy(u => u.Id)
+            .Query()
+            .ToList();
+
+        Assert.Collection(
+            users,
+            user => Assert.Equal("Alice", user.Name),
+            user => Assert.Equal("Bob", user.Name));
+    }
+
+    [Fact]
     public async Task Query_async_executes_parameterized_sql_with_dapper()
     {
         await using var connection = CreateOpenConnection();

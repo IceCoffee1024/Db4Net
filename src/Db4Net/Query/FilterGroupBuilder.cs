@@ -35,6 +35,30 @@ public class FilterGroupBuilder
     }
 
     /// <summary>
+    /// Adds an AND <c>IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>IN</c> predicate.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder WhereIn(string column, SelectQueryBuilder subquery)
+    {
+        AddSubqueryFilter(FilterBooleanOperator.And, column, negated: false, subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>NOT IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>NOT IN</c> predicate.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder WhereNotIn(string column, SelectQueryBuilder subquery)
+    {
+        AddSubqueryFilter(FilterBooleanOperator.And, column, negated: true, subquery);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a parenthesized AND filter group.
     /// </summary>
     /// <param name="configure">Configures the nested filter group.</param>
@@ -71,6 +95,30 @@ public class FilterGroupBuilder
     }
 
     /// <summary>
+    /// Adds an OR <c>IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>IN</c> predicate.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder OrWhereIn(string column, SelectQueryBuilder subquery)
+    {
+        AddSubqueryFilter(FilterBooleanOperator.Or, column, negated: false, subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>NOT IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>NOT IN</c> predicate.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder OrWhereNotIn(string column, SelectQueryBuilder subquery)
+    {
+        AddSubqueryFilter(FilterBooleanOperator.Or, column, negated: true, subquery);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a parenthesized OR filter group.
     /// </summary>
     /// <param name="configure">Configures the nested filter group.</param>
@@ -93,5 +141,11 @@ public class FilterGroupBuilder
     internal void AddGroup(FilterBooleanOperator booleanOperator, IReadOnlyList<FilterNode> filters)
     {
         _filters.AddGroup(booleanOperator, filters);
+    }
+
+    private void AddSubqueryFilter(FilterBooleanOperator booleanOperator, string column, bool negated, SelectQueryBuilder subquery)
+    {
+        ThrowHelper.ThrowIfNull(subquery);
+        _filters.AddSubquery(booleanOperator, column, negated, subquery.ToModelSnapshot());
     }
 }

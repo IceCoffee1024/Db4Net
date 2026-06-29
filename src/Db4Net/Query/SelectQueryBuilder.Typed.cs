@@ -146,6 +146,56 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds an AND <c>IN</c> filter using a CLR property name from <typeparamref name="T"/> and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> WhereIn(string propertyName, SelectQueryBuilder subquery)
+    {
+        base.WhereIn(ModelMetadata<T>.GetColumn(propertyName).ColumnName, subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>IN</c> filter using a typed member selector and a single-column SELECT subquery.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> WhereIn<TValue>(Expression<Func<T, TValue>> memberSelector, SelectQueryBuilder subquery)
+    {
+        base.WhereIn(ModelMetadataProvider.GetColumnName(memberSelector), subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>NOT IN</c> filter using a CLR property name from <typeparamref name="T"/> and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>NOT IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> WhereNotIn(string propertyName, SelectQueryBuilder subquery)
+    {
+        base.WhereNotIn(ModelMetadata<T>.GetColumn(propertyName).ColumnName, subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>NOT IN</c> filter using a typed member selector and a single-column SELECT subquery.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>NOT IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> WhereNotIn<TValue>(Expression<Func<T, TValue>> memberSelector, SelectQueryBuilder subquery)
+    {
+        base.WhereNotIn(ModelMetadataProvider.GetColumnName(memberSelector), subquery);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a parenthesized AND filter group using typed member selectors or CLR property names.
     /// </summary>
     /// <param name="configure">Configures the nested filter group.</param>
@@ -209,6 +259,56 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     public new SelectQueryBuilder<T> OrWhere(string propertyName, Op op)
     {
         base.OrWhere(ModelMetadata<T>.GetColumn(propertyName).ColumnName, op);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>IN</c> filter using a CLR property name from <typeparamref name="T"/> and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrWhereIn(string propertyName, SelectQueryBuilder subquery)
+    {
+        base.OrWhereIn(ModelMetadata<T>.GetColumn(propertyName).ColumnName, subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>IN</c> filter using a typed member selector and a single-column SELECT subquery.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> OrWhereIn<TValue>(Expression<Func<T, TValue>> memberSelector, SelectQueryBuilder subquery)
+    {
+        base.OrWhereIn(ModelMetadataProvider.GetColumnName(memberSelector), subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>NOT IN</c> filter using a CLR property name from <typeparamref name="T"/> and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>NOT IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrWhereNotIn(string propertyName, SelectQueryBuilder subquery)
+    {
+        base.OrWhereNotIn(ModelMetadata<T>.GetColumn(propertyName).ColumnName, subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>NOT IN</c> filter using a typed member selector and a single-column SELECT subquery.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>NOT IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> OrWhereNotIn<TValue>(Expression<Func<T, TValue>> memberSelector, SelectQueryBuilder subquery)
+    {
+        base.OrWhereNotIn(ModelMetadataProvider.GetColumnName(memberSelector), subquery);
         return this;
     }
 

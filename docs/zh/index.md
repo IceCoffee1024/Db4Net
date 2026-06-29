@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Db4Net"
   text: "面向 Dapper 的安全 SQL 风格构建器"
-  tagline: "轻量、参数化、单表优先，不接管 Dapper 的执行与对象映射。"
+  tagline: "轻量、参数化、SQL 风格，不接管 Dapper 的执行与对象映射。"
   actions:
     - theme: brand
       text: 快速开始

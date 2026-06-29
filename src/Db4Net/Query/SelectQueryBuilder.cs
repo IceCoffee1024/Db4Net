@@ -106,6 +106,30 @@ public partial class SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds an AND <c>IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder WhereIn(string column, SelectQueryBuilder subquery)
+    {
+        AddSubqueryFilter(FilterBooleanOperator.And, column, negated: false, subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>NOT IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>NOT IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder WhereNotIn(string column, SelectQueryBuilder subquery)
+    {
+        AddSubqueryFilter(FilterBooleanOperator.And, column, negated: true, subquery);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a parenthesized AND filter group.
     /// </summary>
     /// <param name="configure">Configures the nested filter group.</param>
@@ -138,6 +162,30 @@ public partial class SelectQueryBuilder
     public SelectQueryBuilder OrWhere(string column, Op op)
     {
         _filters.AddValueFree(FilterBooleanOperator.Or, column, op);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrWhereIn(string column, SelectQueryBuilder subquery)
+    {
+        AddSubqueryFilter(FilterBooleanOperator.Or, column, negated: false, subquery);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>NOT IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="subquery">The single-column SELECT subquery used for the <c>NOT IN</c> predicate.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrWhereNotIn(string column, SelectQueryBuilder subquery)
+    {
+        AddSubqueryFilter(FilterBooleanOperator.Or, column, negated: true, subquery);
         return this;
     }
 
@@ -244,6 +292,11 @@ public partial class SelectQueryBuilder
         return this;
     }
 
+    internal SelectQueryModel ToModelSnapshot()
+    {
+        return _model.Clone();
+    }
+
     internal void AddFilterGroup(FilterBooleanOperator booleanOperator, IReadOnlyList<FilterNode> filters)
     {
         _filters.AddGroup(booleanOperator, filters);
@@ -306,8 +359,15 @@ public partial class SelectQueryBuilder
         return filter switch
         {
             FilterClause clause => clause with { Column = MapPropertyName<T>(clause.Column) },
+            FilterSubqueryClause clause => clause with { Column = MapPropertyName<T>(clause.Column) },
             FilterGroup group => group with { Filters = group.Filters.Select(MapFilter<T>).ToArray() },
             _ => throw new NotSupportedException($"Filter node {filter.GetType().Name} is not supported.")
         };
+    }
+
+    private void AddSubqueryFilter(FilterBooleanOperator booleanOperator, string column, bool negated, SelectQueryBuilder subquery)
+    {
+        ThrowHelper.ThrowIfNull(subquery);
+        _filters.AddSubquery(booleanOperator, column, negated, subquery.ToModelSnapshot());
     }
 }

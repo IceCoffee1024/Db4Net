@@ -240,6 +240,64 @@ public sealed class SelectQueryBuilderTests
     }
 
     [Fact]
+    public void Where_in_subquery_renders_nested_select_with_shared_parameters()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var command = database
+            .SelectFrom<User>()
+            .Where(u => u.Name, Op.Like, "A%")
+            .WhereIn(
+                u => u.Id,
+                database
+                    .SelectFrom<Order>(o => o.UserId)
+                    .Where(o => o.Amount, Op.Gt, 100m))
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Name] LIKE @p0 AND [Id] IN (SELECT [UserId] FROM [Orders] WHERE [Amount] > @p1)", command.Sql);
+        Assert.Equal("A%", command.Parameters.Get<string>("p0"));
+        Assert.Equal(100m, command.Parameters.Get<decimal>("p1"));
+    }
+
+    [Fact]
+    public void Or_where_not_in_subquery_renders_nested_select()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var command = database
+            .SelectFrom<User>()
+            .Where(u => u.Name, Op.Like, "A%")
+            .OrWhereNotIn(
+                u => u.Id,
+                database
+                    .SelectFrom<Order>(o => o.UserId)
+                    .Where(o => o.Amount, Op.Lte, 0m))
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Name] LIKE @p0 OR [Id] NOT IN (SELECT [UserId] FROM [Orders] WHERE [Amount] <= @p1)", command.Sql);
+        Assert.Equal("A%", command.Parameters.Get<string>("p0"));
+        Assert.Equal(0m, command.Parameters.Get<decimal>("p1"));
+    }
+
+    [Fact]
+    public void Where_in_subquery_uses_mapped_property_names_for_string_overloads()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var command = database
+            .SelectFrom<MappedUser>(u => u.DisplayName)
+            .WhereIn(
+                "Id",
+                database
+                    .SelectFrom<MappedUser>(u => u.Id)
+                    .Where("DisplayName", Op.Like, "A%"))
+            .ToCommand();
+
+        Assert.Equal("SELECT [display_name] AS [DisplayName] FROM [app_users] WHERE [Id] IN (SELECT [Id] FROM [app_users] WHERE [display_name] LIKE @p0)", command.Sql);
+        Assert.Equal("A%", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
     public void Or_where_renders_uppercase_boolean_operator()
     {
         var command = Db4NetDatabase
@@ -270,6 +328,27 @@ public sealed class SelectQueryBuilderTests
         Assert.Equal(1, command.Parameters.Get<int>("p0"));
         Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
         Assert.Equal("A%", command.Parameters.Get<string>("p2"));
+    }
+
+    [Fact]
+    public void Where_group_can_include_subquery_filters()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var command = database
+            .SelectFrom<User>()
+            .WhereGroup(group => group
+                .WhereIn(
+                    u => u.Id,
+                    database
+                        .SelectFrom<Order>(o => o.UserId)
+                        .Where(o => o.Amount, Op.Gt, 100m))
+                .OrWhere(u => u.Name, Op.Eq, "Alice"))
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE ([Id] IN (SELECT [UserId] FROM [Orders] WHERE [Amount] > @p0) OR [Name] = @p1)", command.Sql);
+        Assert.Equal(100m, command.Parameters.Get<decimal>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
     }
 
     [Fact]
@@ -359,5 +438,13 @@ public sealed class SelectQueryBuilderTests
 
         [NotMapped]
         public string Ignored { get; set; } = "";
+    }
+
+    [Table("Orders")]
+    private sealed class Order
+    {
+        public int UserId { get; set; }
+
+        public decimal Amount { get; set; }
     }
 }

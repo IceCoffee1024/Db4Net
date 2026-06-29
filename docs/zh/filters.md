@@ -14,6 +14,21 @@ var users = db.SelectFrom<User>()
 
 `Op.Eq` 搭配 `null` 会渲染为 `IS NULL`，`Op.NotEq` 搭配 `null` 会渲染为 `IS NOT NULL`。不需要值时，优先使用 `Op.IsNull` 和 `Op.IsNotNull`。
 
+## `IN` 子查询
+
+当 `IN` 的值来自另一段单列 Db4Net `SELECT` 查询时，使用 `WhereIn(...)`、`OrWhereIn(...)`、`WhereNotIn(...)` 或 `OrWhereNotIn(...)`：
+
+```csharp
+var users = db.SelectFrom<User>()
+    .WhereIn(
+        u => u.Id,
+        db.SelectFrom<Order>(o => o.UserId)
+            .Where(o => o.Amount, Op.Gt, 100m))
+    .Query();
+```
+
+子查询必须只选择一列。Db4Net 会把子查询渲染到 SQL 中，并让外层查询和子查询共享同一组参数编号。
+
 ## 分组
 
 混用 `AND` / `OR` 且需要明确括号时，使用 `WhereGroup(...)` 或 `OrWhereGroup(...)`：

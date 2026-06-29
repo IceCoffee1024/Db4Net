@@ -1,19 +1,16 @@
 using System.Collections;
 using System.Text;
-using Db4Net.Dialects;
 using Db4Net.Query;
 
 namespace Db4Net.Rendering;
 
 internal sealed class FilterSqlRenderer
 {
-    private readonly ISqlDialect _dialect;
-    private readonly SqlParameterWriter _parameters;
+    private readonly SqlRenderContext _context;
 
-    public FilterSqlRenderer(ISqlDialect dialect, SqlParameterWriter parameters)
+    public FilterSqlRenderer(SqlRenderContext context)
     {
-        _dialect = dialect;
-        _parameters = parameters;
+        _context = context;
     }
 
     public void Render(StringBuilder sql, IReadOnlyList<FilterNode> filters)
@@ -48,6 +45,9 @@ internal sealed class FilterSqlRenderer
             case FilterClause clause:
                 RenderClause(sql, clause);
                 break;
+            case FilterSubqueryClause clause:
+                RenderSubqueryClause(sql, clause);
+                break;
             case FilterGroup group:
                 RenderGroup(sql, group);
                 break;
@@ -58,9 +58,17 @@ internal sealed class FilterSqlRenderer
 
     private void RenderClause(StringBuilder sql, FilterClause filter)
     {
-        sql.Append(_dialect.QuoteIdentifier(filter.Column));
+        sql.Append(_context.Dialect.QuoteIdentifier(filter.Column));
         sql.Append(' ');
         sql.Append(RenderOperator(filter));
+    }
+
+    private void RenderSubqueryClause(StringBuilder sql, FilterSubqueryClause filter)
+    {
+        sql.Append(_context.Dialect.QuoteIdentifier(filter.Column));
+        sql.Append(filter.Negated ? " NOT IN (" : " IN (");
+        sql.Append(new SelectSqlRenderer(_context.Dialect).RenderSql(filter.Subquery, _context));
+        sql.Append(')');
     }
 
     private void RenderGroup(StringBuilder sql, FilterGroup group)
@@ -91,13 +99,13 @@ internal sealed class FilterSqlRenderer
         {
             Op.Eq when filter.Value is null => "IS NULL",
             Op.NotEq when filter.Value is null => "IS NOT NULL",
-            Op.Eq => $"= @{_parameters.Add(filter.Value)}",
-            Op.NotEq => $"<> @{_parameters.Add(filter.Value)}",
-            Op.Gt => $"> @{_parameters.Add(filter.Value)}",
-            Op.Gte => $">= @{_parameters.Add(filter.Value)}",
-            Op.Lt => $"< @{_parameters.Add(filter.Value)}",
-            Op.Lte => $"<= @{_parameters.Add(filter.Value)}",
-            Op.Like => $"LIKE @{_parameters.Add(filter.Value)}",
+            Op.Eq => $"= @{_context.Parameters.Add(filter.Value)}",
+            Op.NotEq => $"<> @{_context.Parameters.Add(filter.Value)}",
+            Op.Gt => $"> @{_context.Parameters.Add(filter.Value)}",
+            Op.Gte => $">= @{_context.Parameters.Add(filter.Value)}",
+            Op.Lt => $"< @{_context.Parameters.Add(filter.Value)}",
+            Op.Lte => $"<= @{_context.Parameters.Add(filter.Value)}",
+            Op.Like => $"LIKE @{_context.Parameters.Add(filter.Value)}",
             Op.In => $"IN ({RenderInParameters(filter.Value)})",
             Op.IsNull => "IS NULL",
             Op.IsNotNull => "IS NOT NULL",
@@ -115,7 +123,7 @@ internal sealed class FilterSqlRenderer
         var parameterNames = new List<string>();
         foreach (var item in values)
         {
-            parameterNames.Add($"@{_parameters.Add(item)}");
+            parameterNames.Add($"@{_context.Parameters.Add(item)}");
         }
 
         if (parameterNames.Count == 0)

@@ -15,6 +15,14 @@ internal sealed class SelectSqlRenderer
 
     public RenderedSqlCommand Render(SelectQueryModel model)
     {
+        var context = new SqlRenderContext(_dialect);
+        var sql = RenderSql(model, context);
+
+        return new RenderedSqlCommand(sql, context.DynamicParameters);
+    }
+
+    internal string RenderSql(SelectQueryModel model, SqlRenderContext context)
+    {
         var table = model.Table ?? throw new InvalidOperationException("A table must be specified before rendering SQL.");
         if (string.IsNullOrWhiteSpace(table))
         {
@@ -22,21 +30,20 @@ internal sealed class SelectSqlRenderer
         }
 
         var sql = new StringBuilder();
-        var parameters = new SqlParameterWriter();
-        var filters = new FilterSqlRenderer(_dialect, parameters);
+        var filters = new FilterSqlRenderer(context);
 
         ValidatePaging(model);
 
         sql.Append("SELECT ");
         sql.Append(RenderColumns(model));
         sql.Append(" FROM ");
-        sql.Append(_dialect.QuoteIdentifier(table));
+        sql.Append(context.Dialect.QuoteIdentifier(table));
 
         filters.Render(sql, model.Filters);
         RenderOrdering(sql, model);
-        RenderPaging(sql, model, parameters);
+        RenderPaging(sql, model, context.Parameters);
 
-        return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
+        return sql.ToString();
     }
 
     private void ValidatePaging(SelectQueryModel model)

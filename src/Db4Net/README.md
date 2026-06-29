@@ -1,6 +1,6 @@
 # Db4Net
 
-Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, parameterized single-table queries and commands while leaving execution and SELECT result materialization to Dapper.
+Db4Net is a lightweight fluent SQL builder for Dapper. It focuses on safe, parameterized SQL-shaped queries and commands while leaving execution and SELECT result materialization to Dapper.
 
 The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectExistsFrom<T>()`, `SelectCountFrom<T>()`, `SelectAggregateFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
 
@@ -275,6 +275,19 @@ var users = db.SelectFrom<User>()
 
 This renders grouped SQL such as `WHERE ([Id] = @p0 OR [Name] = @p1) AND [Id] > @p2`. Plain `Where(...)` and `OrWhere(...)` chains follow SQL's normal operator precedence and do not add parentheses automatically.
 
+Use `WhereIn(...)`, `OrWhereIn(...)`, `WhereNotIn(...)`, and `OrWhereNotIn(...)` when an `IN` predicate should read from another single-column Db4Net `SELECT` query:
+
+```csharp
+var users = db.SelectFrom<User>()
+  .WhereIn(
+      u => u.Id,
+      db.SelectFrom<Order>(o => o.UserId)
+        .Where(o => o.Amount, Op.Gt, 100m))
+  .Query();
+```
+
+The subquery must select exactly one column. Db4Net renders outer and nested query parameters through the same parameter writer, so parameter names remain collision-free.
+
 Single command builders generate inspectable SQL through `ToCommand()`, and `Many` command builders expose `ToCommands()` for inspecting the per-entity commands. None of these APIs add change tracking, relationship loading, identity maps, migrations, or `SaveChanges()` behavior.
 
 ## Mapping
@@ -330,6 +343,8 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 `Op.Eq` with `null` renders `IS NULL`, and `Op.NotEq` with `null` renders `IS NOT NULL`. Prefer `Op.IsNull` and `Op.IsNotNull` when no value is needed.
 
 Use `WhereGroup(...)` / `OrWhereGroup(...)` for nested parentheses. The group builder only exposes filter methods, so ordering, paging, and command rendering stay outside the group.
+
+Use `WhereIn(...)`, `OrWhereIn(...)`, `WhereNotIn(...)`, and `OrWhereNotIn(...)` for single-column `SELECT` subqueries used by `IN` predicates.
 
 ## Paging
 
@@ -471,7 +486,7 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed single-table `SELECT`, scalar aggregate, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, and lightweight transaction scopes are available for grouping explicit operations. Joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed `SELECT`, scalar aggregate, single-column `IN` subquery filters, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, and lightweight transaction scopes are available for grouping explicit operations. Joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
 
 SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. SQL Server renders a dialect-specific conflict-aware command; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
 

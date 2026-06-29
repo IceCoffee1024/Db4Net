@@ -285,6 +285,32 @@ public sealed class SelectQueryBuilderEdgeCaseTests
     }
 
     [Fact]
+    public void Where_in_subquery_requires_single_selected_column()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            database
+                .SelectFrom<User>()
+                .WhereIn(u => u.Id, database.SelectFrom<User>())
+                .ToCommand());
+
+        Assert.Contains("Subquery filter requires exactly one selected column.", ex.Message);
+    }
+
+    [Fact]
+    public void Where_in_subquery_rejects_null_subquery()
+    {
+        var ex = Assert.Throws<ArgumentNullException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .SelectFrom<User>()
+                .WhereIn(u => u.Id, null!));
+
+        Assert.Equal("subquery", ex.ParamName);
+    }
+
+    [Fact]
     public void Typed_member_selector_must_be_simple_member_access()
     {
         var ex = Assert.Throws<ArgumentException>(() =>

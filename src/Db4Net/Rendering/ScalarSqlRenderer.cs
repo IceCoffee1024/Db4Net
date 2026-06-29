@@ -17,8 +17,8 @@ internal sealed class ScalarSqlRenderer
     {
         var table = RequireIdentifier(model.Table, "A table must be specified before rendering SQL.");
         var sql = new StringBuilder();
-        var parameters = new SqlParameterWriter();
-        var filters = new FilterSqlRenderer(_dialect, parameters);
+        var context = new SqlRenderContext(_dialect);
+        var filters = new FilterSqlRenderer(context);
 
         if (model.ProjectionKind == ScalarProjectionKind.Exists)
         {
@@ -26,7 +26,7 @@ internal sealed class ScalarSqlRenderer
             sql.Append(_dialect.QuoteIdentifier(table));
             filters.Render(sql, model.Filters);
             sql.Append(") THEN 1 ELSE 0 END");
-            return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
+            return new RenderedSqlCommand(sql.ToString(), context.DynamicParameters);
         }
 
         sql.Append("SELECT ");
@@ -35,7 +35,7 @@ internal sealed class ScalarSqlRenderer
         sql.Append(_dialect.QuoteIdentifier(table));
         filters.Render(sql, model.Filters);
 
-        return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
+        return new RenderedSqlCommand(sql.ToString(), context.DynamicParameters);
     }
 
     private void RenderProjection(StringBuilder sql, ScalarQueryModel model)

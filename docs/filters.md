@@ -20,6 +20,21 @@ Common operators include equality, comparisons, `Like`, `In`, and null checks:
 
 `Op.Eq` with `null` renders `IS NULL`, and `Op.NotEq` with `null` renders `IS NOT NULL`. Prefer `Op.IsNull` and `Op.IsNotNull` when no value is needed.
 
+## `IN` Subqueries
+
+Use `WhereIn(...)`, `OrWhereIn(...)`, `WhereNotIn(...)`, and `OrWhereNotIn(...)` when the `IN` list comes from another single-column Db4Net `SELECT` query.
+
+```csharp
+var users = db.SelectFrom<User>()
+    .WhereIn(
+        u => u.Id,
+        db.SelectFrom<Order>(o => o.UserId)
+            .Where(o => o.Amount, Op.Gt, 100m))
+    .Query();
+```
+
+The subquery must select exactly one column. Db4Net renders the subquery as SQL and keeps one shared parameter sequence across the outer query and nested query.
+
 ## Grouped Filters
 
 Use `WhereGroup(...)` and `OrWhereGroup(...)` when mixed `AND` and `OR` filters need explicit parentheses.

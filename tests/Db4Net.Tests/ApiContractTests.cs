@@ -74,10 +74,23 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public void Select_query_builders_expose_subquery_filter_api()
+    {
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder), "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn");
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder<>), "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn");
+
+        foreach (var methodName in new[] { "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn" })
+        {
+            AssertSubqueryFilterSignature(typeof(SelectQueryBuilder), methodName, typeof(SelectQueryBuilder));
+            AssertTypedSubqueryFilterSignatures(methodName);
+        }
+    }
+
+    [Fact]
     public void Filter_group_builders_expose_filter_only_api()
     {
-        AssertPublicInstanceMethods(typeof(FilterGroupBuilder), "Where", "OrWhere", "WhereGroup", "OrWhereGroup");
-        AssertPublicInstanceMethods(typeof(FilterGroupBuilder<>), "Where", "OrWhere", "WhereGroup", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(FilterGroupBuilder), "Where", "OrWhere", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(FilterGroupBuilder<>), "Where", "OrWhere", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "OrWhereGroup");
 
         Assert.DoesNotContain(PublicInstanceMethods(typeof(FilterGroupBuilder)), method => method.Name is "OrderBy" or "Limit" or "Offset" or "Page" or "ToCommand");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(FilterGroupBuilder<>)), method => method.Name is "OrderBy" or "Limit" or "Offset" or "Page" or "ToCommand");
@@ -484,6 +497,34 @@ public sealed class ApiContractTests
         }
     }
 
+    private static void AssertSubqueryFilterSignature(Type builderType, string methodName, Type returnType)
+    {
+        Assert.Contains(
+            PublicInstanceMethods(builderType),
+            method => method.Name == methodName
+                && !method.IsGenericMethodDefinition
+                && method.ReturnType == returnType
+                && method.GetParameters() is [{ ParameterType: var columnType }, { ParameterType: var subqueryType }]
+                && columnType == typeof(string)
+                && subqueryType == typeof(SelectQueryBuilder));
+    }
+
+    private static void AssertTypedSubqueryFilterSignatures(string methodName)
+    {
+        var builderType = typeof(SelectQueryBuilder<>);
+        var modelType = builderType.GetGenericArguments()[0];
+
+        AssertSubqueryFilterSignature(builderType, methodName, builderType);
+        Assert.Contains(
+            PublicInstanceMethods(builderType),
+            method => method.Name == methodName
+                && method.IsGenericMethodDefinition
+                && method.ReturnType == builderType
+                && method.GetParameters() is [{ ParameterType: var selectorType }, { ParameterType: var subqueryType }]
+                && IsMemberSelectorParameter(selectorType, modelType)
+                && subqueryType == typeof(SelectQueryBuilder));
+    }
+
     private static MethodInfo[] PublicInstanceMethods(Type type)
     {
         return type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
@@ -646,6 +687,19 @@ public sealed class ApiContractTests
             && delegateType.GetGenericTypeDefinition() == typeof(Func<,>)
             && delegateType.GetGenericArguments()[0] == modelType
             && delegateType.GetGenericArguments()[1] == typeof(object);
+    }
+
+    private static bool IsMemberSelectorParameter(Type parameterType, Type modelType)
+    {
+        if (!parameterType.IsGenericType || parameterType.GetGenericTypeDefinition() != typeof(System.Linq.Expressions.Expression<>))
+        {
+            return false;
+        }
+
+        var delegateType = parameterType.GetGenericArguments()[0];
+        return delegateType.IsGenericType
+            && delegateType.GetGenericTypeDefinition() == typeof(Func<,>)
+            && delegateType.GetGenericArguments()[0] == modelType;
     }
 
     private static bool IsNonGenericStringOnlyCommandEntryPoint(MethodInfo method)
