@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using MySqlConnector;
 
@@ -210,6 +211,72 @@ public sealed class MySqlIntegrationTests
         }
     }
 
+    [SkippableFact]
+    public async Task Insert_execute_return_key_returns_generated_key()
+    {
+        var table = ExternalDatabaseTestSupport.CreateTableName("mysql", "generated_users");
+        await using var connection = await OpenConnectionAsync();
+
+        try
+        {
+            await ExecuteAsync(connection, $"""
+                CREATE TABLE `{table}` (`Id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `Name` varchar(100) NOT NULL);
+                """);
+            var db = connection.UseDb4Net(Db4NetOptions.MySql);
+
+            var id = await db
+                .Insert(new GeneratedKeyUser { Name = "Alice" }, table)
+                .ExecuteReturnKeyAsync<long>();
+
+            var user = await db
+                .SelectFrom<GeneratedKeyUser>(table)
+                .Where(u => u.Id, Op.Eq, id)
+                .QuerySingleOrDefaultAsync();
+
+            Assert.Equal(1L, id);
+            Assert.NotNull(user);
+            Assert.Equal("Alice", user.Name);
+        }
+        finally
+        {
+            await DropTableIfExistsAsync(connection, table);
+        }
+    }
+
+    [SkippableFact]
+    public async Task Insert_return_key_builder_execute_returns_explicit_key()
+    {
+        var table = ExternalDatabaseTestSupport.CreateTableName("mysql", "explicit_key_users");
+        await using var connection = await OpenConnectionAsync();
+
+        try
+        {
+            await ExecuteAsync(connection, $"""
+                CREATE TABLE `{table}` (`Id` int NOT NULL PRIMARY KEY, `Name` varchar(100) NOT NULL);
+                """);
+            var db = connection.UseDb4Net(Db4NetOptions.MySql);
+
+            var id = db
+                .InsertInto<User>(table)
+                .Values(new User { Id = 7, Name = "Alice" })
+                .ReturnKey(u => u.Id)
+                .Execute<int>();
+
+            var user = await db
+                .SelectFrom<User>(table)
+                .Where(u => u.Id, Op.Eq, id)
+                .QuerySingleOrDefaultAsync();
+
+            Assert.Equal(7, id);
+            Assert.NotNull(user);
+            Assert.Equal("Alice", user.Name);
+        }
+        finally
+        {
+            await DropTableIfExistsAsync(connection, table);
+        }
+    }
+
     private static async Task<MySqlConnection> OpenConnectionAsync()
     {
         var connection = new MySqlConnection(ExternalDatabaseTestSupport.GetRequiredConnectionString(ConnectionStringEnvironmentVariable));
@@ -251,6 +318,16 @@ public sealed class MySqlIntegrationTests
         public int Id { get; set; }
 
         public string Email { get; set; } = "";
+
+        public string Name { get; set; } = "";
+    }
+
+    [Table("generated_users")]
+    private sealed class GeneratedKeyUser
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public long Id { get; set; }
 
         public string Name { get; set; } = "";
     }

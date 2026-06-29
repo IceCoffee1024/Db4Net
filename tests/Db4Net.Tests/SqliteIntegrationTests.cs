@@ -1,5 +1,6 @@
 using Db4Net;
 using Microsoft.Data.Sqlite;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Threading;
 using System.Threading.Tasks;
@@ -661,6 +662,162 @@ public sealed class SqliteIntegrationTests
         Assert.Equal(1, affected);
         Assert.NotNull(user);
         Assert.Equal("Charlie", user.Name);
+    }
+
+    [Fact]
+    public void Insert_execute_return_key_returns_generated_key()
+    {
+        using var connection = CreateOpenGeneratedUsersConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var id = db
+            .Insert(new GeneratedKeyUser { Name = "Alice" })
+            .ExecuteReturnKey<long>();
+
+        var user = db
+            .SelectFrom<GeneratedKeyUser>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1L, id);
+        Assert.NotNull(user);
+        Assert.Equal("Alice", user.Name);
+    }
+
+    [Fact]
+    public void Insert_execute_return_key_can_use_explicit_selector_and_table_override()
+    {
+        using var connection = CreateOpenGeneratedUsersConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var id = db
+            .Insert(new GeneratedKeyUser { Name = "Alice" }, table: "generated_users_staging")
+            .ExecuteReturnKey<long>(u => u.Id);
+
+        var user = db
+            .SelectFrom<GeneratedKeyUser>("generated_users_staging")
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1L, id);
+        Assert.NotNull(user);
+        Assert.Equal("Alice", user.Name);
+    }
+
+    [Fact]
+    public void Insert_return_key_builder_execute_returns_generated_key()
+    {
+        using var connection = CreateOpenGeneratedUsersConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var id = db
+            .InsertInto<GeneratedKeyUser>()
+            .Values(new GeneratedKeyUser { Name = "Alice" })
+            .ReturnKey(u => u.Id)
+            .Execute<long>();
+
+        var user = db
+            .SelectFrom<GeneratedKeyUser>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1L, id);
+        Assert.NotNull(user);
+        Assert.Equal("Alice", user.Name);
+    }
+
+    [Fact]
+    public async Task Insert_execute_return_key_async_returns_generated_key()
+    {
+        await using var connection = CreateOpenGeneratedUsersConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        var id = await db
+            .Insert(new GeneratedKeyUser { Name = "Alice" })
+            .ExecuteReturnKeyAsync<long>(u => u.Id);
+
+        var user = await db
+            .SelectFrom<GeneratedKeyUser>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefaultAsync();
+
+        Assert.Equal(1L, id);
+        Assert.NotNull(user);
+        Assert.Equal("Alice", user.Name);
+    }
+
+    [Fact]
+    public void Insert_execute_return_key_uses_transaction_from_execution_options()
+    {
+        using var connection = CreateOpenGeneratedUsersConnection();
+        using var transaction = connection.BeginTransaction();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        var options = new Db4NetExecutionOptions { Transaction = transaction };
+
+        var id = db
+            .Insert(new GeneratedKeyUser { Name = "Alice" })
+            .ExecuteReturnKey<long>(options);
+
+        var userInTransaction = db
+            .SelectFrom<GeneratedKeyUser>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefault(options);
+
+        transaction.Rollback();
+
+        var afterRollback = db
+            .SelectFrom<GeneratedKeyUser>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1L, id);
+        Assert.NotNull(userInTransaction);
+        Assert.Null(afterRollback);
+    }
+
+    [Fact]
+    public void Insert_return_key_builder_execute_uses_transaction_from_execution_options()
+    {
+        using var connection = CreateOpenGeneratedUsersConnection();
+        using var transaction = connection.BeginTransaction();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+        var options = new Db4NetExecutionOptions { Transaction = transaction };
+
+        var id = db
+            .InsertInto<GeneratedKeyUser>()
+            .Values(new GeneratedKeyUser { Name = "Alice" })
+            .ReturnKey(u => u.Id)
+            .Execute<long>(options);
+
+        var userInTransaction = db
+            .SelectFrom<GeneratedKeyUser>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefault(options);
+
+        transaction.Rollback();
+
+        var afterRollback = db
+            .SelectFrom<GeneratedKeyUser>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefault();
+
+        Assert.Equal(1L, id);
+        Assert.NotNull(userInTransaction);
+        Assert.Null(afterRollback);
+    }
+
+    [Fact]
+    public async Task Insert_execute_return_key_async_uses_cancellation_token()
+    {
+        await using var connection = CreateOpenGeneratedUsersConnection();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .Insert(new GeneratedKeyUser { Name = "Alice" })
+                .ExecuteReturnKeyAsync<long>(cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -1596,6 +1753,19 @@ public sealed class SqliteIntegrationTests
         return connection;
     }
 
+    private static SqliteConnection CreateOpenGeneratedUsersConnection()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using var setup = connection.CreateCommand();
+        setup.CommandText = """
+            create table generated_users (Id integer primary key autoincrement, Name text not null);
+            create table generated_users_staging (Id integer primary key autoincrement, Name text not null);
+            """;
+        setup.ExecuteNonQuery();
+        return connection;
+    }
+
     private static SqliteConnection CreateOpenOrderMetricsConnection()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
@@ -1636,6 +1806,16 @@ public sealed class SqliteIntegrationTests
         public int Id { get; set; }
 
         public string Email { get; set; } = "";
+
+        public string Name { get; set; } = "";
+    }
+
+    [Table("generated_users")]
+    private sealed class GeneratedKeyUser
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public long Id { get; set; }
 
         public string Name { get; set; } = "";
     }

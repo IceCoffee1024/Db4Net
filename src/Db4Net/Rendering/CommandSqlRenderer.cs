@@ -21,9 +21,21 @@ internal sealed class CommandSqlRenderer
         }
 
         var parameterWriter = new SqlParameterWriter();
-        var columns = string.Join(", ", model.Values.Select(value => _dialect.QuoteIdentifier(value.Column)));
-        var parameters = string.Join(", ", model.Values.Select(value => $"@{parameterWriter.Add(value.Value)}"));
-        var sql = $"INSERT INTO {_dialect.QuoteIdentifier(model.Table)} ({columns}) VALUES ({parameters})";
+        var insertColumnNames = model.Values.Select(value => value.Column).ToArray();
+        var parameterNames = model.Values.Select(value => parameterWriter.Add(value.Value)).ToArray();
+        var returnKeyParameterName = model.ReturnKey is null
+            ? null
+            : model.Values
+                .Select((value, index) => new { value.Column, ParameterName = parameterNames[index] })
+                .FirstOrDefault(value => value.Column == model.ReturnKey.ColumnName)
+                ?.ParameterName;
+        var sql = _dialect.RenderInsert(
+            model.Table,
+            insertColumnNames,
+            parameterNames,
+            model.ReturnKey?.ColumnName,
+            returnKeyParameterName,
+            model.ReturnKey?.IsDatabaseGeneratedIdentity ?? false);
 
         return new RenderedSqlCommand(sql, parameterWriter.Parameters);
     }

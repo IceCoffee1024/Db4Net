@@ -25,6 +25,20 @@ internal sealed class DapperCommandExecutor
         return ExecuteAsync(command.Sql, command.Parameters, options, cancellationToken);
     }
 
+    public TResult ExecuteScalar<TResult>(RenderedSqlCommand command, Db4NetExecutionOptions? options = null)
+    {
+        var executionOptions = ResolveOptions(options);
+        executionOptions?.Validate();
+        return RequireConnection().ExecuteScalar<TResult>(CreateDapperCommand(command.Sql, command.Parameters, executionOptions))!;
+    }
+
+    public Task<TResult> ExecuteScalarAsync<TResult>(RenderedSqlCommand command, Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var executionOptions = ResolveOptions(options);
+        executionOptions?.Validate();
+        return RequireConnection().ExecuteScalarAsync<TResult>(CreateDapperCommand(command.Sql, command.Parameters, executionOptions, cancellationToken))!;
+    }
+
     public int Execute(string sql, object? parameters, Db4NetExecutionOptions? options = null)
     {
         var executionOptions = ResolveOptions(options);

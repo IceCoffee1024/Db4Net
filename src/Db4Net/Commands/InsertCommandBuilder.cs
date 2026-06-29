@@ -13,11 +13,15 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
 {
     private readonly InsertCommandModel _model;
     private readonly Db4NetOptions _options;
+    private readonly IDbConnection? _connection;
+    private readonly Db4NetExecutionOptions? _executionOptions;
 
     internal InsertCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, Db4NetExecutionOptions? executionOptions = null)
         : base(connection, executionOptions)
     {
         _options = options;
+        _connection = connection;
+        _executionOptions = executionOptions;
         _model = new InsertCommandModel { Table = table };
     }
 
@@ -63,10 +67,119 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
         return this;
     }
 
+    /// <summary>
+    /// Selects the mapped key column returned by this single-row INSERT command.
+    /// </summary>
+    /// <param name="keySelector">A simple key member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <returns>A scalar insert command builder for executing or inspecting the returned key command.</returns>
+    public InsertReturnKeyCommandBuilder<T> ReturnKey(Expression<Func<T, object?>> keySelector)
+    {
+        return new InsertReturnKeyCommandBuilder<T>(
+            _options,
+            _connection,
+            CreateReturnKeyModel(ResolveReturnKey(keySelector)),
+            _executionOptions);
+    }
+
+    /// <summary>
+    /// Executes this single-row INSERT command and returns the model's only mapped key.
+    /// </summary>
+    /// <typeparam name="TResult">The scalar key result type returned by the database.</typeparam>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <returns>The key value returned by the database.</returns>
+    public TResult ExecuteReturnKey<TResult>(Db4NetExecutionOptions? options = null)
+    {
+        return ExecuteScalar<TResult>(ToReturnKeyCommand(ResolveDefaultReturnKey()), options);
+    }
+
+    /// <summary>
+    /// Executes this single-row INSERT command and returns the selected mapped key.
+    /// </summary>
+    /// <typeparam name="TResult">The scalar key result type returned by the database.</typeparam>
+    /// <param name="keySelector">A simple key member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <returns>The key value returned by the database.</returns>
+    public TResult ExecuteReturnKey<TResult>(Expression<Func<T, object?>> keySelector, Db4NetExecutionOptions? options = null)
+    {
+        return ExecuteScalar<TResult>(ToReturnKeyCommand(ResolveReturnKey(keySelector)), options);
+    }
+
+    /// <summary>
+    /// Asynchronously executes this single-row INSERT command and returns the model's only mapped key.
+    /// </summary>
+    /// <typeparam name="TResult">The scalar key result type returned by the database.</typeparam>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
+    /// <returns>The key value returned by the database.</returns>
+    public Task<TResult> ExecuteReturnKeyAsync<TResult>(
+        Db4NetExecutionOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        return ExecuteScalarAsync<TResult>(ToReturnKeyCommand(ResolveDefaultReturnKey()), options, cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously executes this single-row INSERT command and returns the selected mapped key.
+    /// </summary>
+    /// <typeparam name="TResult">The scalar key result type returned by the database.</typeparam>
+    /// <param name="keySelector">A simple key member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
+    /// <returns>The key value returned by the database.</returns>
+    public Task<TResult> ExecuteReturnKeyAsync<TResult>(
+        Expression<Func<T, object?>> keySelector,
+        Db4NetExecutionOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        return ExecuteScalarAsync<TResult>(ToReturnKeyCommand(ResolveReturnKey(keySelector)), options, cancellationToken);
+    }
+
     /// <inheritdoc />
     public override RenderedSqlCommand ToCommand()
     {
         return new CommandSqlRenderer(_options.Dialect).Render(_model);
+    }
+
+    internal static ColumnMetadata ResolveDefaultReturnKey()
+    {
+        if (ModelMetadata<T>.KeyColumns.Count == 0)
+        {
+            throw new InvalidOperationException($"Type '{typeof(T).Name}' does not have a key. Add [Key] or an Id/{typeof(T).Name}Id property.");
+        }
+
+        if (ModelMetadata<T>.KeyColumns.Count > 1)
+        {
+            throw new InvalidOperationException($"Type '{typeof(T).Name}' has multiple keys. Specify the key selector to return.");
+        }
+
+        return ModelMetadata<T>.KeyColumns[0];
+    }
+
+    internal static ColumnMetadata ResolveReturnKey(Expression<Func<T, object?>> keySelector)
+    {
+        var column = ModelMetadataProvider.GetColumnMetadata(keySelector);
+        if (!column.IsKey)
+        {
+            throw new ArgumentException($"Member '{typeof(T).Name}.{column.PropertyName}' is not a key. ReturnKey requires a mapped key column.", nameof(keySelector));
+        }
+
+        return column;
+    }
+
+    private RenderedSqlCommand ToReturnKeyCommand(ColumnMetadata returnKey)
+    {
+        return new CommandSqlRenderer(_options.Dialect).Render(CreateReturnKeyModel(returnKey));
+    }
+
+    private InsertCommandModel CreateReturnKeyModel(ColumnMetadata returnKey)
+    {
+        var model = new InsertCommandModel
+        {
+            Table = _model.Table,
+            ReturnKey = returnKey,
+        };
+        model.Values.AddRange(_model.Values);
+        return model;
     }
 
     private static string MapPropertyName(string propertyName)

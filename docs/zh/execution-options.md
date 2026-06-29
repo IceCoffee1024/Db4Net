@@ -101,6 +101,20 @@ var users = await connection
 - `Execute()`
 - `ExecuteAsync()`
 
+常规单行插入的生成键终结方法也接受相同的执行选项和取消令牌：
+
+```csharp
+var id = await db.Insert(user)
+    .ExecuteReturnKeyAsync<long>(
+        new Db4NetExecutionOptions { Transaction = transaction },
+        cancellationToken);
+
+var explicitId = db.InsertInto<User>()
+    .Values(user)
+    .ReturnKey(u => u.Id)
+    .Execute<long>(new Db4NetExecutionOptions { CommandTimeout = 30 });
+```
+
 ::: tip 提示
 多实体便捷方法不会自己包一层事务。需要原子性时，使用 `BeginTransaction()` / `ExecuteInTransaction(...)`，或者通过 `Db4NetExecutionOptions.Transaction` 传入已有事务。
 :::

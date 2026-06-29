@@ -8,6 +8,7 @@ Included in the current alpha:
 - dynamic CLR property-name projection with model validation
 - table and view overrides
 - entity and many-entity command conveniences
+- regular single-row insert key return
 - conflict-aware insert conveniences
 - `Where`, `OrWhere`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
 - sync and async Dapper-style terminal methods
@@ -18,6 +19,11 @@ Intentionally out of scope:
 - joins
 - provider-native copy/import APIs
 - set-based synchronization or optimized batching
+- generated-key readback for `InsertMany(...)` or conflict-aware inserts
+- automatic refresh of all database-generated or computed values
+- MySQL generated-key readback for non-auto-increment generated keys such as trigger/default/expression-generated values
+- SQL Server generated-key readback for trigger-enabled tables that require `OUTPUT ... INTO`
+- SQLite generated-key readback on SQLite runtimes older than 3.35
 - change tracking, dirty checking, `SaveChanges()`, or unit-of-work behavior
 - relationship loading, cascade persistence, lazy loading, or proxy generation
 - migrations or schema management

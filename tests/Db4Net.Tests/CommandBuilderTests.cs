@@ -699,6 +699,147 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Insert_return_key_renders_sql_server_output_clause()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertInto<GeneratedKeyUser>()
+            .Values(new GeneratedKeyUser { Name = "Alice" })
+            .ReturnKey(u => u.Id)
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [generated_users] ([Name]) OUTPUT INSERTED.[Id] VALUES (@p0)", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void Insert_return_key_renders_postgresql_returning_clause()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.PostgreSql)
+            .InsertInto<GeneratedKeyUser>()
+            .Values(new GeneratedKeyUser { Name = "Alice" })
+            .ReturnKey(u => u.Id)
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO \"generated_users\" (\"Name\") VALUES (@p0) RETURNING \"Id\"", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void Insert_return_key_renders_sqlite_returning_clause()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .InsertInto<GeneratedKeyUser>()
+            .Values(new GeneratedKeyUser { Name = "Alice" })
+            .ReturnKey(u => u.Id)
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO \"generated_users\" (\"Name\") VALUES (@p0) RETURNING \"Id\"", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void Insert_return_key_renders_mysql_last_insert_id_for_generated_key()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.MySql)
+            .InsertInto<GeneratedKeyUser>()
+            .Values(new GeneratedKeyUser { Name = "Alice" })
+            .ReturnKey(u => u.Id)
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO `generated_users` (`Name`) VALUES (@p0); SELECT LAST_INSERT_ID()", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void Insert_return_key_renders_mysql_inserted_parameter_for_explicit_key_value()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.MySql)
+            .InsertInto<User>()
+            .Values(new User { Id = 7, Name = "Alice" })
+            .ReturnKey(u => u.Id)
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO `Users` (`Id`, `Name`) VALUES (@p0, @p1); SELECT @p0", command.Sql);
+        Assert.Equal(7, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Execute_return_key_rejects_missing_default_key_without_return_key_builder_step()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .InsertInto<NoKeyUser>()
+                .Value(u => u.Name, "Alice")
+                .ExecuteReturnKey<int>());
+
+        Assert.Contains("does not have a key", ex.Message);
+    }
+
+    [Fact]
+    public void Execute_return_key_requires_explicit_selector_for_composite_keys()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .InsertInto<CompositeKeyUser>()
+                .Values(new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" })
+                .ExecuteReturnKey<int>());
+
+        Assert.Contains("multiple keys", ex.Message);
+    }
+
+    [Fact]
+    public void Insert_return_key_allows_explicit_selector_for_composite_key_entity()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .InsertInto<CompositeKeyUser>()
+            .Values(new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" })
+            .ReturnKey(u => u.UserId)
+            .ToCommand();
+
+        Assert.Equal("INSERT INTO [CompositeKeyUser] ([TenantId], [UserId], [Name]) OUTPUT INSERTED.[UserId] VALUES (@p0, @p1, @p2)", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal(2, command.Parameters.Get<int>("p1"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p2"));
+    }
+
+    [Fact]
+    public void Insert_return_key_rejects_non_key_selector()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.SqlServer)
+                .InsertInto<GeneratedKeyUser>()
+                .Values(new GeneratedKeyUser { Name = "Alice" })
+                .ReturnKey(u => u.Name)
+                .ToCommand());
+
+        Assert.Contains("is not a key", ex.Message);
+    }
+
+    [Fact]
+    public void My_sql_insert_return_key_rejects_non_inserted_non_identity_key()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            Db4NetDatabase
+                .Create(Db4NetOptions.MySql)
+                .InsertInto<User>()
+                .Value(u => u.Name, "Alice")
+                .ReturnKey(u => u.Id)
+                .ToCommand());
+
+        Assert.Contains("auto-increment identity key", ex.Message);
+    }
+
+    [Fact]
     public void Insert_into_type_can_override_target_table()
     {
         var command = Db4NetDatabase

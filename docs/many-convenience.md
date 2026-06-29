@@ -16,7 +16,7 @@ var deleted = db
     .Execute();
 ```
 
-These methods execute one validated, parameterized Dapper command per entity and return the total affected row count. Empty sequences return `0`.
+These methods execute one validated, parameterized Dapper command per entity and return the total affected row count. Empty sequences return `0`. They do not return per-row generated keys; use regular single-row `Insert(entity).ExecuteReturnKey<TResult>()` when generated key readback is required.
 
 ## Inspect Commands
 

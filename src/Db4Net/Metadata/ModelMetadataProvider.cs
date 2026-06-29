@@ -90,7 +90,7 @@ internal static class ModelMetadataProvider
                 GetColumnName(property),
                 property,
                 IsKeyProperty(type, property, explicitKeyProperties),
-                IsDatabaseGenerated(property)))
+                GetDatabaseGeneratedOption(property)))
             .ToArray();
     }
 
@@ -145,10 +145,10 @@ internal static class ModelMetadataProvider
             || property.Name == $"{type.Name}Id";
     }
 
-    private static bool IsDatabaseGenerated(PropertyInfo property)
+    private static DatabaseGeneratedOption? GetDatabaseGeneratedOption(PropertyInfo property)
     {
         var attribute = property.GetCustomAttribute<DatabaseGeneratedAttribute>();
-        return attribute?.DatabaseGeneratedOption is DatabaseGeneratedOption.Identity or DatabaseGeneratedOption.Computed;
+        return attribute?.DatabaseGeneratedOption;
     }
 }
 
@@ -205,8 +205,12 @@ internal static class ModelMetadata<T>
     }
 }
 
-internal sealed record ColumnMetadata(string PropertyName, string ColumnName, PropertyInfo Property, bool IsKey, bool IsDatabaseGenerated)
+internal sealed record ColumnMetadata(string PropertyName, string ColumnName, PropertyInfo Property, bool IsKey, DatabaseGeneratedOption? DatabaseGeneratedOption)
 {
+    public bool IsDatabaseGenerated => DatabaseGeneratedOption is System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Identity or System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed;
+
+    public bool IsDatabaseGeneratedIdentity => DatabaseGeneratedOption == System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Identity;
+
     public object? GetValue(object entity)
     {
         return Property.GetValue(entity);

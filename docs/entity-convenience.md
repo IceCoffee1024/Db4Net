@@ -19,6 +19,15 @@ await connection
     .ExecuteAsync();
 ```
 
+For single-row inserts, use the generated-key terminal when you need the inserted key:
+
+```csharp
+var id = await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .Insert(user)
+    .ExecuteReturnKeyAsync<long>();
+```
+
 ## Table Overloads
 
 Entity conveniences can target an explicit table while keeping mapping from `T`.
@@ -38,6 +47,8 @@ Available single-entity conveniences:
 - `Delete(entity, table)`
 
 `Update(entity)` and `Delete(entity)` use key metadata for the `WHERE` clause.
+
+`Insert(entity).ExecuteReturnKey<TResult>()` uses the model's only mapped key. If a model has multiple keys, pass an explicit key selector such as `ExecuteReturnKey<long>(u => u.Id)`.
 
 Single-entity conveniences reject sequence values such as `List<User>` or `User[]`. Use `InsertMany(...)`, `UpdateMany(...)`, `DeleteMany(...)`, `InsertOrIgnoreMany(...)`, or `InsertOrUpdateMany(...)` for multiple objects.
 

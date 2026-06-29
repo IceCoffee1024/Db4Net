@@ -142,6 +142,29 @@ var affected = await connection
     .ExecuteAsync();
 ```
 
+Use `ExecuteReturnKey<TResult>()` when a regular single-row insert should return the inserted key:
+
+```csharp
+var id = await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .Insert(user)
+    .ExecuteReturnKeyAsync<long>();
+
+var stagedId = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .Insert(user, table: "users_staging")
+    .ExecuteReturnKey<long>(u => u.Id);
+
+var explicitId = connection
+    .UseDb4Net(Db4NetOptions.PostgreSql)
+    .InsertInto<User>()
+    .Values(user)
+    .ReturnKey(u => u.Id)
+    .Execute<long>();
+```
+
+Generated-key terminals are for regular single-row inserts. `InsertMany(...)`, `InsertOrIgnore(...)`, and `InsertOrUpdate(...)` return affected row counts and do not return per-row generated keys.
+
 Use `Update<T>()` with `Set(...)` and an explicit filter:
 
 ```csharp
@@ -197,6 +220,15 @@ await connection
     .UseDb4Net(Db4NetOptions.Sqlite)
     .Delete(user)
     .ExecuteAsync();
+```
+
+For a single inserted entity with a mapped key, use `ExecuteReturnKey<TResult>()` when you need the database-created key instead of the affected row count:
+
+```csharp
+var id = await connection
+    .UseDb4Net(Db4NetOptions.Sqlite)
+    .Insert(user)
+    .ExecuteReturnKeyAsync<long>();
 ```
 
 Single-entity convenience methods reject sequence values such as `List<User>` or `User[]`; use the matching `Many` method instead.
@@ -326,9 +358,9 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 `[Key]` and the `Id` / `<TypeName>Id` convention identify columns used to locate rows for entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, and `WhereKey(user)`. Conflict-aware inserts use key metadata as the default conflict target and can use composite `[Key]` metadata; entity update/delete conveniences and many update/delete conveniences require a single key column.
 
-`[Key]` is independent from `[DatabaseGenerated(...)]`. A `[Key]` column can also be `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]`: it is still used in `WHERE` predicates for updates and deletes, but Db4Net omits it from automatic insert values because the database generates it.
+`[Key]` is independent from `[DatabaseGenerated(...)]`. A `[Key]` column can also be `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]`: it is still used in `WHERE` predicates for updates and deletes, and it can be returned by explicit single-row insert key terminals, but Db4Net omits it from automatic insert values because the database generates it.
 
-`[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(users)`, and conflict-aware insert values. Database-generated non-key properties are also omitted from entity-driven update assignments in `Update(entity)` and `UpdateMany(users)`. Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Explicit `.Value(...)` and `.Set(...)` calls remain caller-controlled.
+`[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(users)`, and conflict-aware insert values. Database-generated non-key properties are also omitted from entity-driven update assignments in `Update(entity)` and `UpdateMany(users)`. Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Explicit `.Value(...)` and `.Set(...)` calls remain caller-controlled. Generated key readback is explicit and limited to regular single-row insert terminals; Db4Net does not mutate entity instances or refresh all computed values.
 
 ## Filters
 
@@ -421,6 +453,13 @@ INSERT, UPDATE, DELETE, and conflict-aware insert builders provide command termi
 - `Execute()`
 - `ExecuteAsync()`
 
+Regular single-row insert builders also provide generated-key terminal methods:
+
+- `ExecuteReturnKey<TResult>()`
+- `ExecuteReturnKeyAsync<TResult>()`
+- `ReturnKey(...).Execute<TResult>()`
+- `ReturnKey(...).ExecuteAsync<TResult>()`
+
 ## Execution Options
 
 Pass `Db4NetExecutionOptions` when you need a transaction, command timeout, or command type:
@@ -486,8 +525,10 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 ## Scope
 
-Current scope is focused on typed `SELECT`, scalar aggregate, single-column `IN` subquery filters, `INSERT`, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, and lightweight transaction scopes are available for grouping explicit operations. Joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
+Current scope is focused on typed `SELECT`, scalar aggregate, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, and lightweight transaction scopes are available for grouping explicit operations. Joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, generated/computed value refresh, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
 
 SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. SQL Server renders a dialect-specific conflict-aware command; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
+
+Generated-key insert terminals use SQL Server `OUTPUT INSERTED...`, SQLite/PostgreSQL `RETURNING`, and MySQL `LAST_INSERT_ID()` for auto-increment identity keys. SQLite requires runtime SQLite 3.35 or newer for `RETURNING`; SQL Server trigger-enabled tables can require an `OUTPUT ... INTO` pattern that Db4Net does not currently generate; MySQL does not return trigger/default/expression-generated non-identity keys through `LAST_INSERT_ID()`.
 
 For complex joins or database-specific SQL, use Dapper raw SQL directly or expose stable read models through database views.

@@ -12,6 +12,7 @@ All notable changes to Db4Net will be documented in this file.
 - Typed scalar aggregate query builders through `SelectAggregateFrom<T>()`, including `Max`, `Min`, `Sum`, `Average`, `CountDistinct`, terminal result typing for all scalar aggregates, and `table` override overloads.
 - Single-column SELECT subquery filters through `WhereIn`, `OrWhereIn`, `WhereNotIn`, and `OrWhereNotIn` on `SelectQueryBuilder`.
 - Typed `INSERT`, `UPDATE`, and `DELETE` command builders with `Execute()` / `ExecuteAsync()`.
+- Single-row INSERT generated-key terminals for regular insert builders: `ExecuteReturnKey<TResult>()`, `ExecuteReturnKeyAsync<TResult>()`, `ReturnKey(...).Execute<TResult>()`, and `ReturnKey(...).ExecuteAsync<TResult>()`.
 - Entity command conveniences: `Insert(entity)`, `Update(entity)`, `Delete(entity)`, and `table` override overloads.
 - Many-entity conveniences: `InsertMany`, `UpdateMany`, `DeleteMany`, and `table` override overloads. These use Dapper multi-execute style per-entity commands, not provider-native import/copy APIs.
 - Conflict-aware insert commands: `InsertOrIgnore`, `InsertOrIgnoreMany`, `InsertOrUpdate`, `InsertOrUpdateMany`, `OnConflict(...)`, and conflict update column selection.
@@ -46,3 +47,4 @@ All notable changes to Db4Net will be documented in this file.
 - No LINQ provider or full predicate expression translation such as `Where(u => u.Id == 1)`.
 - No change tracking, relationship loading, migrations, automatic concurrency tokens, or unit-of-work behavior.
 - Many-entity conveniences are not optimized bulk import/copy or set-based synchronization APIs.
+- Generated-key readback does not apply to `InsertMany`, conflict-aware inserts, or full generated/computed value refresh.

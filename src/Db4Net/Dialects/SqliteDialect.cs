@@ -20,4 +20,21 @@ internal sealed class SqliteDialect : ISqlDialect
 
         return $"LIMIT @{limitParameterName} OFFSET @{offsetParameterName}";
     }
+
+    public string RenderInsert(
+        string table,
+        IReadOnlyList<string> insertColumnNames,
+        IReadOnlyList<string> parameterNames,
+        string? returnKeyColumnName = null,
+        string? returnKeyParameterName = null,
+        bool returnKeyIsIdentity = false)
+    {
+        var columns = string.Join(", ", insertColumnNames.Select(QuoteIdentifier));
+        var parameters = string.Join(", ", parameterNames.Select(parameterName => $"@{parameterName}"));
+        var sql = $"INSERT INTO {QuoteIdentifier(table)} ({columns}) VALUES ({parameters})";
+
+        return returnKeyColumnName is null
+            ? sql
+            : $"{sql} RETURNING {QuoteIdentifier(returnKeyColumnName)}";
+    }
 }

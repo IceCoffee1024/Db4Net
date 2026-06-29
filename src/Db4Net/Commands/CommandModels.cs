@@ -1,4 +1,5 @@
 using Db4Net.Query;
+using Db4Net.Metadata;
 
 namespace Db4Net.Commands;
 
@@ -7,6 +8,8 @@ internal sealed class InsertCommandModel
     public required string Table { get; init; }
 
     public List<AssignmentClause> Values { get; } = [];
+
+    public ColumnMetadata? ReturnKey { get; init; }
 }
 
 internal sealed class UpdateCommandModel

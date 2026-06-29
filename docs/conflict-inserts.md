@@ -37,6 +37,8 @@ Available methods:
 
 When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target. Conflict-aware inserts can use composite `[Key]` metadata as the default target. This requires non-database-generated key columns; an identity key such as `[Key]` plus `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` is still valid for entity update/delete predicates, but it is not a valid conflict target.
 
+Conflict-aware insert terminals return affected row counts. Generated-key readback is intentionally limited to regular single-row `InsertInto<T>()` / `Insert(entity)` commands.
+
 ::: warning
 Database-generated mapped members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`.
 :::

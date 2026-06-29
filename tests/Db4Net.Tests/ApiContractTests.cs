@@ -266,8 +266,65 @@ public sealed class ApiContractTests
     [Fact]
     public void Insert_command_builder_exposes_command_api()
     {
-        AssertPublicInstanceMethods(typeof(InsertCommandBuilder<>), "Value", "Values", "ToCommand", "Execute", "ExecuteAsync");
+        AssertPublicInstanceMethods(typeof(InsertCommandBuilder<>), "Value", "Values", "ReturnKey", "ToCommand", "Execute", "ExecuteAsync", "ExecuteReturnKey", "ExecuteReturnKeyAsync");
         AssertBuilderEntityMethodSignature(typeof(InsertCommandBuilder<>), "Values");
+
+        var builderType = typeof(InsertCommandBuilder<>);
+        var modelType = builderType.GetGenericArguments()[0];
+        var methods = PublicInstanceMethods(builderType);
+
+        Assert.Contains(methods, method => method.Name == "ReturnKey"
+            && method.ReturnType.IsGenericType
+            && method.ReturnType.GetGenericTypeDefinition() == typeof(InsertReturnKeyCommandBuilder<>)
+            && method.GetParameters() is [{ ParameterType: var selectorType }]
+            && IsMemberSelectorParameter(selectorType, modelType));
+        Assert.DoesNotContain(methods, method => (method.Name is "Execute" or "ExecuteAsync") && method.IsGenericMethodDefinition);
+        Assert.Contains(methods, method => method.Name == "ExecuteReturnKey"
+            && method.IsGenericMethodDefinition
+            && method.GetParameters() is [{ ParameterType: var optionsType }]
+            && optionsType == typeof(Db4NetExecutionOptions));
+        Assert.Contains(methods, method => method.Name == "ExecuteReturnKey"
+            && method.IsGenericMethodDefinition
+            && method.GetParameters() is [{ ParameterType: var selectorType }, { ParameterType: var optionsType }]
+            && IsMemberSelectorParameter(selectorType, modelType)
+            && optionsType == typeof(Db4NetExecutionOptions));
+        Assert.Contains(methods, method => method.Name == "ExecuteReturnKeyAsync"
+            && method.IsGenericMethodDefinition
+            && method.ReturnType.IsGenericType
+            && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)
+            && method.GetParameters() is [{ ParameterType: var optionsType }, { ParameterType: var cancellationTokenType }]
+            && optionsType == typeof(Db4NetExecutionOptions)
+            && cancellationTokenType == typeof(CancellationToken));
+        Assert.Contains(methods, method => method.Name == "ExecuteReturnKeyAsync"
+            && method.IsGenericMethodDefinition
+            && method.ReturnType.IsGenericType
+            && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)
+            && method.GetParameters() is [{ ParameterType: var selectorType }, { ParameterType: var optionsType }, { ParameterType: var cancellationTokenType }]
+            && IsMemberSelectorParameter(selectorType, modelType)
+            && optionsType == typeof(Db4NetExecutionOptions)
+            && cancellationTokenType == typeof(CancellationToken));
+    }
+
+    [Fact]
+    public void Insert_return_key_command_builder_exposes_scalar_command_api()
+    {
+        AssertPublicInstanceMethods(typeof(InsertReturnKeyCommandBuilder<>), "ToCommand", "Execute", "ExecuteAsync");
+
+        var methods = PublicInstanceMethods(typeof(InsertReturnKeyCommandBuilder<>));
+        Assert.Contains(methods, method => method.Name == "Execute"
+            && method.IsGenericMethodDefinition
+            && method.GetParameters() is [{ ParameterType: var optionsType }]
+            && optionsType == typeof(Db4NetExecutionOptions));
+        Assert.Contains(methods, method => method.Name == "ExecuteAsync"
+            && method.IsGenericMethodDefinition
+            && method.ReturnType.IsGenericType
+            && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)
+            && method.GetParameters() is [{ ParameterType: var optionsType }, { ParameterType: var cancellationTokenType }]
+            && optionsType == typeof(Db4NetExecutionOptions)
+            && cancellationTokenType == typeof(CancellationToken));
+        Assert.DoesNotContain(methods, method => method.Name is "Value" or "Values" or "ReturnKey" or "ExecuteReturnKey" or "ExecuteReturnKeyAsync");
+        Assert.DoesNotContain(methods, method => method.Name == "Execute" && !method.IsGenericMethodDefinition);
+        Assert.DoesNotContain(methods, method => method.Name == "ExecuteAsync" && !method.IsGenericMethodDefinition);
     }
 
     [Fact]
@@ -382,6 +439,8 @@ public sealed class ApiContractTests
         Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertOrUpdateManyCommandBuilder<>)), method => method.Name == "ToCommand");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(UpdateManyCommandBuilder<>)), method => method.Name == "ToCommand");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(DeleteManyCommandBuilder<>)), method => method.Name == "ToCommand");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertManyCommandBuilder<>)), method => method.Name is "ReturnKey" or "ExecuteReturnKey" or "ExecuteReturnKeyAsync");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertManyCommandBuilder<>)), method => (method.Name is "Execute" or "ExecuteAsync") && method.IsGenericMethodDefinition);
     }
 
     [Fact]
@@ -389,6 +448,10 @@ public sealed class ApiContractTests
     {
         AssertPublicInstanceMethods(typeof(InsertOrIgnoreCommandBuilder<>), "OnConflict", "ToCommand", "Execute", "ExecuteAsync");
         AssertPublicInstanceMethods(typeof(InsertOrUpdateCommandBuilder<>), "OnConflict", "Update", "ToCommand", "Execute", "ExecuteAsync");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertOrIgnoreCommandBuilder<>)), method => method.Name is "ReturnKey" or "ExecuteReturnKey" or "ExecuteReturnKeyAsync");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertOrUpdateCommandBuilder<>)), method => method.Name is "ReturnKey" or "ExecuteReturnKey" or "ExecuteReturnKeyAsync");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertOrIgnoreCommandBuilder<>)), method => (method.Name is "Execute" or "ExecuteAsync") && method.IsGenericMethodDefinition);
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(InsertOrUpdateCommandBuilder<>)), method => (method.Name is "Execute" or "ExecuteAsync") && method.IsGenericMethodDefinition);
     }
 
     [Fact]

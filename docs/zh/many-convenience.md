@@ -16,7 +16,7 @@ var deleted = db
     .Execute();
 ```
 
-这些方法会通过 Dapper 执行每个实体对应的已验证、参数化命令，并返回总影响行数。空序列返回 `0`。
+这些方法会通过 Dapper 执行每个实体对应的已验证、参数化命令，并返回总影响行数。空序列返回 `0`。它们不会返回每一行的数据库生成键；需要生成键回读时，请使用常规单行 `Insert(entity).ExecuteReturnKey<TResult>()`。
 
 ::: warning 事务
 `Many` API 不会自己包一层事务。如果一组多实体操作必须原子化，请使用 `BeginTransaction()` / `ExecuteInTransaction(...)`，或者通过 `Db4NetExecutionOptions.Transaction` 传入已有事务。

@@ -112,3 +112,17 @@ var affected = await db.UpdateMany(users)
         new Db4NetExecutionOptions { Transaction = transaction },
         cancellationToken);
 ```
+
+Generated-key insert terminals accept the same options and cancellation pattern:
+
+```csharp
+var id = await db.Insert(user)
+    .ExecuteReturnKeyAsync<long>(
+        new Db4NetExecutionOptions { Transaction = transaction },
+        cancellationToken);
+
+var explicitId = db.InsertInto<User>()
+    .Values(user)
+    .ReturnKey(u => u.Id)
+    .Execute<long>(new Db4NetExecutionOptions { CommandTimeout = 30 });
+```

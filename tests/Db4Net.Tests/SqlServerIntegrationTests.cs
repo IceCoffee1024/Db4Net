@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.Data.SqlClient;
 
@@ -210,6 +211,38 @@ public sealed class SqlServerIntegrationTests
         }
     }
 
+    [SkippableFact]
+    public async Task Insert_execute_return_key_returns_generated_key()
+    {
+        var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "generated_users");
+        await using var connection = await OpenConnectionAsync();
+
+        try
+        {
+            await ExecuteAsync(connection, $"""
+                CREATE TABLE [{table}] ([Id] int IDENTITY(1,1) NOT NULL PRIMARY KEY, [Name] nvarchar(100) NOT NULL);
+                """);
+            var db = connection.UseDb4Net(Db4NetOptions.SqlServer);
+
+            var id = await db
+                .Insert(new GeneratedKeyUser { Name = "Alice" }, table)
+                .ExecuteReturnKeyAsync<long>();
+
+            var user = await db
+                .SelectFrom<GeneratedKeyUser>(table)
+                .Where(u => u.Id, Op.Eq, id)
+                .QuerySingleOrDefaultAsync();
+
+            Assert.Equal(1L, id);
+            Assert.NotNull(user);
+            Assert.Equal("Alice", user.Name);
+        }
+        finally
+        {
+            await DropTableIfExistsAsync(connection, table);
+        }
+    }
+
     private static async Task<SqlConnection> OpenConnectionAsync()
     {
         var connection = new SqlConnection(ExternalDatabaseTestSupport.GetRequiredConnectionString(ConnectionStringEnvironmentVariable));
@@ -251,6 +284,16 @@ public sealed class SqlServerIntegrationTests
         public int Id { get; set; }
 
         public string Email { get; set; } = "";
+
+        public string Name { get; set; } = "";
+    }
+
+    [Table("generated_users")]
+    private sealed class GeneratedKeyUser
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public long Id { get; set; }
 
         public string Name { get; set; } = "";
     }
