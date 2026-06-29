@@ -1338,7 +1338,7 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
-    public void Select_aggregate_from_type_renders_sum_with_inferred_result_type()
+    public void Select_aggregate_from_type_renders_sum_with_terminal_result_type()
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.Sqlite)
@@ -1352,24 +1352,24 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
-    public void Select_aggregate_from_type_renders_sum_with_explicit_generic_value_type()
+    public void Select_aggregate_from_type_renders_sum_without_method_generic_type()
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
-            .Sum<long>(o => o.Quantity)
+            .Sum(o => o.Quantity)
             .ToCommand();
 
         Assert.Equal("SELECT SUM(\"quantity\") FROM \"order_metrics\"", command.Sql);
     }
 
     [Fact]
-    public void Select_aggregate_from_type_renders_average_with_explicit_result_type()
+    public void Select_aggregate_from_type_renders_average_without_method_generic_type()
     {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
-            .Average<decimal>(o => o.Quantity)
+            .Average(o => o.Quantity)
             .Where(o => o.Amount, Op.Gte, 10m)
             .ToCommand();
 

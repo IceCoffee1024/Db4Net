@@ -156,7 +156,7 @@ db.SelectFrom<User>()
 - typed builder 终止方法：`Query()`、`QueryFirstOrDefault()`、`QuerySingleOrDefault()`
 - typed builder async 终止方法：`QueryAsync()`、`QueryFirstOrDefaultAsync()`、`QuerySingleOrDefaultAsync()`
 - 非泛型 builder 显式结果类型终止方法：`Query<T>()`、`QueryFirstOrDefault<T>()`、`QuerySingleOrDefault<T>()` 及对应 async 方法
-- `SelectExistsFrom<T>()`、`SelectCountFrom<T>()`、`SelectAggregateFrom<T>()` 标量查询入口；`SelectAggregateFrom<T>()` 支持 `Max`、`Min`、`Sum`、`Average<TResult>`、`CountDistinct`，其中 `Max` / `Min` / 可推断类型的 `Sum` 面向值类型列并保留 SQL 空结果的可空语义，`Average<TResult>` 要求显式指定标量读取类型
+- `SelectExistsFrom<T>()`、`SelectCountFrom<T>()`、`SelectAggregateFrom<T>()` 标量查询入口；`SelectAggregateFrom<T>()` 支持 `Max`、`Min`、`Sum`、`Average`、`CountDistinct`，其中 `Max` / `Min` / `CountDistinct` 保留默认终止方法，`Sum` / `Average` 使用终端 `Execute<TResult>()` / `ExecuteAsync<TResult>()` 指定标量读取类型
 - `InsertInto<T>()`、`Update<T>()`、`DeleteFrom<T>()`
 - `InsertInto<T>(string)`、`Update<T>(string)`、`DeleteFrom<T>(string)`
 - `Value(...)`、`Values(entity)`、`Set(...)`、`WhereKey(entity)`、命令 builder 上的 `Execute()`、`ExecuteAsync()`
@@ -228,7 +228,7 @@ SQL 渲染和 Dapper 执行保持分离。
 - `Version`: `0.1.0-alpha.1`
 - `Authors`: `IceCoffee1024`
 - `Description`: `Safe, SQL-shaped fluent query and command builder for Dapper.`
-- `PackageReleaseNotes`: `0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, scalar aggregate queries including sum and explicit-result average, entity and many conveniences, conflict-aware inserts, generated-column safeguards, paging validation, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.`
+- `PackageReleaseNotes`: `0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, scalar aggregate queries with terminal-typed sum and average, entity and many conveniences, conflict-aware inserts, generated-column safeguards, paging validation, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.`
 - `PackageTags`: `dapper;sql;fluent;query-builder`
 - `PackageReadmeFile`: `README.md`
 - `PackageLicenseExpression`: `MIT`

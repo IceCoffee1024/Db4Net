@@ -11,24 +11,24 @@ Add `Sum` with two forms:
 ```csharp
 db.SelectAggregateFrom<Order>()
   .Sum(o => o.Amount)
-  .Execute();
+  .Execute<decimal>();
 
 db.SelectAggregateFrom<Order>()
-  .Sum<decimal>(o => o.Amount)
-  .Execute();
+  .Sum(o => o.Quantity)
+  .Execute<long>();
 ```
 
-The first form infers the selected value type from the mapped member and returns `TValue?`. The second form uses the same `Sum<TValue>` method with an explicit generic value type, which is useful when callers want Dapper to read the scalar into a wider numeric type.
+`Sum(...)` builds the SQL projection. The terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call chooses the scalar result type used by Dapper. Use a nullable result type, such as `decimal?`, when callers need to preserve SQL `NULL` for empty result sets.
 
-Add `Average` only with an explicit result type:
+Add `Average` with the same terminal result typing rule:
 
 ```csharp
 db.SelectAggregateFrom<Order>()
-  .Average<decimal>(o => o.Quantity)
-  .Execute();
+  .Average(o => o.Quantity)
+  .Execute<decimal>();
 ```
 
-Do not add `Average(o => o.Quantity)` in this iteration. For integer columns, an inferred `int?` average is mathematically misleading and provider behavior varies.
+Do not infer an average result type from the selected member. For integer columns, an inferred `int?` average is mathematically misleading and provider behavior varies.
 
 ## Internal Design
 
@@ -41,13 +41,15 @@ SELECT SUM("Amount") FROM "Orders"
 SELECT AVG("Quantity") FROM "Orders"
 ```
 
-Reuse the existing `SelectAggregateScalarQueryBuilder<T, TResult>` for filters, grouped filters, command rendering, and Dapper scalar execution.
+Reuse `SelectAggregateScalarQueryBuilder<T, TResult>` for aggregates with default result types and add `SelectAggregateScalarQueryBuilder<T>` for `Sum(...)` / `Average(...)`, where the terminal method chooses the scalar result type.
 
 ## Type Rules
 
-`Sum<TValue>(Expression<Func<T, TValue>> memberSelector) where TValue : struct` returns `SelectAggregateScalarQueryBuilder<T, TValue?>`. The same method covers explicit generic calls such as `Sum<long>(o => o.Quantity)`.
+`Sum(Expression<Func<T, object?>> memberSelector)` returns `SelectAggregateScalarQueryBuilder<T>`. `Sum` itself has no public generic method parameter.
 
-`Average<TResult>(Expression<Func<T, object?>> memberSelector) where TResult : struct` returns `SelectAggregateScalarQueryBuilder<T, TResult?>`. Keeping `TResult` out of the selector delegate forces callers to choose an appropriate result type such as `decimal` or `double`.
+`Average(Expression<Func<T, object?>> memberSelector)` returns `SelectAggregateScalarQueryBuilder<T>`. `Average` itself has no public generic method parameter.
+
+`SelectAggregateScalarQueryBuilder<T>` exposes `Execute<TResult>()` and `ExecuteAsync<TResult>()`, forcing callers to choose an appropriate result type such as `decimal`, `decimal?`, `double`, or `long`.
 
 ## Testing
 

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add `Sum` and explicit-result `Average` aggregate methods to `SelectAggregateFrom<T>()`.
+**Goal:** Add `Sum` and `Average` aggregate methods to `SelectAggregateFrom<T>()`, with scalar result typing on terminal `Execute<TResult>()` / `ExecuteAsync<TResult>()`.
 
 **Architecture:** Extend the existing scalar aggregate pipeline instead of adding new query builders. `SelectAggregateQueryBuilder<T>` chooses the projection and result type; `ScalarSqlRenderer` renders the SQL; existing scalar builder/executor handles filters and Dapper execution.
 
@@ -19,7 +19,7 @@
 
 - [ ] Add SQL rendering tests for `SUM(...)` and `AVG(...)`.
 - [ ] Add API contract tests for `Sum` and `Average`, including no non-generic `Average`.
-- [ ] Add SQLite execution tests for inferred sum, explicit generic sum value type, explicit average, and empty-set sum/average null results.
+- [ ] Add SQLite execution tests for terminal-typed sum, terminal-typed average, async terminal typed execution, and empty-set sum/average null results.
 - [ ] Run targeted tests and confirm failure is caused by missing API/projection support.
 
 ### Task 2: Implementation

@@ -94,7 +94,7 @@ var matchingCount = await connection
     .ExecuteAsync();
 ```
 
-Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, and `Sum(...)` operate on mapped value-type columns and return nullable values because SQL aggregates return `NULL` for empty result sets. `Sum(...)` can usually infer the value type, and you can specify the generic value type explicitly when needed. `Average<TResult>(...)` uses an explicit scalar read type and intentionally requires a generic result type. `CountDistinct(...)` returns a `long`:
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, and `Average(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Sum(selector).Execute<TResult>()` or `Average(selector).Execute<TResult>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets. `CountDistinct(...)` returns a `long`:
 
 ```csharp
 var latestId = connection
@@ -114,19 +114,19 @@ var totalAmount = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
     .Sum(o => o.Amount)
-    .Execute();
+    .Execute<decimal>();
 
 var totalQuantity = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
-    .Sum<long>(o => o.Quantity)
-    .Execute();
+    .Sum(o => o.Quantity)
+    .Execute<long>();
 
 var averageQuantity = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
-    .Average<decimal>(o => o.Quantity)
-    .Execute();
+    .Average(o => o.Quantity)
+    .Execute<decimal>();
 ```
 
 Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, `Select("SUM(...)")`, `Select("AVG(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
@@ -399,7 +399,7 @@ Typed SELECT builders provide Dapper-style query terminal methods that materiali
 
 The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()` for advanced materialization scenarios.
 
-Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. Aggregate query builders return scalar results through `Execute()` and `ExecuteAsync()`.
+Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. For `Sum(...)` and `Average(...)` aggregate queries, specify the scalar read type with terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()`.
 
 INSERT, UPDATE, DELETE, and conflict-aware insert builders provide command terminal methods:
 

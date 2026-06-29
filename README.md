@@ -92,7 +92,7 @@ var matchingCount = await connection
     .ExecuteAsync();
 ```
 
-Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, and `Sum(...)` operate on mapped value-type columns and return nullable values because SQL aggregates return `NULL` for empty result sets. `Sum(...)` can usually infer the value type, and you can specify the generic value type explicitly when needed. `Average<TResult>(...)` uses an explicit scalar read type and intentionally requires a generic result type. `CountDistinct(...)` returns a `long`:
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, and `Average(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Sum(selector).Execute<TResult>()` or `Average(selector).Execute<TResult>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets. `CountDistinct(...)` returns a `long`:
 
 ```csharp
 var latestId = connection
@@ -112,19 +112,19 @@ var totalAmount = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
     .Sum(o => o.Amount)
-    .Execute();
+    .Execute<decimal>();
 
 var totalQuantity = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
-    .Sum<long>(o => o.Quantity)
-    .Execute();
+    .Sum(o => o.Quantity)
+    .Execute<long>();
 
 var averageQuantity = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
-    .Average<decimal>(o => o.Quantity)
-    .Execute();
+    .Average(o => o.Quantity)
+    .Execute<decimal>();
 ```
 
 Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, `Select("SUM(...)")`, `Select("AVG(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
@@ -341,7 +341,7 @@ Included in the current alpha:
 - Typed `SELECT` builders
 - Typed existence query builders through `SelectExistsFrom<T>()`
 - Typed count query builders through `SelectCountFrom<T>()`
-- Typed scalar aggregate query builders through `SelectAggregateFrom<T>()` with `Max`, `Min`, inferred or explicitly typed `Sum`, explicit-result `Average`, and `CountDistinct`
+- Typed scalar aggregate query builders through `SelectAggregateFrom<T>()` with `Max`, `Min`, `Sum`, `Average`, `CountDistinct`, and terminal result typing for `Sum`/`Average`
 - Typed `INSERT`, `UPDATE`, and `DELETE` builders
 - SQL-shaped command target overrides such as `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")`
 - Entity command conveniences such as `Values(entity)`, `WhereKey(entity)`, `Insert(entity)`, `Insert(entity, table)`, `Update(entity)`, `Update(entity, table)`, `Delete(entity)`, and `Delete(entity, table)`

@@ -189,17 +189,16 @@ public sealed class ApiContractTests
                 && method.ReturnType.GetGenericArguments()[1] == typeof(long));
         Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
             method.Name == "Sum"
+                && !method.IsGenericMethodDefinition
                 && method.ReturnType.IsGenericType
-                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<,>)
-                && method.ReturnType.GetGenericArguments()[1].IsGenericType
-                && method.ReturnType.GetGenericArguments()[1].GetGenericTypeDefinition() == typeof(Nullable<>));
+                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<>));
         Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
             method.Name == "Average"
+                && !method.IsGenericMethodDefinition
                 && method.ReturnType.IsGenericType
-                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<,>)
-                && method.ReturnType.GetGenericArguments()[1].IsGenericType
-                && method.ReturnType.GetGenericArguments()[1].GetGenericTypeDefinition() == typeof(Nullable<>));
-        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), IsInferredAverageMethod);
+                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<>));
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
+            (method.Name is "Sum" or "Average") && method.IsGenericMethodDefinition);
     }
 
     [Fact]
@@ -214,12 +213,43 @@ public sealed class ApiContractTests
             "ToCommand",
             "Execute",
             "ExecuteAsync");
+
+        AssertPublicInstanceMethods(
+            typeof(SelectAggregateScalarQueryBuilder<>),
+            "Where",
+            "OrWhere",
+            "WhereGroup",
+            "OrWhereGroup",
+            "ToCommand",
+            "Execute",
+            "ExecuteAsync");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateScalarQueryBuilder<>)), method =>
+            (method.Name is "Execute" or "ExecuteAsync") && !method.IsGenericMethodDefinition);
     }
 
     [Fact]
     public void Select_aggregate_scalar_query_builder_does_not_expose_row_query_or_paging_api()
     {
         Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateScalarQueryBuilder<,>)), method =>
+            method.Name is "Select"
+                or "OrderBy"
+                or "OrderByDescending"
+                or "Limit"
+                or "Offset"
+                or "Page"
+                or "Query"
+                or "QueryAsync"
+                or "QuerySingle"
+                or "QuerySingleAsync"
+                or "QuerySingleOrDefault"
+                or "QuerySingleOrDefaultAsync"
+                or "QueryFirstOrDefault"
+                or "QueryFirstOrDefaultAsync"
+                or "Sum"
+                or "Average"
+                or "Avg"
+                or "Count");
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateScalarQueryBuilder<>)), method =>
             method.Name is "Select"
                 or "OrderBy"
                 or "OrderByDescending"

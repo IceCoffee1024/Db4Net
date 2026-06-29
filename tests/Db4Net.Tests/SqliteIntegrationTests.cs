@@ -391,7 +391,7 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
-    public void Select_aggregate_sum_execute_returns_inferred_nullable_value()
+    public void Select_aggregate_sum_execute_returns_terminal_result_type()
     {
         using var connection = CreateOpenOrderMetricsConnection();
 
@@ -399,21 +399,21 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
             .Sum(o => o.Amount)
-            .Execute();
+            .Execute<decimal>();
 
         Assert.Equal(31.0m, sum);
     }
 
     [Fact]
-    public void Select_aggregate_sum_execute_returns_explicit_generic_value_type()
+    public void Select_aggregate_sum_execute_returns_long_terminal_result_type()
     {
         using var connection = CreateOpenOrderMetricsConnection();
 
         var sum = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
-            .Sum<long>(o => o.Quantity)
-            .Execute();
+            .Sum(o => o.Quantity)
+            .Execute<long>();
 
         Assert.Equal(7L, sum);
     }
@@ -428,21 +428,21 @@ public sealed class SqliteIntegrationTests
             .SelectAggregateFrom<OrderMetric>()
             .Sum(o => o.Amount)
             .Where(o => o.Id, Op.Eq, 99)
-            .Execute();
+            .Execute<decimal?>();
 
         Assert.Null(sum);
     }
 
     [Fact]
-    public void Select_aggregate_average_execute_returns_explicit_result_type()
+    public void Select_aggregate_average_execute_returns_terminal_result_type()
     {
         using var connection = CreateOpenOrderMetricsConnection();
 
         var average = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
-            .Average<decimal>(o => o.Quantity)
-            .Execute();
+            .Average(o => o.Quantity)
+            .Execute<decimal>();
 
         Assert.Equal(3.5m, average);
     }
@@ -455,10 +455,24 @@ public sealed class SqliteIntegrationTests
         var average = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
-            .Average<double>(o => o.Quantity)
-            .Execute();
+            .Average(o => o.Quantity)
+            .Execute<double>();
 
         Assert.Equal(3.5d, average);
+    }
+
+    [Fact]
+    public async Task Select_aggregate_average_execute_async_returns_terminal_result_type()
+    {
+        await using var connection = CreateOpenOrderMetricsConnection();
+
+        var average = await connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<OrderMetric>()
+            .Average(o => o.Quantity)
+            .ExecuteAsync<decimal>();
+
+        Assert.Equal(3.5m, average);
     }
 
     [Fact]
@@ -469,9 +483,9 @@ public sealed class SqliteIntegrationTests
         var average = connection
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
-            .Average<decimal>(o => o.Quantity)
+            .Average(o => o.Quantity)
             .Where(o => o.Id, Op.Eq, 99)
-            .Execute();
+            .Execute<decimal?>();
 
         Assert.Null(average);
     }
