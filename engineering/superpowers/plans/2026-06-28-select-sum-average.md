@@ -19,7 +19,7 @@
 
 - [ ] Add SQL rendering tests for `SUM(...)` and `AVG(...)`.
 - [ ] Add API contract tests for `Sum` and `Average`, including no non-generic `Average`.
-- [ ] Add SQLite execution tests for inferred sum, explicit sum result type, explicit average, and empty-set sum null result.
+- [ ] Add SQLite execution tests for inferred sum, explicit generic sum value type, explicit average, and empty-set sum/average null results.
 - [ ] Run targeted tests and confirm failure is caused by missing API/projection support.
 
 ### Task 2: Implementation
@@ -45,7 +45,7 @@
 - Modify: `src/Db4Net/Db4Net.csproj`
 - Modify: `tests/Db4Net.Tests/PackageMetadataTests.cs`
 
-- [ ] Document `Sum` inferred/explicit forms and explicit-result `Average`.
+- [ ] Document inferred or explicitly typed `Sum` and explicit-result `Average`.
 - [ ] Update changelog and package release notes.
 - [ ] Run `dotnet test`.
 - [ ] Run `dotnet build src\Db4Net\Db4Net.csproj -c Release`.

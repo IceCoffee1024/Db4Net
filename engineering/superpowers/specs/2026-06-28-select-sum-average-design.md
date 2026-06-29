@@ -18,7 +18,7 @@ db.SelectAggregateFrom<Order>()
   .Execute();
 ```
 
-The first form infers the result type from the selected value-type member and returns `TValue?`. The second form lets callers choose the scalar read type and returns `TResult?`.
+The first form infers the selected value type from the mapped member and returns `TValue?`. The second form uses the same `Sum<TValue>` method with an explicit generic value type, which is useful when callers want Dapper to read the scalar into a wider numeric type.
 
 Add `Average` only with an explicit result type:
 
@@ -45,11 +45,9 @@ Reuse the existing `SelectAggregateScalarQueryBuilder<T, TResult>` for filters, 
 
 ## Type Rules
 
-`Sum<TValue>(Expression<Func<T, TValue>> memberSelector) where TValue : struct` returns `SelectAggregateScalarQueryBuilder<T, TValue?>`.
+`Sum<TValue>(Expression<Func<T, TValue>> memberSelector) where TValue : struct` returns `SelectAggregateScalarQueryBuilder<T, TValue?>`. The same method covers explicit generic calls such as `Sum<long>(o => o.Quantity)`.
 
-`Sum<TResult>(Expression<Func<T, TResult>> memberSelector) where TResult : struct` also covers explicit result calls such as `Sum<decimal>(o => o.Amount)`. Expression conversion is acceptable because metadata extraction already strips simple `Convert` nodes.
-
-`Average<TResult>(Expression<Func<T, TResult>> memberSelector) where TResult : struct` returns `SelectAggregateScalarQueryBuilder<T, TResult?>`. Callers are expected to choose an appropriate result type such as `decimal` or `double`.
+`Average<TResult>(Expression<Func<T, object?>> memberSelector) where TResult : struct` returns `SelectAggregateScalarQueryBuilder<T, TResult?>`. Keeping `TResult` out of the selector delegate forces callers to choose an appropriate result type such as `decimal` or `double`.
 
 ## Testing
 
