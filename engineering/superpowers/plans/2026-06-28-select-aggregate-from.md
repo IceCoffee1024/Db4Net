@@ -4,7 +4,7 @@
 
 **Goal:** Add a bounded `SelectAggregateFrom<T>()` scalar aggregate API with `Max`, `Min`, and `CountDistinct`.
 
-**Architecture:** Existing count and exists builders remain public, but share a new internal scalar model, renderer, builder state, and Dapper scalar executor. Aggregate selection uses an initial selector builder and typed terminal scalar builders.
+**Architecture:** Existing count and exists builders remain public, but share a new internal scalar model, renderer, builder state, and Dapper scalar executor. Aggregate selection uses an initial selector builder and one terminal-typed scalar aggregate builder.
 
 **Tech Stack:** C#/.NET, Dapper, xUnit, VitePress Markdown.
 
@@ -52,7 +52,7 @@
 
 - [ ] Add `SelectAggregateFrom<T>()` and `SelectAggregateFrom<T>(string)`.
 - [ ] Add `Max`, `Min`, and `CountDistinct` selector methods.
-- [ ] Add scalar aggregate terminal builders with filter methods, `ToCommand`, `Execute`, and `ExecuteAsync`.
+- [ ] Add a scalar aggregate terminal builder with filter methods, `ToCommand`, `Execute<TResult>`, and `ExecuteAsync<TResult>`.
 - [ ] Wire transaction extension methods.
 - [ ] Run targeted tests and confirm green.
 

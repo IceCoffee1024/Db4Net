@@ -156,7 +156,7 @@ db.SelectFrom<User>()
 - typed builder 终止方法：`Query()`、`QueryFirstOrDefault()`、`QuerySingleOrDefault()`
 - typed builder async 终止方法：`QueryAsync()`、`QueryFirstOrDefaultAsync()`、`QuerySingleOrDefaultAsync()`
 - 非泛型 builder 显式结果类型终止方法：`Query<T>()`、`QueryFirstOrDefault<T>()`、`QuerySingleOrDefault<T>()` 及对应 async 方法
-- `SelectExistsFrom<T>()`、`SelectCountFrom<T>()`、`SelectAggregateFrom<T>()` 标量查询入口；`SelectAggregateFrom<T>()` 支持 `Max`、`Min`、`Sum`、`Average`、`CountDistinct`，其中 `Max` / `Min` / `CountDistinct` 保留默认终止方法，`Sum` / `Average` 使用终端 `Execute<TResult>()` / `ExecuteAsync<TResult>()` 指定标量读取类型
+- `SelectExistsFrom<T>()`、`SelectCountFrom<T>()`、`SelectAggregateFrom<T>()` 标量查询入口；`SelectAggregateFrom<T>()` 支持 `Max`、`Min`、`Sum`、`Average`、`CountDistinct`，并统一使用终端 `Execute<TResult>()` / `ExecuteAsync<TResult>()` 指定标量读取类型
 - `InsertInto<T>()`、`Update<T>()`、`DeleteFrom<T>()`
 - `InsertInto<T>(string)`、`Update<T>(string)`、`DeleteFrom<T>(string)`
 - `Value(...)`、`Values(entity)`、`Set(...)`、`WhereKey(entity)`、命令 builder 上的 `Execute()`、`ExecuteAsync()`
@@ -200,7 +200,7 @@ SQL 渲染和 Dapper 执行保持分离。
 当前内部组件：
 
 - `SelectQueryBuilder`：面向用户的 SELECT Fluent API，并在 query 终止方法中调用 Dapper。
-- `SelectCountQueryBuilder<T>`、`SelectExistsQueryBuilder<T>`、`SelectAggregateQueryBuilder<T>`、`SelectAggregateScalarQueryBuilder<T, TResult>`：面向用户的标量查询 API，覆盖行数、存在性和列级聚合。
+- `SelectCountQueryBuilder<T>`、`SelectExistsQueryBuilder<T>`、`SelectAggregateQueryBuilder<T>`、`SelectAggregateScalarQueryBuilder<T>`：面向用户的标量查询 API，覆盖行数、存在性和列级聚合。
 - `FilterNode`、`FilterClause`、`FilterGroup`：记录过滤条件树，支持普通条件和显式括号分组。
 - `FilterClauseBuilder`：内部集中追加过滤条件和校验操作符值规则。
 - `FilterGroupBuilder`、`FilterGroupBuilder<T>`：面向用户的显式分组 API，只暴露过滤方法，不暴露排序、分页或命令渲染。
@@ -228,7 +228,7 @@ SQL 渲染和 Dapper 执行保持分离。
 - `Version`: `0.1.0-alpha.1`
 - `Authors`: `IceCoffee1024`
 - `Description`: `Safe, SQL-shaped fluent query and command builder for Dapper.`
-- `PackageReleaseNotes`: `0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, scalar aggregate queries with terminal-typed sum and average, entity and many conveniences, conflict-aware inserts, generated-column safeguards, paging validation, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.`
+- `PackageReleaseNotes`: `0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, terminal-typed scalar aggregate queries, entity and many conveniences, conflict-aware inserts, generated-column safeguards, paging validation, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.`
 - `PackageTags`: `dapper;sql;fluent;query-builder`
 - `PackageReadmeFile`: `README.md`
 - `PackageLicenseExpression`: `MIT`

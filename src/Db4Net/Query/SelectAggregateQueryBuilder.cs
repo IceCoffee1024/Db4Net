@@ -29,10 +29,10 @@ public sealed class SelectAggregateQueryBuilder<T>
     /// <typeparam name="TValue">The selected member value type.</typeparam>
     /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
     /// <returns>A scalar aggregate query builder.</returns>
-    public SelectAggregateScalarQueryBuilder<T, TValue?> Max<TValue>(Expression<Func<T, TValue>> memberSelector)
+    public SelectAggregateScalarQueryBuilder<T> Max<TValue>(Expression<Func<T, TValue>> memberSelector)
         where TValue : struct
     {
-        return Create<TValue?, TValue>(ScalarProjectionKind.Max, memberSelector);
+        return Create(ScalarProjectionKind.Max, memberSelector);
     }
 
     /// <summary>
@@ -41,10 +41,10 @@ public sealed class SelectAggregateQueryBuilder<T>
     /// <typeparam name="TValue">The selected member value type.</typeparam>
     /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
     /// <returns>A scalar aggregate query builder.</returns>
-    public SelectAggregateScalarQueryBuilder<T, TValue?> Min<TValue>(Expression<Func<T, TValue>> memberSelector)
+    public SelectAggregateScalarQueryBuilder<T> Min<TValue>(Expression<Func<T, TValue>> memberSelector)
         where TValue : struct
     {
-        return Create<TValue?, TValue>(ScalarProjectionKind.Min, memberSelector);
+        return Create(ScalarProjectionKind.Min, memberSelector);
     }
 
     /// <summary>
@@ -53,9 +53,9 @@ public sealed class SelectAggregateQueryBuilder<T>
     /// <typeparam name="TValue">The selected member value type.</typeparam>
     /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Name</c>.</param>
     /// <returns>A scalar aggregate query builder.</returns>
-    public SelectAggregateScalarQueryBuilder<T, long> CountDistinct<TValue>(Expression<Func<T, TValue>> memberSelector)
+    public SelectAggregateScalarQueryBuilder<T> CountDistinct<TValue>(Expression<Func<T, TValue>> memberSelector)
     {
-        return Create<long, TValue>(ScalarProjectionKind.CountDistinct, memberSelector);
+        return Create(ScalarProjectionKind.CountDistinct, memberSelector);
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ public sealed class SelectAggregateQueryBuilder<T>
     /// <returns>A scalar aggregate query builder.</returns>
     public SelectAggregateScalarQueryBuilder<T> Sum(Expression<Func<T, object?>> memberSelector)
     {
-        return Create<object?>(ScalarProjectionKind.Sum, memberSelector);
+        return Create(ScalarProjectionKind.Sum, memberSelector);
     }
 
     /// <summary>
@@ -75,15 +75,7 @@ public sealed class SelectAggregateQueryBuilder<T>
     /// <returns>A scalar aggregate query builder.</returns>
     public SelectAggregateScalarQueryBuilder<T> Average(Expression<Func<T, object?>> memberSelector)
     {
-        return Create<object?>(ScalarProjectionKind.Average, memberSelector);
-    }
-
-    private SelectAggregateScalarQueryBuilder<T, TResult> Create<TResult, TValue>(
-        ScalarProjectionKind projectionKind,
-        Expression<Func<T, TValue>> memberSelector)
-    {
-        var column = ModelMetadataProvider.GetColumnName(memberSelector);
-        return new SelectAggregateScalarQueryBuilder<T, TResult>(_options, _connection, _table, projectionKind, column, _executionOptions);
+        return Create(ScalarProjectionKind.Average, memberSelector);
     }
 
     private SelectAggregateScalarQueryBuilder<T> Create<TValue>(

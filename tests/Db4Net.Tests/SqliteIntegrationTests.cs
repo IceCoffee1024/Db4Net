@@ -306,7 +306,7 @@ public sealed class SqliteIntegrationTests
             .SelectAggregateFrom<User>()
             .Max(u => u.Id)
             .Where(u => u.Id, Op.Gt, 1)
-            .Execute();
+            .Execute<int?>();
 
         Assert.Equal(2, max);
     }
@@ -320,7 +320,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<User>()
             .Min(u => u.Id)
-            .Execute();
+            .Execute<int?>();
 
         Assert.Equal(1, min);
     }
@@ -335,7 +335,7 @@ public sealed class SqliteIntegrationTests
             .SelectAggregateFrom<User>()
             .Max(u => u.Id)
             .Where(u => u.Id, Op.Eq, 99)
-            .Execute();
+            .Execute<int?>();
 
         Assert.Null(max);
     }
@@ -358,7 +358,7 @@ public sealed class SqliteIntegrationTests
         var count = await db
             .SelectAggregateFrom<MappedUser>("app_users_staging")
             .CountDistinct(u => u.DisplayName)
-            .ExecuteAsync();
+            .ExecuteAsync<long>();
 
         Assert.Equal(2L, count);
     }
@@ -377,14 +377,14 @@ public sealed class SqliteIntegrationTests
         var maxInTransaction = transaction
             .SelectAggregateFrom<User>()
             .Max(u => u.Id)
-            .Execute(new Db4NetExecutionOptions { CommandTimeout = 30 });
+            .Execute<int?>(new Db4NetExecutionOptions { CommandTimeout = 30 });
 
         transaction.Rollback();
 
         var maxAfterRollback = db
             .SelectAggregateFrom<User>()
             .Max(u => u.Id)
-            .Execute();
+            .Execute<int?>();
 
         Assert.Equal(3, maxInTransaction);
         Assert.Equal(2, maxAfterRollback);

@@ -19,15 +19,15 @@ Add:
 db.SelectAggregateFrom<User>()
   .Max(u => u.Id)
   .Where(u => u.Name, Op.Like, "A%")
-  .Execute();
+  .Execute<int?>();
 
 db.SelectAggregateFrom<User>()
   .Min(u => u.Id)
-  .Execute();
+  .Execute<int?>();
 
 db.SelectAggregateFrom<User>()
   .CountDistinct(u => u.Name)
-  .Execute();
+  .Execute<long>();
 ```
 
 `SelectAggregateFrom<T>(string table)` supports sharded/staging table overrides while still mapping columns from `T`.
@@ -36,9 +36,9 @@ Do not add `SelectMaxFrom<T>()`, `SelectMinFrom<T>()`, or `SelectCountDistinctFr
 
 ## Result Types
 
-`CountDistinct` returns `long` because SQL count is non-null.
+`CountDistinct` should generally be read as `long` because SQL count is non-null.
 
-`Max` and `Min` operate on mapped value-type columns and return `TValue?` because SQL aggregate functions return `NULL` for an empty result set. This preserves the database behavior instead of silently mapping empty sets to default values.
+`Max` and `Min` operate on mapped value-type columns. Use nullable terminal read types such as `Execute<int?>()` when callers need to preserve SQL aggregate `NULL` for an empty result set.
 
 `Sum` and `Average` are intentionally deferred. Their result type rules vary more by provider and CLR numeric type, so adding them should be a separate design decision.
 
@@ -97,7 +97,7 @@ Add API contract tests to pin:
 - `Db4NetTransactionExtensions.SelectAggregateFrom<T>()`
 - `Db4NetTransactionExtensions.SelectAggregateFrom<T>(string)`
 - aggregate selector methods `Max`, `Min`, `CountDistinct`
-- scalar aggregate terminal methods `Where`, `OrWhere`, `WhereGroup`, `OrWhereGroup`, `ToCommand`, `Execute`, `ExecuteAsync`
+- scalar aggregate terminal methods `Where`, `OrWhere`, `WhereGroup`, `OrWhereGroup`, `ToCommand`, `Execute<TResult>`, `ExecuteAsync<TResult>`
 
 ## Documentation
 

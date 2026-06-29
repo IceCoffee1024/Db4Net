@@ -66,19 +66,19 @@ var matchingCount = await db
     .ExecuteAsync();
 ```
 
-Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, and `Average(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Sum(selector).Execute<TResult>()` or `Average(selector).Execute<TResult>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets. `CountDistinct(...)` returns a `long`:
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
 ```csharp
 var latestId = db
     .SelectAggregateFrom<User>()
     .Max(u => u.Id)
     .Where(u => u.Name, Op.Like, "A%")
-    .Execute();
+    .Execute<int?>();
 
 var distinctNames = await db
     .SelectAggregateFrom<User>("users_2026")
     .CountDistinct(u => u.Name)
-    .ExecuteAsync();
+    .ExecuteAsync<long>();
 
 var totalAmount = db
     .SelectAggregateFrom<OrderMetric>()
@@ -125,4 +125,4 @@ Typed select builders materialize `T`:
 
 The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()` and `QueryAsync<T>()`.
 
-Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. For `Sum(...)` and `Average(...)` aggregate queries, specify the scalar read type with terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()`.
+Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. For `SelectAggregateFrom<T>()` aggregate queries, specify the scalar read type with terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()`.

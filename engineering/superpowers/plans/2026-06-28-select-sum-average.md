@@ -4,7 +4,7 @@
 
 **Goal:** Add `Sum` and `Average` aggregate methods to `SelectAggregateFrom<T>()`, with scalar result typing on terminal `Execute<TResult>()` / `ExecuteAsync<TResult>()`.
 
-**Architecture:** Extend the existing scalar aggregate pipeline instead of adding new query builders. `SelectAggregateQueryBuilder<T>` chooses the projection and result type; `ScalarSqlRenderer` renders the SQL; existing scalar builder/executor handles filters and Dapper execution.
+**Architecture:** Extend the existing scalar aggregate pipeline instead of adding new query builders. `SelectAggregateQueryBuilder<T>` chooses the projection; terminal `Execute<TResult>()` / `ExecuteAsync<TResult>()` chooses the result type. `ScalarSqlRenderer` renders the SQL; existing scalar builder/executor handles filters and Dapper execution.
 
 **Tech Stack:** C#/.NET, Dapper, xUnit, VitePress Markdown.
 

@@ -41,15 +41,15 @@ SELECT SUM("Amount") FROM "Orders"
 SELECT AVG("Quantity") FROM "Orders"
 ```
 
-Reuse `SelectAggregateScalarQueryBuilder<T, TResult>` for aggregates with default result types and add `SelectAggregateScalarQueryBuilder<T>` for `Sum(...)` / `Average(...)`, where the terminal method chooses the scalar result type.
+Use only `SelectAggregateScalarQueryBuilder<T>` for aggregate scalar builders. The aggregate selector chooses the SQL projection, and the terminal method chooses the scalar result type.
 
 ## Type Rules
 
-`Sum(Expression<Func<T, object?>> memberSelector)` returns `SelectAggregateScalarQueryBuilder<T>`. `Sum` itself has no public generic method parameter.
+`Max(...)`, `Min(...)`, `CountDistinct(...)`, `Sum(...)`, and `Average(...)` return `SelectAggregateScalarQueryBuilder<T>`.
 
-`Average(Expression<Func<T, object?>> memberSelector)` returns `SelectAggregateScalarQueryBuilder<T>`. `Average` itself has no public generic method parameter.
+`Sum` and `Average` themselves have no public generic method parameter.
 
-`SelectAggregateScalarQueryBuilder<T>` exposes `Execute<TResult>()` and `ExecuteAsync<TResult>()`, forcing callers to choose an appropriate result type such as `decimal`, `decimal?`, `double`, or `long`.
+`SelectAggregateScalarQueryBuilder<T>` exposes `Execute<TResult>()` and `ExecuteAsync<TResult>()`, forcing callers to choose an appropriate result type such as `int?`, `decimal`, `decimal?`, `double`, or `long`.
 
 ## Testing
 

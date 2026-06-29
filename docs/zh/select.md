@@ -66,19 +66,19 @@ var matchingCount = await db
     .ExecuteAsync();
 ```
 
-需要列级标量聚合时，使用 `SelectAggregateFrom<T>()`。`Max(...)`、`Min(...)`、`Sum(...)` 和 `Average(...)` 会构建标量聚合投影。显式结果类型放在终端 `Execute<TResult>()` 或 `ExecuteAsync<TResult>()` 调用上，例如 `Sum(selector).Execute<TResult>()` 或 `Average(selector).Execute<TResult>()`；需要保留 SQL 在空结果集上返回的 `NULL` 时，使用可空的 `TResult`。`CountDistinct(...)` 返回 `long`：
+需要列级标量聚合时，使用 `SelectAggregateFrom<T>()`。`Max(...)`、`Min(...)`、`Sum(...)`、`Average(...)` 和 `CountDistinct(...)` 会构建标量聚合投影。显式结果类型放在终端 `Execute<TResult>()` 或 `ExecuteAsync<TResult>()` 调用上，例如 `Max(selector).Execute<TResult>()` 或 `CountDistinct(selector).ExecuteAsync<long>()`；需要保留 SQL 在空结果集上返回的 `NULL` 时，使用可空的 `TResult`。
 
 ```csharp
 var latestId = db
     .SelectAggregateFrom<User>()
     .Max(u => u.Id)
     .Where(u => u.Name, Op.Like, "A%")
-    .Execute();
+    .Execute<int?>();
 
 var distinctNames = await db
     .SelectAggregateFrom<User>("users_2026")
     .CountDistinct(u => u.Name)
-    .ExecuteAsync();
+    .ExecuteAsync<long>();
 
 var totalAmount = db
     .SelectAggregateFrom<OrderMetric>()
@@ -125,4 +125,4 @@ var page = db
 
 非泛型 `SELECT` 构建器也保留了 `Query<T>()` 和 `QueryAsync<T>()` 等显式结果类型重载，用于高级物化场景。
 
-存在性查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回 `bool`。计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。对于 `Sum(...)` 和 `Average(...)` 聚合查询，请使用终端 `Execute<TResult>()` 或 `ExecuteAsync<TResult>()` 指定标量读取类型。
+存在性查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回 `bool`。计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。对于 `SelectAggregateFrom<T>()` 聚合查询，请使用终端 `Execute<TResult>()` 或 `ExecuteAsync<TResult>()` 指定标量读取类型。

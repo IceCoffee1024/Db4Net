@@ -185,8 +185,15 @@ public sealed class ApiContractTests
         Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
             method.Name == "CountDistinct"
                 && method.ReturnType.IsGenericType
-                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<,>)
-                && method.ReturnType.GetGenericArguments()[1] == typeof(long));
+                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<>));
+        Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
+            method.Name == "Max"
+                && method.ReturnType.IsGenericType
+                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<>));
+        Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
+            method.Name == "Min"
+                && method.ReturnType.IsGenericType
+                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<>));
         Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
             method.Name == "Sum"
                 && !method.IsGenericMethodDefinition
@@ -199,21 +206,13 @@ public sealed class ApiContractTests
                 && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<>));
         Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
             (method.Name is "Sum" or "Average") && method.IsGenericMethodDefinition);
+        Assert.DoesNotContain(typeof(Db4NetDatabase).Assembly.GetExportedTypes(), type =>
+            type.IsGenericTypeDefinition && type.Name == "SelectAggregateScalarQueryBuilder`2");
     }
 
     [Fact]
     public void Select_aggregate_scalar_query_builder_exposes_scalar_api()
     {
-        AssertPublicInstanceMethods(
-            typeof(SelectAggregateScalarQueryBuilder<,>),
-            "Where",
-            "OrWhere",
-            "WhereGroup",
-            "OrWhereGroup",
-            "ToCommand",
-            "Execute",
-            "ExecuteAsync");
-
         AssertPublicInstanceMethods(
             typeof(SelectAggregateScalarQueryBuilder<>),
             "Where",
@@ -230,25 +229,6 @@ public sealed class ApiContractTests
     [Fact]
     public void Select_aggregate_scalar_query_builder_does_not_expose_row_query_or_paging_api()
     {
-        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateScalarQueryBuilder<,>)), method =>
-            method.Name is "Select"
-                or "OrderBy"
-                or "OrderByDescending"
-                or "Limit"
-                or "Offset"
-                or "Page"
-                or "Query"
-                or "QueryAsync"
-                or "QuerySingle"
-                or "QuerySingleAsync"
-                or "QuerySingleOrDefault"
-                or "QuerySingleOrDefaultAsync"
-                or "QueryFirstOrDefault"
-                or "QueryFirstOrDefaultAsync"
-                or "Sum"
-                or "Average"
-                or "Avg"
-                or "Count");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateScalarQueryBuilder<>)), method =>
             method.Name is "Select"
                 or "OrderBy"
