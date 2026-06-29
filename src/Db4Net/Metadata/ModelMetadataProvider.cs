@@ -162,6 +162,8 @@ internal static class ModelMetadata<T>
 
     public static readonly IReadOnlyList<ColumnMetadata> NonKeyColumns = Columns.Where(column => !column.IsKey).ToArray();
 
+    public static readonly IReadOnlyList<ColumnMetadata> UpdateColumns = Columns.Where(column => !column.IsKey && !column.IsDatabaseGenerated).ToArray();
+
     public static readonly IReadOnlyList<ColumnMetadata> InsertColumns = Columns.Where(column => !column.IsDatabaseGenerated).ToArray();
 
     private static readonly Dictionary<string, ColumnMetadata> ColumnsByPropertyName =
@@ -187,6 +189,16 @@ internal static class ModelMetadata<T>
         if (KeyColumns.Count > 1)
         {
             throw new InvalidOperationException($"Composite keys are not supported for type '{typeof(T).Name}'. Use explicit Where clauses instead.");
+        }
+
+        return KeyColumns;
+    }
+
+    public static IReadOnlyList<ColumnMetadata> RequireConflictColumns()
+    {
+        if (KeyColumns.Count == 0)
+        {
+            throw new InvalidOperationException($"Type '{typeof(T).Name}' does not have a key. Add [Key] or an Id/{typeof(T).Name}Id property.");
         }
 
         return KeyColumns;

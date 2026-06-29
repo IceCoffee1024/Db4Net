@@ -53,7 +53,7 @@ public sealed class UpdateCommandBuilder<T> : CommandBuilderBase
     {
         ThrowHelper.ThrowIfNull(entity);
 
-        foreach (var column in ModelMetadata<T>.NonKeyColumns)
+        foreach (var column in ModelMetadata<T>.UpdateColumns)
         {
             _model.Assignments.Add(new AssignmentClause(column.ColumnName, column.GetValue(entity)));
         }

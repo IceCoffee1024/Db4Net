@@ -306,7 +306,7 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 `[NotMapped]` members are excluded from `SelectFrom<T>()` and rejected in typed `Select`, `Where`, `OrderBy`, `Value`, and `Set` member selectors.
 
-`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, `WhereKey(user)`, and as the default conflict target for conflict-aware insert commands. Key metadata identifies mapped columns for equality predicates or conflict targets; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(users)`, and conflict-aware insert values. Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Explicit `.Value(...)` calls remain caller-controlled.
+`[Key]` and the `Id` / `<TypeName>Id` convention are used by entity command conveniences such as `Update(user)`, `UpdateMany(users)`, `Delete(user)`, `DeleteMany(users)`, `WhereKey(user)`, and as the default conflict target for conflict-aware insert commands. Conflict-aware inserts use all key columns by default, including composite `[Key]` metadata; entity update/delete conveniences and many update/delete conveniences require a single key column. Key metadata identifies mapped columns for equality predicates or conflict targets; it does not imply entity tracking, generated value readback, relationship identity maps, or automatic concurrency behavior. `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(users)`, and conflict-aware insert values. Database-generated non-key properties are also omitted from entity-driven update assignments in `Update(entity)` and `UpdateMany(users)`. Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Explicit `.Value(...)` and `.Set(...)` calls remain caller-controlled.
 
 ## Filters
 
@@ -339,6 +339,8 @@ Db4Net renders paging through the configured dialect:
 - SQLite: `LIMIT ... OFFSET ...`
 - PostgreSQL: `LIMIT ... OFFSET ...`
 - MySQL: `LIMIT ... OFFSET ...`
+
+`Offset(...)` must be paired with `Limit(...)`. SQL Server paging also requires at least one `OrderBy(...)` because `OFFSET` / `FETCH` is invalid without `ORDER BY`.
 
 ## Inspect SQL
 

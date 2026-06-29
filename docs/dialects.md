@@ -22,6 +22,8 @@ Dialects control identifier quoting, paging syntax, and conflict-aware insert SQ
 - PostgreSQL: `LIMIT ... OFFSET ...`
 - MySQL: `LIMIT ... OFFSET ...`
 
+`Offset(...)` must be paired with `Limit(...)`. SQL Server paging also requires at least one `OrderBy(...)` because `OFFSET` / `FETCH` is invalid without `ORDER BY`.
+
 ## Conflict Inserts
 
 SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns, but MySQL handles any primary or unique key violation according to its own duplicate-key rules.

@@ -9,7 +9,7 @@ internal static class ConflictInsertBuilderSupport<T>
     {
         var conflictColumns = explicitColumns.Count > 0
             ? explicitColumns.ToArray()
-            : ModelMetadata<T>.RequireKeyColumns().ToArray();
+            : ModelMetadata<T>.RequireConflictColumns().ToArray();
 
         foreach (var column in conflictColumns)
         {

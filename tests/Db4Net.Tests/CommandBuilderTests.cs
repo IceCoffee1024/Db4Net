@@ -551,6 +551,33 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Composite_keys_are_default_conflict_targets_but_not_entity_update_delete_keys()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.Sqlite);
+        var user = new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" };
+
+        var ignoreCommand = database
+            .InsertOrIgnore(user)
+            .ToCommand();
+        var updateCommand = database
+            .InsertOrUpdate(user)
+            .ToCommand();
+
+        Assert.Equal("""INSERT INTO "CompositeKeyUser" ("TenantId", "UserId", "Name") VALUES (@p0, @p1, @p2) ON CONFLICT ("TenantId", "UserId") DO NOTHING""", ignoreCommand.Sql);
+        Assert.Equal("INSERT INTO \"CompositeKeyUser\" (\"TenantId\", \"UserId\", \"Name\") VALUES (@p0, @p1, @p2) ON CONFLICT (\"TenantId\", \"UserId\") DO UPDATE SET \"Name\" = excluded.\"Name\"", updateCommand.Sql);
+
+        var updateEx = Assert.Throws<InvalidOperationException>(() => database.Update(user).ToCommand());
+        var deleteEx = Assert.Throws<InvalidOperationException>(() => database.Delete(user).ToCommand());
+        var updateManyEx = Assert.Throws<InvalidOperationException>(() => database.UpdateMany([user]).ToCommands());
+        var deleteManyEx = Assert.Throws<InvalidOperationException>(() => database.DeleteMany([user]).ToCommands());
+
+        Assert.Contains("Composite keys are not supported", updateEx.Message);
+        Assert.Contains("Composite keys are not supported", deleteEx.Message);
+        Assert.Contains("Composite keys are not supported", updateManyEx.Message);
+        Assert.Contains("Composite keys are not supported", deleteManyEx.Message);
+    }
+
+    [Fact]
     public void Insert_or_update_rejects_missing_key_without_explicit_conflict_target()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -790,6 +817,29 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
+    public void Update_entity_entry_point_skips_database_generated_non_key_values_but_explicit_set_can_include_them()
+    {
+        var updatedAt = new DateTime(2026, 6, 29, 10, 30, 0, DateTimeKind.Utc);
+        var database = Db4NetDatabase.Create(Db4NetOptions.SqlServer);
+
+        var entityCommand = database
+            .Update(new GeneratedAuditUser { Id = 1, Name = "Alice", UpdatedAt = updatedAt })
+            .ToCommand();
+        var explicitCommand = database
+            .Update<GeneratedAuditUser>()
+            .Set(u => u.UpdatedAt, updatedAt)
+            .Where(u => u.Id, Op.Eq, 1)
+            .ToCommand();
+
+        Assert.Equal("UPDATE [generated_audit_users] SET [Name] = @p0 WHERE [Id] = @p1", entityCommand.Sql);
+        Assert.Equal("Alice", entityCommand.Parameters.Get<string>("p0"));
+        Assert.Equal(1, entityCommand.Parameters.Get<int>("p1"));
+        Assert.Equal("UPDATE [generated_audit_users] SET [UpdatedAt] = @p0 WHERE [Id] = @p1", explicitCommand.Sql);
+        Assert.Equal(updatedAt, explicitCommand.Parameters.Get<DateTime>("p0"));
+        Assert.Equal(1, explicitCommand.Parameters.Get<int>("p1"));
+    }
+
+    [Fact]
     public void Update_entity_entry_point_can_override_target_table()
     {
         var command = Db4NetDatabase
@@ -852,6 +902,28 @@ public sealed class CommandBuilderTests
                 Assert.Equal(2, command.Parameters.Get<int>("Id"));
                 Assert.Equal("Bob", command.Parameters.Get<string>("Name"));
             });
+    }
+
+    [Fact]
+    public void Update_many_entity_entry_point_skips_database_generated_non_key_values()
+    {
+        var commands = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .UpdateMany(
+            [
+                new GeneratedAuditUser
+                {
+                    Id = 1,
+                    Name = "Alice",
+                    UpdatedAt = new DateTime(2026, 6, 29, 10, 30, 0, DateTimeKind.Utc),
+                },
+            ])
+            .ToCommands();
+
+        var command = Assert.Single(commands);
+        Assert.Equal("UPDATE [generated_audit_users] SET [Name] = @Name WHERE [Id] = @Id", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("Id"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("Name"));
     }
 
     [Fact]

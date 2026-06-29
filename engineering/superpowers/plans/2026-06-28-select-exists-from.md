@@ -173,7 +173,7 @@ Document that `SelectExistsFrom<T>()` is the supported existence-check API. Use 
 
 - [ ] **Step 3: Update changelog and package release notes**
 
-Under `Unreleased`, add a bullet noting typed `SELECT EXISTS` query support. Update package release notes to mention existence checks and synchronize package metadata tests.
+Under the current release section, add a bullet noting typed `SELECT EXISTS` query support. Update package release notes to mention existence checks and synchronize package metadata tests.
 
 ### Task 4: Final Verification
 

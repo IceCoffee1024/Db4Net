@@ -1,6 +1,6 @@
 # 排序与分页
 
-使用 `OrderBy(...)` 指定排序列，再使用 `Limit(...)`、`Offset(...)` 或 `Page(...)` 控制返回范围。
+使用 `OrderBy(...)` 指定排序列，再使用 `Limit(...)`、`Offset(...)` 或 `Page(...)` 控制返回范围。`Offset(...)` 必须与 `Limit(...)` 配套使用。
 
 ```csharp
 var page = connection
@@ -19,5 +19,5 @@ Db4Net 会按配置的 SQL 方言渲染分页语法：
 - MySQL: `LIMIT ... OFFSET ...`
 
 ::: warning 注意
-分页结果通常应配合稳定排序。没有明确排序时，不同数据库或执行计划可能返回不稳定的页面。
+SQL Server 分页必须至少调用一次 `OrderBy(...)`，因为没有 `ORDER BY` 时 `OFFSET` / `FETCH` 是无效 SQL。其他方言分页也建议配合稳定排序；没有明确排序时，不同数据库或执行计划可能返回不稳定的页面。
 :::

@@ -2,7 +2,7 @@
 
 All notable changes to Db4Net will be documented in this file.
 
-## Unreleased
+## 0.1.0-alpha.1 - 2026-06-29
 
 ### Added
 
@@ -33,7 +33,10 @@ All notable changes to Db4Net will be documented in this file.
 - String field names are CLR property names after a model is bound; database column names are supplied through `[Column]`.
 - `UPDATE` and `DELETE` require a `WHERE` clause by default unless `AllowAllRows()` is called explicitly.
 - Single-entity command conveniences now reject sequence values with messages that point to the matching `Many` API.
+- Entity-driven updates now omit database-generated non-key columns, while explicit `.Set(...)` calls remain caller-controlled.
+- Conflict-aware insert defaults now allow composite key metadata; entity update/delete and many update/delete conveniences still require a single key.
 - Transaction documentation now separates existing transaction pass-through from Db4Net-owned lightweight transaction scopes.
+- `SELECT` rendering now rejects `Offset(...)` without `Limit(...)` and SQL Server paging without `OrderBy(...)` instead of ignoring or rendering invalid paging SQL.
 
 ### Known Limitations
 

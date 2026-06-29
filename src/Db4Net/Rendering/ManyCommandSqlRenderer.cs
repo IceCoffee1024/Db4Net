@@ -28,13 +28,13 @@ internal sealed class ManyCommandSqlRenderer
 
     public string RenderUpdateTemplate<T>(string table)
     {
-        if (ModelMetadata<T>.NonKeyColumns.Count == 0)
+        if (ModelMetadata<T>.UpdateColumns.Count == 0)
         {
             throw new InvalidOperationException("UPDATE requires at least one SET assignment.");
         }
 
         var keyColumn = ManyCommandBuilderSupport<T>.RequireSingleKeyColumn();
-        var assignments = string.Join(", ", ModelMetadata<T>.NonKeyColumns.Select(column => $"{_dialect.QuoteIdentifier(column.ColumnName)} = @{column.PropertyName}"));
+        var assignments = string.Join(", ", ModelMetadata<T>.UpdateColumns.Select(column => $"{_dialect.QuoteIdentifier(column.ColumnName)} = @{column.PropertyName}"));
         return $"UPDATE {_dialect.QuoteIdentifier(table)} SET {assignments} WHERE {_dialect.QuoteIdentifier(keyColumn.ColumnName)} = @{keyColumn.PropertyName}";
     }
 
@@ -58,7 +58,7 @@ internal sealed class ManyCommandSqlRenderer
     public RenderedSqlCommand RenderUpdate<T>(string table, T entity)
     {
         var parameters = new DynamicParameters();
-        foreach (var column in ModelMetadata<T>.NonKeyColumns)
+        foreach (var column in ModelMetadata<T>.UpdateColumns)
         {
             parameters.Add(column.PropertyName, column.GetValue(entity!));
         }

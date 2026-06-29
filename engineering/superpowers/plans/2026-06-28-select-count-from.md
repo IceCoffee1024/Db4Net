@@ -164,7 +164,7 @@ Document that `SelectCountFrom<T>()` is the supported count-query API. Do not re
 
 - [ ] **Step 3: Update changelog**
 
-Under `Unreleased`, add a bullet noting typed `SELECT COUNT(*)` query support with filters, groups, transactions, and table overrides.
+Under the current release section, add a bullet noting typed `SELECT COUNT(*)` query support with filters, groups, transactions, and table overrides.
 
 ### Task 4: Final Verification
 

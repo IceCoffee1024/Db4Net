@@ -20,6 +20,8 @@ var db = connection.UseDb4Net(Db4NetOptions.SqlServer);
 - PostgreSQL: `LIMIT ... OFFSET ...`
 - MySQL: `LIMIT ... OFFSET ...`
 
+`Offset(...)` 必须与 `Limit(...)` 配套使用。SQL Server 分页还要求至少调用一次 `OrderBy(...)`，因为没有 `ORDER BY` 时 `OFFSET` / `FETCH` 是无效 SQL。
+
 ## 冲突插入语法
 
 SQLite 和 PostgreSQL 渲染原生 `ON CONFLICT` 语法。

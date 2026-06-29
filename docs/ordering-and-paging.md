@@ -13,6 +13,8 @@ var users = connection
 
 ## Limit and Offset
 
+`Offset(...)` must be paired with `Limit(...)`.
+
 ```csharp
 var users = db.SelectFrom<User>()
     .OrderBy(u => u.Id)
@@ -38,3 +40,5 @@ Db4Net renders paging through the configured dialect:
 - SQLite: `LIMIT ... OFFSET ...`
 - PostgreSQL: `LIMIT ... OFFSET ...`
 - MySQL: `LIMIT ... OFFSET ...`
+
+SQL Server paging requires at least one `OrderBy(...)` because `OFFSET` / `FETCH` is invalid without `ORDER BY`. Stable ordering is recommended for every dialect when paging.

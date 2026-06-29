@@ -98,6 +98,20 @@ var averageQuantity = db
 
 不要用 `Select("COUNT(*)")`、`Select("MAX(...)")`、`Select("SUM(...)")`、`Select("AVG(...)")` 或类似字符串表达标量查询。字符串选择值会被当作已验证的标识符，而不是原始 SQL 表达式。
 
+## 分页
+
+使用 `Page(...)` 进行从 1 开始的分页；需要直接控制行数时，也可以组合 `Limit(...)` 和 `Offset(...)`：
+
+```csharp
+var page = db
+    .SelectFrom<User>()
+    .OrderBy(u => u.Id)
+    .Page(pageNumber: 2, pageSize: 20)
+    .Query();
+```
+
+`Offset(...)` 必须与 `Limit(...)` 配套使用。SQL Server 分页还要求至少调用一次 `OrderBy(...)`，因为没有 `ORDER BY` 时 `OFFSET` / `FETCH` 是无效 SQL。
+
 ## 终结方法
 
 类型化 `SELECT` 构建器提供 Dapper 风格的查询终结方法：

@@ -25,6 +25,8 @@ internal sealed class SelectSqlRenderer
         var parameters = new SqlParameterWriter();
         var filters = new FilterSqlRenderer(_dialect, parameters);
 
+        ValidatePaging(model);
+
         sql.Append("SELECT ");
         sql.Append(RenderColumns(model));
         sql.Append(" FROM ");
@@ -35,6 +37,19 @@ internal sealed class SelectSqlRenderer
         RenderPaging(sql, model, parameters);
 
         return new RenderedSqlCommand(sql.ToString(), parameters.Parameters);
+    }
+
+    private void ValidatePaging(SelectQueryModel model)
+    {
+        if (model.Offset is not null && model.Limit is null)
+        {
+            throw new InvalidOperationException("Offset requires Limit before rendering SELECT SQL.");
+        }
+
+        if (_dialect is SqlServerDialect && model.Limit is not null && model.Orders.Count == 0)
+        {
+            throw new InvalidOperationException("SQL Server SELECT paging requires ORDER BY when Limit or Offset is used.");
+        }
     }
 
     private string RenderColumns(SelectQueryModel model)

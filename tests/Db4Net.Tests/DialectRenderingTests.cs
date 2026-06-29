@@ -129,6 +129,37 @@ public sealed class DialectRenderingTests
     }
 
     [Fact]
+    public void Sql_server_paging_requires_order_by()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Select("Id")
+            .From<User>("Users")
+            .Limit(10)
+            .ToCommand());
+
+        Assert.Equal("SQL Server SELECT paging requires ORDER BY when Limit or Offset is used.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("SqlServer")]
+    [InlineData("Sqlite")]
+    [InlineData("PostgreSql")]
+    [InlineData("MySql")]
+    public void Offset_without_limit_throws_instead_of_ignoring_offset(string dialectName)
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => Db4NetDatabase
+            .Create(GetDialectOptions(dialectName))
+            .Select("Id")
+            .From<User>("Users")
+            .OrderBy("Id")
+            .Offset(20)
+            .ToCommand());
+
+        Assert.Equal("Offset requires Limit before rendering SELECT SQL.", exception.Message);
+    }
+
+    [Fact]
     public void Sqlite_paging_uses_limit_before_offset_parameter_order()
     {
         var command = Db4NetDatabase
@@ -308,5 +339,17 @@ public sealed class DialectRenderingTests
         public string Email { get; set; } = "";
 
         public string Name { get; set; } = "";
+    }
+
+    private static Db4NetOptions GetDialectOptions(string dialectName)
+    {
+        return dialectName switch
+        {
+            "SqlServer" => Db4NetOptions.SqlServer,
+            "Sqlite" => Db4NetOptions.Sqlite,
+            "PostgreSql" => Db4NetOptions.PostgreSql,
+            "MySql" => Db4NetOptions.MySql,
+            _ => throw new ArgumentOutOfRangeException(nameof(dialectName), dialectName, "Unknown dialect name.")
+        };
     }
 }

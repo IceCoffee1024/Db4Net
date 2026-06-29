@@ -98,6 +98,20 @@ var averageQuantity = db
 
 Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, `Select("SUM(...)")`, `Select("AVG(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
 
+## Paging
+
+Use `Page(...)` for one-based page pagination, or combine `Limit(...)` with `Offset(...)` when you need direct row counts:
+
+```csharp
+var page = db
+    .SelectFrom<User>()
+    .OrderBy(u => u.Id)
+    .Page(pageNumber: 2, pageSize: 20)
+    .Query();
+```
+
+`Offset(...)` must be paired with `Limit(...)`. SQL Server paging also requires at least one `OrderBy(...)` because `OFFSET` / `FETCH` is invalid without `ORDER BY`.
+
 ## Terminal Methods
 
 Typed select builders materialize `T`:

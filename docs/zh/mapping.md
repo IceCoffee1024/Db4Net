@@ -32,6 +32,8 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 `[Key]` 以及 `Id` / `<TypeName>Id` 约定会被实体命令便捷方法、`WhereKey(user)` 和冲突插入默认目标使用。
 
-带有 `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` 或 `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` 的映射属性，会被 `Values(entity)`、`Insert(entity)`、`InsertMany(users)` 和冲突插入值跳过。
+冲突插入默认使用所有键列，包括复合 `[Key]` 元数据。实体 update/delete 便捷方法以及 many update/delete 便捷方法仍要求只有一个键列。
 
-数据库生成成员不能作为默认或显式冲突目标，也不能通过 `InsertOrUpdate.Update(...)` 选择为冲突更新列。显式 `.Value(...)` 仍由调用方完全控制。
+带有 `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` 或 `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` 的映射属性，会被 `Values(entity)`、`Insert(entity)`、`InsertMany(users)` 和冲突插入值跳过。数据库生成的非键属性也会从 `Update(entity)` 和 `UpdateMany(users)` 的实体驱动更新赋值中跳过。
+
+数据库生成成员不能作为默认或显式冲突目标，也不能通过 `InsertOrUpdate.Update(...)` 选择为冲突更新列。显式 `.Value(...)` 和 `.Set(...)` 仍由调用方完全控制。
