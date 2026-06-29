@@ -94,7 +94,7 @@ var matchingCount = await connection
     .ExecuteAsync();
 ```
 
-Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)` and `Min(...)` operate on mapped value-type columns and return nullable values because SQL aggregates return `NULL` for empty result sets. `CountDistinct(...)` returns a `long`:
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, and `Sum(...)` operate on mapped value-type columns and return nullable values because SQL aggregates return `NULL` for empty result sets. `Sum(...)` can usually infer the value type, and you can specify the generic value type explicitly when needed. `Average<TResult>(...)` uses an explicit scalar read type and intentionally requires a generic result type. `CountDistinct(...)` returns a `long`:
 
 ```csharp
 var latestId = connection
@@ -109,9 +109,27 @@ var distinctNames = await connection
     .SelectAggregateFrom<User>("users_2026")
     .CountDistinct(u => u.Name)
     .ExecuteAsync();
+
+var totalAmount = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectAggregateFrom<OrderMetric>()
+    .Sum(o => o.Amount)
+    .Execute();
+
+var totalQuantity = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectAggregateFrom<OrderMetric>()
+    .Sum<long>(o => o.Quantity)
+    .Execute();
+
+var averageQuantity = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectAggregateFrom<OrderMetric>()
+    .Average<decimal>(o => o.Quantity)
+    .Execute();
 ```
 
-Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
+Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, `Select("SUM(...)")`, `Select("AVG(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
 
 Use `InsertInto<T>()` when inserting explicit mapped properties:
 

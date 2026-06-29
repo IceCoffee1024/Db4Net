@@ -60,6 +60,16 @@ internal sealed class ScalarSqlRenderer
                 sql.Append(RenderColumn(model.Column));
                 sql.Append(')');
                 break;
+            case ScalarProjectionKind.Sum:
+                sql.Append("SUM(");
+                sql.Append(RenderColumn(model.Column));
+                sql.Append(')');
+                break;
+            case ScalarProjectionKind.Average:
+                sql.Append("AVG(");
+                sql.Append(RenderColumn(model.Column));
+                sql.Append(')');
+                break;
             default:
                 throw new NotSupportedException($"Scalar projection {model.ProjectionKind} is not supported.");
         }

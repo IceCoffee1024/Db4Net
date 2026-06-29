@@ -1265,6 +1265,46 @@ public sealed class CommandBuilderTests
         Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
     }
 
+    [Fact]
+    public void Select_aggregate_from_type_renders_sum_with_inferred_result_type()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<OrderMetric>()
+            .Sum(o => o.Amount)
+            .Where(o => o.Quantity, Op.Gt, 0)
+            .ToCommand();
+
+        Assert.Equal("""SELECT SUM("amount") FROM "order_metrics" WHERE "quantity" > @p0""", command.Sql);
+        Assert.Equal(0, command.Parameters.Get<int>("p0"));
+    }
+
+    [Fact]
+    public void Select_aggregate_from_type_renders_sum_with_explicit_generic_value_type()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<OrderMetric>()
+            .Sum<long>(o => o.Quantity)
+            .ToCommand();
+
+        Assert.Equal("SELECT SUM(\"quantity\") FROM \"order_metrics\"", command.Sql);
+    }
+
+    [Fact]
+    public void Select_aggregate_from_type_renders_average_with_explicit_result_type()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .SelectAggregateFrom<OrderMetric>()
+            .Average<decimal>(o => o.Quantity)
+            .Where(o => o.Amount, Op.Gte, 10m)
+            .ToCommand();
+
+        Assert.Equal("SELECT AVG(\"quantity\") FROM \"order_metrics\" WHERE \"amount\" >= @p0", command.Sql);
+        Assert.Equal(10m, command.Parameters.Get<decimal>("p0"));
+    }
+
     [Table("Users")]
     private sealed class User
     {
@@ -1291,6 +1331,18 @@ public sealed class CommandBuilderTests
 
         [NotMapped]
         public string Ignored { get; set; } = "";
+    }
+
+    [Table("order_metrics")]
+    private sealed class OrderMetric
+    {
+        public int Id { get; set; }
+
+        [Column("amount")]
+        public decimal Amount { get; set; }
+
+        [Column("quantity")]
+        public int Quantity { get; set; }
     }
 
     [Table("tenant_users")]

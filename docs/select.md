@@ -66,7 +66,7 @@ var matchingCount = await db
     .ExecuteAsync();
 ```
 
-Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)` and `Min(...)` operate on mapped value-type columns and return nullable values. `CountDistinct(...)` returns a `long`:
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, and `Sum(...)` operate on mapped value-type columns and return nullable values. `Sum(...)` can usually infer the value type, and you can specify the generic value type explicitly when needed. `Average<TResult>(...)` uses an explicit scalar read type and intentionally requires a generic result type. `CountDistinct(...)` returns a `long`:
 
 ```csharp
 var latestId = db
@@ -79,9 +79,24 @@ var distinctNames = await db
     .SelectAggregateFrom<User>("users_2026")
     .CountDistinct(u => u.Name)
     .ExecuteAsync();
+
+var totalAmount = db
+    .SelectAggregateFrom<OrderMetric>()
+    .Sum(o => o.Amount)
+    .Execute();
+
+var totalQuantity = db
+    .SelectAggregateFrom<OrderMetric>()
+    .Sum<long>(o => o.Quantity)
+    .Execute();
+
+var averageQuantity = db
+    .SelectAggregateFrom<OrderMetric>()
+    .Average<decimal>(o => o.Quantity)
+    .Execute();
 ```
 
-Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
+Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, `Select("SUM(...)")`, `Select("AVG(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
 
 ## Terminal Methods
 

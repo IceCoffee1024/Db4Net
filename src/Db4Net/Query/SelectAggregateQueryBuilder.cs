@@ -58,6 +58,30 @@ public sealed class SelectAggregateQueryBuilder<T>
         return Create<long, TValue>(ScalarProjectionKind.CountDistinct, memberSelector);
     }
 
+    /// <summary>
+    /// Selects the sum of a mapped value-type column using the selected value type as the scalar read type.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Amount</c>.</param>
+    /// <returns>A scalar aggregate query builder.</returns>
+    public SelectAggregateScalarQueryBuilder<T, TValue?> Sum<TValue>(Expression<Func<T, TValue>> memberSelector)
+        where TValue : struct
+    {
+        return Create<TValue?, TValue>(ScalarProjectionKind.Sum, memberSelector);
+    }
+
+    /// <summary>
+    /// Selects the average of a mapped column using an explicit scalar read type.
+    /// </summary>
+    /// <typeparam name="TResult">The scalar read type for the average result.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Quantity</c>.</param>
+    /// <returns>A scalar aggregate query builder.</returns>
+    public SelectAggregateScalarQueryBuilder<T, TResult?> Average<TResult>(Expression<Func<T, object?>> memberSelector)
+        where TResult : struct
+    {
+        return Create<TResult?, object?>(ScalarProjectionKind.Average, memberSelector);
+    }
+
     private SelectAggregateScalarQueryBuilder<T, TResult> Create<TResult, TValue>(
         ScalarProjectionKind projectionKind,
         Expression<Func<T, TValue>> memberSelector)

@@ -10,7 +10,7 @@
     <Version>0.1.0-alpha.1</Version>
     <Authors>IceCoffee1024</Authors>
     <Description>Safe, SQL-shaped fluent query and command builder for Dapper.</Description>
-    <PackageReleaseNotes>0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, and scalar aggregate queries, entity and many conveniences, conflict-aware inserts, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.</PackageReleaseNotes>
+    <PackageReleaseNotes>0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, scalar aggregate queries including sum and explicit-result average, entity and many conveniences, conflict-aware inserts, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.</PackageReleaseNotes>
     <PackageTags>dapper;sql;fluent;query-builder</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

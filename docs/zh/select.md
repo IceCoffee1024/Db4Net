@@ -66,7 +66,7 @@ var matchingCount = await db
     .ExecuteAsync();
 ```
 
-需要列级标量聚合时，使用 `SelectAggregateFrom<T>()`。`Max(...)` 和 `Min(...)` 用于已映射的值类型列，并返回可空值；`CountDistinct(...)` 返回 `long`：
+需要列级标量聚合时，使用 `SelectAggregateFrom<T>()`。`Max(...)`、`Min(...)` 和 `Sum(...)` 用于已映射的值类型列，并返回可空值；`Sum(...)` 通常可以推断值类型，也可以在需要时显式指定泛型值类型。`Average<TResult>(...)` 使用显式标量读取类型，并有意要求泛型结果类型。`CountDistinct(...)` 返回 `long`：
 
 ```csharp
 var latestId = db
@@ -79,9 +79,24 @@ var distinctNames = await db
     .SelectAggregateFrom<User>("users_2026")
     .CountDistinct(u => u.Name)
     .ExecuteAsync();
+
+var totalAmount = db
+    .SelectAggregateFrom<OrderMetric>()
+    .Sum(o => o.Amount)
+    .Execute();
+
+var totalQuantity = db
+    .SelectAggregateFrom<OrderMetric>()
+    .Sum<long>(o => o.Quantity)
+    .Execute();
+
+var averageQuantity = db
+    .SelectAggregateFrom<OrderMetric>()
+    .Average<decimal>(o => o.Quantity)
+    .Execute();
 ```
 
-不要用 `Select("COUNT(*)")`、`Select("MAX(...)")` 或类似字符串表达标量查询。字符串选择值会被当作已验证的标识符，而不是原始 SQL 表达式。
+不要用 `Select("COUNT(*)")`、`Select("MAX(...)")`、`Select("SUM(...)")`、`Select("AVG(...)")` 或类似字符串表达标量查询。字符串选择值会被当作已验证的标识符，而不是原始 SQL 表达式。
 
 ## 终结方法
 

@@ -170,7 +170,7 @@ public sealed class ApiContractTests
     [Fact]
     public void Select_aggregate_query_builder_exposes_aggregate_selection_api()
     {
-        AssertPublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>), "Max", "Min", "CountDistinct");
+        AssertPublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>), "Max", "Min", "CountDistinct", "Sum", "Average");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
             method.Name is "Where"
                 or "OrWhere"
@@ -179,8 +179,6 @@ public sealed class ApiContractTests
                 or "ToCommand"
                 or "Execute"
                 or "ExecuteAsync"
-                or "Sum"
-                or "Average"
                 or "Avg"
                 or "Count");
 
@@ -189,6 +187,19 @@ public sealed class ApiContractTests
                 && method.ReturnType.IsGenericType
                 && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<,>)
                 && method.ReturnType.GetGenericArguments()[1] == typeof(long));
+        Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
+            method.Name == "Sum"
+                && method.ReturnType.IsGenericType
+                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<,>)
+                && method.ReturnType.GetGenericArguments()[1].IsGenericType
+                && method.ReturnType.GetGenericArguments()[1].GetGenericTypeDefinition() == typeof(Nullable<>));
+        Assert.Contains(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), method =>
+            method.Name == "Average"
+                && method.ReturnType.IsGenericType
+                && method.ReturnType.GetGenericTypeDefinition() == typeof(SelectAggregateScalarQueryBuilder<,>)
+                && method.ReturnType.GetGenericArguments()[1].IsGenericType
+                && method.ReturnType.GetGenericArguments()[1].GetGenericTypeDefinition() == typeof(Nullable<>));
+        Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateQueryBuilder<>)), IsInferredAverageMethod);
     }
 
     [Fact]
@@ -564,6 +575,24 @@ public sealed class ApiContractTests
             && !method.IsGenericMethodDefinition
             && method.GetParameters() is [{ ParameterType: var parameterType }]
             && parameterType == typeof(string);
+    }
+
+    private static bool IsInferredAverageMethod(MethodInfo method)
+    {
+        if (method.Name != "Average" || method.GetParameters() is not [{ ParameterType: var selectorType }])
+        {
+            return false;
+        }
+
+        if (!selectorType.IsGenericType || selectorType.GetGenericTypeDefinition() != typeof(System.Linq.Expressions.Expression<>))
+        {
+            return false;
+        }
+
+        var delegateType = selectorType.GetGenericArguments()[0];
+        return delegateType.IsGenericType
+            && delegateType.GetGenericTypeDefinition() == typeof(Func<,>)
+            && delegateType.GetGenericArguments()[1] != typeof(object);
     }
 
     [Table("Users")]

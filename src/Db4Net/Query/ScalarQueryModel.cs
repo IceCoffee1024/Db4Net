@@ -6,7 +6,9 @@ internal enum ScalarProjectionKind
     Exists,
     CountDistinct,
     Max,
-    Min
+    Min,
+    Sum,
+    Average
 }
 
 internal sealed class ScalarQueryModel
