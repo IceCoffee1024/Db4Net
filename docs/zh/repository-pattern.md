@@ -91,7 +91,37 @@ public sealed class UserRepository
 
 ## 连接作用域
 
-在应用、请求、service 或 unit-of-work 边界创建连接和 Db4Net facade，然后把同一个 facade 传给该作用域内的仓储。
+对于使用 `Microsoft.Extensions.DependencyInjection` 的请求级应用，推荐把连接和 `Db4NetDatabase` 注册为 scoped service。不要把它们注册成 singleton。
+
+```csharp
+using System.Data.Common;
+using Db4Net;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+services.AddScoped<DbConnection>(sp =>
+{
+    var connectionString = sp.GetRequiredService<IConfiguration>()
+        .GetConnectionString("Default")!;
+
+    var connection = new SqliteConnection(connectionString);
+    connection.Open();
+    return connection;
+});
+
+services.AddScoped(sp =>
+{
+    var connection = sp.GetRequiredService<DbConnection>();
+    return connection.UseDb4Net(Db4NetOptions.Sqlite);
+});
+
+services.AddScoped<UserRepository>();
+```
+
+在 scoped factory 中打开连接不会和 Dapper 冲突。Dapper 会使用已经打开的连接，并保持它打开；请求 scope 结束时 DI 容器会释放连接。
+
+不使用 DI 的应用，可以在应用、请求、service 或 unit-of-work 边界创建连接和 Db4Net facade，然后把同一个 facade 传给该作用域内的仓储。
 
 ```csharp
 await using var connection = connectionFactory.CreateConnection();
@@ -108,6 +138,8 @@ var user = await users.FindByIdAsync(1, cancellationToken);
 ## 事务
 
 多个仓储调用需要原子性时，把事务放在 service 或 unit-of-work 层，用事务绑定的 facade 创建仓储。
+
+如果仓储是由 DI 使用请求级 `Db4NetDatabase` 创建的，事务内的特定操作可以在 service 层直接使用 `tx.Database`，也可以在事务委托内部用 `tx.Database` 创建短生命周期的仓储实例。
 
 ```csharp
 await using var connection = connectionFactory.CreateConnection();

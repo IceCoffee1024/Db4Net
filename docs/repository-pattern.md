@@ -91,7 +91,37 @@ This shape keeps the repository easy to test at the API boundary: callers see re
 
 ## Connection Scope
 
-Create the connection and Db4Net facade at the application, request, service, or unit-of-work boundary, then pass the facade into repositories for that scope.
+For request-scoped applications that use `Microsoft.Extensions.DependencyInjection`, register the connection and `Db4NetDatabase` as scoped services. Do not register them as singletons.
+
+```csharp
+using System.Data.Common;
+using Db4Net;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+services.AddScoped<DbConnection>(sp =>
+{
+    var connectionString = sp.GetRequiredService<IConfiguration>()
+        .GetConnectionString("Default")!;
+
+    var connection = new SqliteConnection(connectionString);
+    connection.Open();
+    return connection;
+});
+
+services.AddScoped(sp =>
+{
+    var connection = sp.GetRequiredService<DbConnection>();
+    return connection.UseDb4Net(Db4NetOptions.Sqlite);
+});
+
+services.AddScoped<UserRepository>();
+```
+
+Opening the connection in the scoped factory does not conflict with Dapper. Dapper uses an already-open connection and leaves it open; the DI scope disposes the connection at the end of the request.
+
+For applications without DI, create the connection and Db4Net facade at the application, request, service, or unit-of-work boundary, then pass the facade into repositories for that scope.
 
 ```csharp
 await using var connection = connectionFactory.CreateConnection();
@@ -108,6 +138,8 @@ Do not register a repository that captures a connection-bound `Db4NetDatabase` a
 ## Transactions
 
 When several repository calls must be atomic, keep the transaction in the service or unit-of-work layer and build repositories from the transaction-bound facade.
+
+If repositories are created by DI with the request-scoped `Db4NetDatabase`, transaction-specific work can either use `tx.Database` directly in the service layer or create short-lived repositories from `tx.Database` inside the transaction delegate.
 
 ```csharp
 await using var connection = connectionFactory.CreateConnection();
