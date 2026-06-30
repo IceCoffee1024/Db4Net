@@ -1,10 +1,16 @@
 # Db4Net
 
+[![NuGet](https://img.shields.io/nuget/vpre/Db4Net.svg)](https://www.nuget.org/packages/Db4Net)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Db4Net.svg)](https://www.nuget.org/packages/Db4Net)
+[![Documentation](https://img.shields.io/badge/docs-db4net.icecoffee1024.com-blue.svg)](https://db4net.icecoffee1024.com)
+
 Db4Net is a lightweight fluent SQL builder for safe, parameterized Dapper queries and commands.
 
 It is designed for developers who want more structure than hand-written SQL string concatenation, while still keeping Dapper in charge of execution and object mapping. Db4Net is not an ORM and does not try to become a LINQ provider.
 
 The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectExistsFrom<T>()`, `SelectCountFrom<T>()`, `SelectAggregateFrom<T>()`, `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` keep statement order recognizable while still validating identifiers and parameterizing values.
+
+Documentation: <https://db4net.icecoffee1024.com>
 
 ## Status
 
