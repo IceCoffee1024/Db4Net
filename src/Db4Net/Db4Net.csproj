@@ -14,7 +14,7 @@
     <PackageTags>dapper;sql;fluent;query-builder</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://dotnet.db4.dev</PackageProjectUrl>
+    <PackageProjectUrl>https://db4net.icecoffee1024.com</PackageProjectUrl>
     <RepositoryUrl>https://github.com/IceCoffee1024/Db4Net.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

@@ -232,7 +232,7 @@ SQL 渲染和 Dapper 执行保持分离。
 - `PackageTags`: `dapper;sql;fluent;query-builder`
 - `PackageReadmeFile`: `README.md`
 - `PackageLicenseExpression`: `MIT`
-- `PackageProjectUrl`: `https://dotnet.db4.dev`
+- `PackageProjectUrl`: `https://db4net.icecoffee1024.com`
 - `RepositoryUrl`: `https://github.com/IceCoffee1024/Db4Net.git`
 - `RepositoryType`: `git`
 - `GenerateDocumentationFile`: `true`
@@ -241,7 +241,7 @@ SQL 渲染和 Dapper 执行保持分离。
 - `SymbolPackageFormat`: `snupkg`
 - `IncludeSymbols`: `true`
 
-`PackageProjectUrl` 指向项目网站 `https://dotnet.db4.dev`，该地址当前可访问并展示 Db4Net 文档；源码仓库地址由 `RepositoryUrl` 单独指向 GitHub。
+`PackageProjectUrl` 指向项目网站 `https://db4net.icecoffee1024.com`，该地址当前可访问并展示 Db4Net 文档；源码仓库地址由 `RepositoryUrl` 单独指向 GitHub。
 
 发布包体验已补齐：
 
