@@ -44,5 +44,5 @@ Database-generated mapped members cannot be used as default or explicit conflict
 :::
 
 ::: warning Dialect differences
-SQLite and PostgreSQL render native `ON CONFLICT`. MySQL renders `ON DUPLICATE KEY UPDATE`, and duplicate-key handling applies to any primary or unique key violation. SQL Server renders `MERGE ... WITH (HOLDLOCK)`. See [Conflict Inserts](./dialects.md#conflict-inserts) in the dialect guide.
+SQLite and PostgreSQL render native `ON CONFLICT`. MySQL renders `INSERT IGNORE` for `InsertOrIgnore(...)` and `ON DUPLICATE KEY UPDATE` for `InsertOrUpdate(...)`; duplicate-key handling applies to any primary or unique key violation, and `INSERT IGNORE` can also turn some data errors into warnings according to MySQL rules. SQL Server renders `MERGE ... WITH (HOLDLOCK)`. See [Conflict Inserts](./dialects.md#conflict-inserts) in the dialect guide.
 :::

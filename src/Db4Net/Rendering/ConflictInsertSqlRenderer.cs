@@ -119,8 +119,7 @@ internal sealed class ConflictInsertSqlRenderer
         var insert = RenderInsertPrefix(table, insertColumnNames, parameterNames);
         if (behavior == ConflictInsertBehavior.Ignore)
         {
-            var noOpColumn = _dialect.QuoteIdentifier(insertColumnNames[0]);
-            return $"{insert} ON DUPLICATE KEY UPDATE {noOpColumn} = {noOpColumn}";
+            return RenderInsertPrefix(table, insertColumnNames, parameterNames, "INSERT IGNORE INTO");
         }
 
         var updates = string.Join(", ", updateColumns.Select(column => $"{_dialect.QuoteIdentifier(column.ColumnName)} = VALUES({_dialect.QuoteIdentifier(column.ColumnName)})"));
@@ -155,10 +154,11 @@ internal sealed class ConflictInsertSqlRenderer
     private string RenderInsertPrefix(
         string table,
         IReadOnlyList<string> insertColumnNames,
-        IReadOnlyList<string> parameterNames)
+        IReadOnlyList<string> parameterNames,
+        string insertKeyword = "INSERT INTO")
     {
         var columns = string.Join(", ", insertColumnNames.Select(_dialect.QuoteIdentifier));
         var parameters = string.Join(", ", parameterNames.Select(parameterName => $"@{parameterName}"));
-        return $"INSERT INTO {_dialect.QuoteIdentifier(table)} ({columns}) VALUES ({parameters})";
+        return $"{insertKeyword} {_dialect.QuoteIdentifier(table)} ({columns}) VALUES ({parameters})";
     }
 }

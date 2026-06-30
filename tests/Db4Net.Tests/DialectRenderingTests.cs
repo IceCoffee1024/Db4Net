@@ -286,7 +286,7 @@ public sealed class DialectRenderingTests
             .InsertOrUpdate(new User { Id = 1, Name = "Alice" })
             .ToCommand();
 
-        Assert.Equal("INSERT INTO `Users` (`Id`, `Name`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Id` = `Id`", ignore.Sql);
+        Assert.Equal("INSERT IGNORE INTO `Users` (`Id`, `Name`) VALUES (@p0, @p1)", ignore.Sql);
         Assert.Equal("INSERT INTO `Users` (`Id`, `Name`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`)", update.Sql);
     }
 
