@@ -217,20 +217,26 @@ public sealed class DialectRenderingTests
     }
 
     [Fact]
-    public void Sql_server_renders_insert_or_update_as_merge()
+    public void Sql_server_renders_insert_or_ignore_as_merge()
     {
-        var ignore = Db4NetDatabase
+        var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
             .InsertOrIgnore(new User { Id = 1, Name = "Alice" })
             .ToCommand();
+
+        Assert.Equal("MERGE INTO [Users] WITH (HOLDLOCK) AS target USING (VALUES (@p0, @p1)) AS source ([Id], [Name]) ON target.[Id] = source.[Id] WHEN NOT MATCHED THEN INSERT ([Id], [Name]) VALUES (source.[Id], source.[Name]);", command.Sql);
+        Assert.Equal(1, command.Parameters.Get<int>("p0"));
+        Assert.Equal("Alice", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Sql_server_renders_insert_or_update_as_merge()
+    {
         var command = Db4NetDatabase
             .Create(Db4NetOptions.SqlServer)
             .InsertOrUpdate(new User { Id = 1, Name = "Alice" })
             .ToCommand();
 
-        Assert.Equal("MERGE INTO [Users] WITH (HOLDLOCK) AS target USING (VALUES (@p0, @p1)) AS source ([Id], [Name]) ON target.[Id] = source.[Id] WHEN NOT MATCHED THEN INSERT ([Id], [Name]) VALUES (source.[Id], source.[Name]);", ignore.Sql);
-        Assert.Equal(1, ignore.Parameters.Get<int>("p0"));
-        Assert.Equal("Alice", ignore.Parameters.Get<string>("p1"));
         Assert.Equal("MERGE INTO [Users] WITH (HOLDLOCK) AS target USING (VALUES (@p0, @p1)) AS source ([Id], [Name]) ON target.[Id] = source.[Id] WHEN MATCHED THEN UPDATE SET [Name] = source.[Name] WHEN NOT MATCHED THEN INSERT ([Id], [Name]) VALUES (source.[Id], source.[Name]);", command.Sql);
         Assert.Equal(1, command.Parameters.Get<int>("p0"));
         Assert.Equal("Alice", command.Parameters.Get<string>("p1"));

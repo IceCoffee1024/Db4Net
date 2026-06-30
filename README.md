@@ -229,14 +229,7 @@ await connection
     .ExecuteAsync();
 ```
 
-For a single inserted entity with a mapped key, use `ExecuteReturnKey<TResult>()` when you need the database-created key instead of the affected row count:
-
-```csharp
-var id = await connection
-    .UseDb4Net(Db4NetOptions.Sqlite)
-    .Insert(user)
-    .ExecuteReturnKeyAsync<long>();
-```
+For a single inserted entity with a mapped key, use the generated-key terminals shown above when you need the database-created key instead of the affected row count.
 
 Single-entity convenience methods reject sequence values such as `List<User>` or `User[]`; use the matching `Many` method instead.
 

@@ -551,7 +551,7 @@ public sealed class CommandBuilderTests
     }
 
     [Fact]
-    public void Composite_keys_are_default_conflict_targets_but_not_entity_update_delete_keys()
+    public void Composite_keys_are_default_conflict_targets()
     {
         var database = Db4NetDatabase.Create(Db4NetOptions.Sqlite);
         var user = new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" };
@@ -565,6 +565,13 @@ public sealed class CommandBuilderTests
 
         Assert.Equal("""INSERT INTO "CompositeKeyUser" ("TenantId", "UserId", "Name") VALUES (@p0, @p1, @p2) ON CONFLICT ("TenantId", "UserId") DO NOTHING""", ignoreCommand.Sql);
         Assert.Equal("INSERT INTO \"CompositeKeyUser\" (\"TenantId\", \"UserId\", \"Name\") VALUES (@p0, @p1, @p2) ON CONFLICT (\"TenantId\", \"UserId\") DO UPDATE SET \"Name\" = excluded.\"Name\"", updateCommand.Sql);
+    }
+
+    [Fact]
+    public void Composite_keys_are_not_entity_update_delete_keys()
+    {
+        var database = Db4NetDatabase.Create(Db4NetOptions.Sqlite);
+        var user = new CompositeKeyUser { TenantId = 1, UserId = 2, Name = "Alice" };
 
         var updateEx = Assert.Throws<InvalidOperationException>(() => database.Update(user).ToCommand());
         var deleteEx = Assert.Throws<InvalidOperationException>(() => database.Delete(user).ToCommand());

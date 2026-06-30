@@ -594,7 +594,7 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
-    public void Query_uses_transaction_from_command_options()
+    public void Query_uses_transaction_from_execution_options()
     {
         using var connection = CreateOpenConnection();
         using var transaction = connection.BeginTransaction();
@@ -639,7 +639,7 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
-    public async Task Query_async_accepts_command_options_and_cancellation_token()
+    public async Task Query_async_accepts_execution_options_and_cancellation_token()
     {
         await using var connection = CreateOpenConnection();
         await using var transaction = await connection.BeginTransactionAsync();
