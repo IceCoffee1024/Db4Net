@@ -29,6 +29,7 @@ All notable changes to Db4Net will be documented in this file.
 - Bilingual VitePress documentation site with English and Simplified Chinese user guides.
 - Bilingual complete example documentation page with recommended usage patterns.
 - Bilingual repository pattern documentation page for data access layering, scoped/keyed DI registration, raw Dapper SQL, and transaction scopes.
+- Bilingual application patterns documentation page for service transaction boundaries, application-side unit-of-work helpers, background jobs, and no-DI session factories.
 - Documentation-site changelog entry that links back to this root `CHANGELOG.md`.
 - Documentation-site favicon and navbar logo.
 

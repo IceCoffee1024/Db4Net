@@ -91,39 +91,13 @@ This shape keeps the repository easy to test at the API boundary: callers see re
 
 ## Connection Scope
 
-For request-scoped applications that use `Microsoft.Extensions.DependencyInjection`, register the connection and `Db4NetDatabase` as scoped services. Do not register them as singletons.
-
-```csharp
-using System.Data.Common;
-using Db4Net;
-using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
-services.AddScoped<DbConnection>(sp =>
-{
-    var connectionString = sp.GetRequiredService<IConfiguration>()
-        .GetConnectionString("Default")!;
-
-    var connection = new SqliteConnection(connectionString);
-    connection.Open();
-    return connection;
-});
-
-services.AddScoped(sp =>
-{
-    var connection = sp.GetRequiredService<DbConnection>();
-    return connection.UseDb4Net(Db4NetOptions.Sqlite);
-});
-
-services.AddScoped<UserRepository>();
-```
+A repository that stores a `Db4NetDatabase` should follow the lifetime of the connection or transaction bound to that facade. In request-scoped applications that use `Microsoft.Extensions.DependencyInjection`, register the connection, `Db4NetDatabase`, and repositories as scoped services. See [Application Patterns](./application-patterns.md#request-scoped-di) for the complete DI setup.
 
 Opening the connection in the scoped factory does not conflict with Dapper. Dapper uses an already-open connection and leaves it open; the DI scope disposes the connection at the end of the request.
 
 ## Multiple Databases
 
-When repositories target different fixed databases, register keyed scoped services for each database.
+When repositories target different fixed databases, register keyed scoped services for each database. `AddKeyedScoped` and `GetRequiredKeyedService` are .NET 8 `Microsoft.Extensions.DependencyInjection` APIs; if your DI container does not support keyed services, use an application-level factory or the container's named/keyed registration feature.
 
 ```csharp
 public enum DatabaseId
@@ -185,17 +159,7 @@ Use keyed scoped services for fixed database boundaries such as `Main` and `Audi
 
 Db4Net transaction scopes are single-connection scopes. Do not assume one `ExecuteInTransaction(...)` call can make work across multiple databases atomic.
 
-For applications without DI, create the connection and Db4Net facade at the application, request, service, or unit-of-work boundary, then pass the facade into repositories for that scope.
-
-```csharp
-await using var connection = connectionFactory.CreateConnection();
-await connection.OpenAsync(cancellationToken);
-
-var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
-var users = new UserRepository(db);
-
-var user = await users.FindByIdAsync(1, cancellationToken);
-```
+For applications without DI, create the connection and Db4Net facade at the application, request, service, or unit-of-work boundary, then pass the facade into repositories for that scope. See [Application Patterns](./application-patterns.md#no-di-program) for a session factory example.
 
 Do not register a repository that captures a connection-bound `Db4NetDatabase` as a singleton. The facade is lightweight and should follow the lifetime of the connection or transaction it is bound to.
 
@@ -281,30 +245,7 @@ When several repository calls must be atomic, keep the transaction in the servic
 
 If repositories are created by DI with the request-scoped `Db4NetDatabase`, transaction-specific work can either use `tx.Database` directly in the service layer or create short-lived repositories from `tx.Database` inside the transaction delegate.
 
-```csharp
-await using var connection = connectionFactory.CreateConnection();
-await connection.OpenAsync(cancellationToken);
-
-var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
-
-await db.ExecuteInTransactionAsync(async tx =>
-{
-    var users = new UserRepository(tx.Database);
-
-    var id = await users.AddAsync(
-        new User
-        {
-            Name = "Alice",
-            Email = "alice@example.com",
-            IsActive = true
-        },
-        cancellationToken);
-
-    await users.RenameAsync(id, "Alice Updated", cancellationToken);
-});
-```
-
-`ExecuteInTransactionAsync(...)` commits when the delegate succeeds and rolls back when it throws. Db4Net still does not track entities or provide `SaveChanges()`.
+`ExecuteInTransactionAsync(...)` commits when the delegate succeeds and rolls back when it throws. Db4Net still does not track entities or provide `SaveChanges()`. See [Application Patterns](./application-patterns.md#service-transaction-boundary) for service-level transaction examples and [Business Unit of Work](./application-patterns.md#business-unit-of-work) for a reusable application helper.
 
 ## Guidelines
 

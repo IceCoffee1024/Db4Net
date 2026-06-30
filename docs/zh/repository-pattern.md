@@ -91,39 +91,13 @@ public sealed class UserRepository
 
 ## 连接作用域
 
-对于使用 `Microsoft.Extensions.DependencyInjection` 的请求级应用，推荐把连接和 `Db4NetDatabase` 注册为 scoped service。不要把它们注册成 singleton。
-
-```csharp
-using System.Data.Common;
-using Db4Net;
-using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
-services.AddScoped<DbConnection>(sp =>
-{
-    var connectionString = sp.GetRequiredService<IConfiguration>()
-        .GetConnectionString("Default")!;
-
-    var connection = new SqliteConnection(connectionString);
-    connection.Open();
-    return connection;
-});
-
-services.AddScoped(sp =>
-{
-    var connection = sp.GetRequiredService<DbConnection>();
-    return connection.UseDb4Net(Db4NetOptions.Sqlite);
-});
-
-services.AddScoped<UserRepository>();
-```
+持有 `Db4NetDatabase` 的仓储应该跟随该 facade 绑定的连接或事务生命周期。对于使用 `Microsoft.Extensions.DependencyInjection` 的请求级应用，推荐把连接、`Db4NetDatabase` 和仓储都注册为 scoped service。完整 DI 配置见[应用模式](./application-patterns.md#请求级-di)。
 
 在 scoped factory 中打开连接不会和 Dapper 冲突。Dapper 会使用已经打开的连接，并保持它打开；请求 scope 结束时 DI 容器会释放连接。
 
 ## 多数据库
 
-当不同仓储固定访问不同数据库时，为每个数据库注册 keyed scoped service。
+当不同仓储固定访问不同数据库时，为每个数据库注册 keyed scoped service。`AddKeyedScoped` 和 `GetRequiredKeyedService` 是 .NET 8 `Microsoft.Extensions.DependencyInjection` API；如果你的 DI 容器不支持 keyed services，请使用应用层 factory，或使用该容器自己的 named/keyed registration 能力。
 
 ```csharp
 public enum DatabaseId
@@ -185,17 +159,7 @@ services.AddScoped<AuditRepository>(sp =>
 
 Db4Net 的事务作用域是单连接作用域。不要假设一次 `ExecuteInTransaction(...)` 可以让跨多个数据库的操作具备原子性。
 
-不使用 DI 的应用，可以在应用、请求、service 或 unit-of-work 边界创建连接和 Db4Net facade，然后把同一个 facade 传给该作用域内的仓储。
-
-```csharp
-await using var connection = connectionFactory.CreateConnection();
-await connection.OpenAsync(cancellationToken);
-
-var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
-var users = new UserRepository(db);
-
-var user = await users.FindByIdAsync(1, cancellationToken);
-```
+不使用 DI 的应用，可以在应用、请求、service 或 unit-of-work 边界创建连接和 Db4Net facade，然后把同一个 facade 传给该作用域内的仓储。Session factory 示例见[应用模式](./application-patterns.md#无-di-程序)。
 
 不要把捕获了连接绑定 `Db4NetDatabase` 的仓储注册成 singleton。Db4Net facade 很轻量，它的生命周期应该跟随绑定的连接或事务。
 
@@ -281,30 +245,7 @@ catch
 
 如果仓储是由 DI 使用请求级 `Db4NetDatabase` 创建的，事务内的特定操作可以在 service 层直接使用 `tx.Database`，也可以在事务委托内部用 `tx.Database` 创建短生命周期的仓储实例。
 
-```csharp
-await using var connection = connectionFactory.CreateConnection();
-await connection.OpenAsync(cancellationToken);
-
-var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
-
-await db.ExecuteInTransactionAsync(async tx =>
-{
-    var users = new UserRepository(tx.Database);
-
-    var id = await users.AddAsync(
-        new User
-        {
-            Name = "Alice",
-            Email = "alice@example.com",
-            IsActive = true
-        },
-        cancellationToken);
-
-    await users.RenameAsync(id, "Alice Updated", cancellationToken);
-});
-```
-
-`ExecuteInTransactionAsync(...)` 会在委托成功时提交，在抛出异常时回滚。Db4Net 仍然不会跟踪实体，也不会提供 `SaveChanges()`。
+`ExecuteInTransactionAsync(...)` 会在委托成功时提交，在抛出异常时回滚。Db4Net 仍然不会跟踪实体，也不会提供 `SaveChanges()`。Service 层事务示例见[应用模式](./application-patterns.md#service-事务边界)，可复用的应用侧辅助对象见[业务侧工作单元](./application-patterns.md#业务侧工作单元)。
 
 ## 建议
 
