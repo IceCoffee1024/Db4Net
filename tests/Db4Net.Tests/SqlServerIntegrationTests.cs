@@ -12,7 +12,7 @@ public sealed class SqlServerIntegrationTests
     public async Task Query_single_or_default_executes_parameterized_sql()
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "users");
-        await using var connection = await OpenConnectionAsync();
+        using var connection = await OpenConnectionAsync();
 
         try
         {
@@ -41,7 +41,7 @@ public sealed class SqlServerIntegrationTests
     public async Task String_select_with_column_attribute_maps_result_to_property()
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "mapped_users");
-        await using var connection = await OpenConnectionAsync();
+        using var connection = await OpenConnectionAsync();
 
         try
         {
@@ -69,7 +69,7 @@ public sealed class SqlServerIntegrationTests
     public async Task Query_with_ordering_and_paging_executes()
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "paged_users");
-        await using var connection = await OpenConnectionAsync();
+        using var connection = await OpenConnectionAsync();
 
         try
         {
@@ -101,7 +101,7 @@ public sealed class SqlServerIntegrationTests
     public async Task Conflict_insert_conveniences_execute()
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "conflict_users");
-        await using var connection = await OpenConnectionAsync();
+        using var connection = await OpenConnectionAsync();
 
         try
         {
@@ -137,7 +137,7 @@ public sealed class SqlServerIntegrationTests
     public async Task Conflict_insert_many_conveniences_execute()
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "conflict_many");
-        await using var connection = await OpenConnectionAsync();
+        using var connection = await OpenConnectionAsync();
 
         try
         {
@@ -181,7 +181,7 @@ public sealed class SqlServerIntegrationTests
     public async Task Conflict_insert_can_override_table_and_conflict_target()
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "unique_users");
-        await using var connection = await OpenConnectionAsync();
+        using var connection = await OpenConnectionAsync();
 
         try
         {
@@ -215,7 +215,7 @@ public sealed class SqlServerIntegrationTests
     public async Task Insert_execute_return_key_returns_generated_key()
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("sqlserver", "generated_users");
-        await using var connection = await OpenConnectionAsync();
+        using var connection = await OpenConnectionAsync();
 
         try
         {
@@ -252,7 +252,7 @@ public sealed class SqlServerIntegrationTests
 
     private static async Task ExecuteAsync(SqlConnection connection, string sql)
     {
-        await using var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = sql;
         await command.ExecuteNonQueryAsync();
     }

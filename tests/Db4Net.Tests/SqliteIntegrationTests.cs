@@ -28,7 +28,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Query_single_or_default_async_executes_parameterized_sql_with_dapper()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
 
         var user = await connection
             .UseDb4Net(Db4NetOptions.Sqlite)
@@ -122,7 +122,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Query_async_executes_parameterized_sql_with_dapper()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
 
         var users = (await connection
             .UseDb4Net(Db4NetOptions.Sqlite)
@@ -162,7 +162,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Query_page_async_returns_items_and_total_count()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
 
         var page = await connection
             .UseDb4Net(Db4NetOptions.Sqlite)
@@ -198,7 +198,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Select_count_execute_async_returns_filtered_count_from_explicit_table()
     {
-        await using var connection = CreateOpenShardedConnection();
+        using var connection = CreateOpenShardedConnection();
         var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
 
         db.InsertMany(
@@ -276,9 +276,9 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Select_count_execute_async_uses_cancellation_token()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
         using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
+        cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             connection
@@ -310,7 +310,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Select_exists_execute_async_returns_result_from_explicit_table()
     {
-        await using var connection = CreateOpenShardedConnection();
+        using var connection = CreateOpenShardedConnection();
         var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
 
         db.InsertMany(
@@ -388,9 +388,9 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Select_exists_execute_async_uses_cancellation_token()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
         using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
+        cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             connection
@@ -446,7 +446,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Select_aggregate_count_distinct_execute_async_returns_result_from_explicit_table()
     {
-        await using var connection = CreateOpenShardedConnection();
+        using var connection = CreateOpenShardedConnection();
         var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
 
         db.InsertMany(
@@ -567,7 +567,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Select_aggregate_average_execute_async_returns_terminal_result_type()
     {
-        await using var connection = CreateOpenOrderMetricsConnection();
+        using var connection = CreateOpenOrderMetricsConnection();
 
         var average = await connection
             .UseDb4Net(Db4NetOptions.Sqlite)
@@ -627,9 +627,9 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Query_async_uses_cancellation_token()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
         using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
+        cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             connection
@@ -641,8 +641,8 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Query_async_accepts_execution_options_and_cancellation_token()
     {
-        await using var connection = CreateOpenConnection();
-        await using var transaction = await connection.BeginTransactionAsync();
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
 
         var user = await connection
             .UseDb4Net(Db4NetOptions.Sqlite)
@@ -673,7 +673,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Query_first_or_default_async_returns_default_when_no_row_exists()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
 
         var user = await connection
             .UseDb4Net(Db4NetOptions.Sqlite)
@@ -772,7 +772,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Insert_execute_return_key_async_returns_generated_key()
     {
-        await using var connection = CreateOpenGeneratedUsersConnection();
+        using var connection = CreateOpenGeneratedUsersConnection();
         var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
 
         var id = await db
@@ -852,9 +852,9 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Insert_execute_return_key_async_uses_cancellation_token()
     {
-        await using var connection = CreateOpenGeneratedUsersConnection();
+        using var connection = CreateOpenGeneratedUsersConnection();
         using var cancellation = new CancellationTokenSource();
-        await cancellation.CancelAsync();
+        cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             connection
@@ -889,7 +889,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Delete_command_async_executes_parameterized_sql_with_dapper()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
 
         var affected = await connection
             .UseDb4Net(Db4NetOptions.Sqlite)
@@ -1221,7 +1221,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Execute_in_transaction_async_commits_when_delegate_succeeds()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
         var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
 
         await db.ExecuteInTransactionAsync(async transaction =>
@@ -1247,7 +1247,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Execute_in_transaction_async_rolls_back_when_delegate_throws()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
         var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -1546,7 +1546,7 @@ public sealed class SqliteIntegrationTests
     [Fact]
     public async Task Delete_many_async_executes_parameterized_sql_with_dapper()
     {
-        await using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection();
         var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
 
         var deleted = await db

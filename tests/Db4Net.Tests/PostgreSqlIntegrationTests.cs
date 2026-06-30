@@ -252,7 +252,7 @@ public sealed class PostgreSqlIntegrationTests
 
     private static async Task ExecuteAsync(NpgsqlConnection connection, string sql)
     {
-        await using var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = sql;
         await command.ExecuteNonQueryAsync();
     }
