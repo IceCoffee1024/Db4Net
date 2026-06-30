@@ -31,9 +31,9 @@ db.InsertOrUpdateMany(users, table: "users_2026")
 冲突插入终结方法返回影响行数。生成键回读只适用于常规单行 `InsertInto<T>()` / `Insert(entity)` 命令。
 
 ::: warning
-数据库生成的映射成员不能作为默认或显式冲突目标，也不能通过 `InsertOrUpdate.Update(...)` 选择为冲突更新列。
+数据库生成的映射成员不能作为默认或显式冲突目标，也不能通过 `InsertOrUpdate.Update(...)` 选择为冲突更新列。`OnConflict(...)` 里选择的冲突目标列也不能再通过 `InsertOrUpdate.Update(...)` 选择为更新列。
 :::
 
 ::: warning 方言差异
-SQLite 和 PostgreSQL 渲染原生 `ON CONFLICT`。MySQL 渲染 `ON DUPLICATE KEY UPDATE`，数据库本身会对任意主键或唯一键冲突触发处理。SQL Server 渲染方言特定命令，但这不是原生导入、copy 或集合式同步 API。
+SQLite 和 PostgreSQL 渲染原生 `ON CONFLICT`。MySQL 渲染 `ON DUPLICATE KEY UPDATE`，数据库本身会对任意主键或唯一键冲突触发处理。SQL Server 渲染 `MERGE ... WITH (HOLDLOCK)`。更多细节见[冲突插入语法](./dialects.md#冲突插入语法)。
 :::

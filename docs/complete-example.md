@@ -155,6 +155,8 @@ Db4Net intentionally does not cover joins, CTEs, window functions, provider-spec
 
 ## Recommended Patterns
 
+For repository and service composition, see [Repository Pattern](./repository-pattern.md) and [Application Patterns](./application-patterns.md).
+
 - Use `Insert(user)`, `Update(user)`, and `Delete(user)` for common single-entity commands.
 - Use `InsertInto<T>()`, `Update<T>()`, and `DeleteFrom<T>()` when the command should read like SQL.
 - Use `SelectExistsFrom<T>()` for existence checks and `SelectCountFrom<T>()` only when the count matters.

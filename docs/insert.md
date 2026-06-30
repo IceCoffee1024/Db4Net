@@ -53,7 +53,7 @@ var id = db.InsertInto<User>()
 
 `ExecuteReturnKey<TResult>()` uses the model's only mapped key. If a model has multiple `[Key]` properties, pass the key selector explicitly. The selector must target a mapped key column.
 
-Generated-key readback applies to regular single-row `InsertInto<T>()` and `Insert(entity)` commands only. `InsertMany(...)`, `InsertOrIgnore(...)`, and `InsertOrUpdate(...)` continue to return affected row counts. See the dialect guide for provider caveats such as MySQL auto-increment identity semantics, SQLite `RETURNING` version support, and SQL Server trigger limitations.
+Generated-key readback applies to regular single-row `InsertInto<T>()` and `Insert(entity)` commands only. `InsertMany(...)`, `InsertOrIgnore(...)`, and `InsertOrUpdate(...)` continue to return affected row counts. See [Generated Keys](./dialects.md#generated-keys) for provider caveats such as MySQL auto-increment identity semantics, SQLite `RETURNING` version support, and SQL Server trigger limitations.
 
 ## Execute or Inspect
 

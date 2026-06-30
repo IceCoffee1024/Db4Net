@@ -111,6 +111,8 @@ var totalPages = page.TotalPages;
 
 Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
+`Max(...)` and `Min(...)` require value-type member selectors. `Sum(...)` and `Average(...)` do not validate that the selected column is numeric; choose a terminal `TResult` that matches your provider's aggregate result.
+
 ```csharp
 var latestId = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
@@ -238,6 +240,8 @@ var id = await connection
 
 Single-entity convenience methods reject sequence values such as `List<User>` or `User[]`; use the matching `Many` method instead.
 
+`Update(entity)`, `Delete(entity)`, `UpdateMany(...)`, and `DeleteMany(...)` require exactly one mapped key and a non-default key value. Use SQL-shaped builders with explicit `Where(...)` clauses for composite-key models.
+
 For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`:
 
 ```csharp
@@ -275,6 +279,7 @@ db.ExecuteInTransaction(tx =>
 
 This is a connection-bound `IDbTransaction` convenience, not an ORM unit of work. Db4Net still does not track entities, detect changes, batch saves, or add `SaveChanges()`.
 When raw Dapper SQL must participate in the same transaction, create the `IDbTransaction` yourself and bind it with `WithTransaction(transaction)`.
+After `Commit()`, `Rollback()`, or `Dispose()`, `tx.Database` and any transaction-bound builder or facade captured from it reject further execution.
 
 Use conflict-aware insert conveniences when inserts should ignore or update rows that already match a conflict target:
 
@@ -289,7 +294,7 @@ db.InsertOrUpdateMany(users, table: "users_2026")
   .Execute();
 ```
 
-`OnConflict(...)` accepts mapped CLR member selectors for the conflict target. `InsertOrUpdate` and `InsertOrUpdateMany` also support `Update(...)` to choose the mapped columns updated on conflict. When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target; default conflict targets must be non-database-generated keys. The `Many` variants are Dapper multi-execute conveniences: one validated, parameterized command per entity, not provider-native import/copy APIs or optimized batching.
+`OnConflict(...)` accepts mapped CLR member selectors for the conflict target. `InsertOrUpdate` and `InsertOrUpdateMany` also support `Update(...)` to choose the mapped columns updated on conflict. Update columns cannot be database-generated columns and cannot overlap with the conflict target. When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target; default conflict targets must be non-database-generated keys. The `Many` variants are Dapper multi-execute conveniences: one validated, parameterized command per entity, not provider-native import/copy APIs or optimized batching.
 
 Use the SQL-shaped command builders when you need explicit fields or predicates:
 
@@ -394,7 +399,7 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 Db4Net handles identifier quoting and paging syntax through the configured dialect.
 For `SELECT` paging, `Offset(...)` must be paired with `Limit(...)`, and SQL Server paging requires at least one `OrderBy(...)`.
 
-SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. SQL Server renders a dialect-specific conflict-aware command; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
+SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. MySQL `InsertOrIgnore(...)` uses a no-op duplicate-key update assignment. SQL Server renders `MERGE ... WITH (HOLDLOCK)` for conflict-aware inserts; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
 
 Generated-key insert terminals use SQL Server `OUTPUT INSERTED...`, SQLite/PostgreSQL `RETURNING`, and MySQL `LAST_INSERT_ID()` for auto-increment identity keys. SQLite requires runtime SQLite 3.35 or newer for `RETURNING`; SQL Server trigger-enabled tables can require an `OUTPUT ... INTO` pattern that Db4Net does not currently generate; MySQL does not return trigger/default/expression-generated non-identity keys through `LAST_INSERT_ID()`.
 
@@ -414,7 +419,7 @@ Included in the current alpha:
 - Many entity command conveniences such as `InsertMany(users)`, `InsertMany(users, table)`, `UpdateMany(users)`, `UpdateMany(users, table)`, `DeleteMany(users)`, and `DeleteMany(users, table)`
 - Conflict-aware insert conveniences such as `InsertOrIgnore(user)`, `InsertOrIgnoreMany(users)`, `InsertOrUpdate(user)`, `InsertOrUpdateMany(users)`, and their `table` overloads
 - Dynamic property-name projection with model validation
-- `Where`, `OrWhere`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
+- `Where`, `OrWhere`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `OrderByDescending`, `Limit`, `Offset`, and `Page`
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders
 - Sync and async Dapper-style query terminal methods
 - Existing transaction pass-through, lightweight transaction scopes, command timeout, command type, and async cancellation token support

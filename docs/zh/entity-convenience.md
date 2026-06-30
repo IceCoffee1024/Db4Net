@@ -30,6 +30,24 @@ var id = await connection
     .ExecuteReturnKeyAsync<long>();
 ```
 
+## 表名重载
+
+实体便捷方法可以指定显式目标表，同时继续使用 `T` 的映射信息。
+
+```csharp
+var affected = db.Update(user, table: "users_2026")
+    .Execute();
+```
+
+可用的单实体便捷方法包括：
+
+- `Insert(entity)`
+- `Insert(entity, table)`
+- `Update(entity)`
+- `Update(entity, table)`
+- `Delete(entity)`
+- `Delete(entity, table)`
+
 单实体便捷方法会拒绝 `List<User>` 或 `User[]` 这类序列值。多个对象请使用 `InsertMany(...)`、`UpdateMany(...)`、`DeleteMany(...)`、`InsertOrIgnoreMany(...)` 或 `InsertOrUpdateMany(...)`。
 
 ## 键元数据
@@ -42,6 +60,8 @@ var id = await connection
 - `UpdateMany(users)`
 - `DeleteMany(users)`
 - 冲突插入未显式调用 `OnConflict(...)` 时的默认冲突目标
+
+`Update(entity)`、`Delete(entity)`、`UpdateMany(...)` 和 `DeleteMany(...)` 要求模型有且只有一个映射 key，并且 key 值不是 `null`、`0` 或对应类型的默认值。没有 key 或复合 key 的模型请使用 SQL 风格 builder 和显式 `Where(...)` 条件。
 
 ::: warning 注意
 键元数据不代表变更跟踪、生成值回读、关系身份映射或自动并发行为。

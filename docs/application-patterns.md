@@ -14,6 +14,8 @@ Use this split as the default:
 
 Do not make repositories guess an ambient transaction. When a repository must run inside a transaction, create it from the transaction-bound `Db4NetDatabase`.
 
+For the basic repository shape and repository-only examples, see [Repository Pattern](./repository-pattern.md).
+
 ## Shared Repositories
 
 ```csharp

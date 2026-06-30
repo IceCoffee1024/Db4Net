@@ -68,6 +68,8 @@ var matchingCount = await db
 
 需要列级标量聚合时，使用 `SelectAggregateFrom<T>()`。`Max(...)`、`Min(...)`、`Sum(...)`、`Average(...)` 和 `CountDistinct(...)` 会构建标量聚合投影。显式结果类型放在终端 `Execute<TResult>()` 或 `ExecuteAsync<TResult>()` 调用上，例如 `Max(selector).Execute<TResult>()` 或 `CountDistinct(selector).ExecuteAsync<long>()`；需要保留 SQL 在空结果集上返回的 `NULL` 时，使用可空的 `TResult`。
 
+`Max(...)` 和 `Min(...)` 要求值类型成员选择器。`Sum(...)` 和 `Average(...)` 不在 Db4Net 侧验证所选列是否为数值列；聚合由数据库执行，Dapper 按终端 `TResult` 读取结果，因此请选择与数据库返回值匹配的结果类型。
+
 ```csharp
 var latestId = db
     .SelectAggregateFrom<User>()

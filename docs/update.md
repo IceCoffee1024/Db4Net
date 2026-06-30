@@ -31,6 +31,8 @@ var affected = db.Update<User>()
     .Execute();
 ```
 
+`Update(entity)` and `WhereKey(entity)` require exactly one mapped key and a non-default key value. Use explicit `Where(...)` clauses for composite-key models.
+
 ## All Rows
 
 `UPDATE` requires a `WHERE` clause by default.

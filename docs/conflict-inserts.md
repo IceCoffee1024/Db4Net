@@ -40,5 +40,9 @@ When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default confl
 Conflict-aware insert terminals return affected row counts. Generated-key readback is intentionally limited to regular single-row `InsertInto<T>()` / `Insert(entity)` commands.
 
 ::: warning
-Database-generated mapped members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`.
+Database-generated mapped members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Columns selected in `OnConflict(...)` also cannot be selected through `InsertOrUpdate.Update(...)`.
+:::
+
+::: warning Dialect differences
+SQLite and PostgreSQL render native `ON CONFLICT`. MySQL renders `ON DUPLICATE KEY UPDATE`, and duplicate-key handling applies to any primary or unique key violation. SQL Server renders `MERGE ... WITH (HOLDLOCK)`. See [Conflict Inserts](./dialects.md#conflict-inserts) in the dialect guide.
 :::

@@ -68,6 +68,8 @@ var matchingCount = await db
 
 Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
+`Max(...)` and `Min(...)` require value-type member selectors. `Sum(...)` and `Average(...)` do not validate that the selected column is numeric; the database executes the aggregate and Dapper reads it as your terminal `TResult`, so choose a result type that matches your provider's aggregate result.
+
 ```csharp
 var latestId = db
     .SelectAggregateFrom<User>()

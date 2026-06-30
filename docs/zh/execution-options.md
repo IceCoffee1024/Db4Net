@@ -67,7 +67,9 @@ tx.Update(otherUser).Execute();
 tx.Commit();
 ```
 
-`Db4NetTransaction` 如果在没有调用 `Commit()` 的情况下被释放，会执行回滚。
+需要指定隔离级别时，使用 `BeginTransaction(isolationLevel)`。
+
+`Db4NetTransaction` 如果在没有调用 `Commit()` 的情况下被释放，会执行回滚。也可以显式调用 `Rollback()`。调用 `Commit()`、`Rollback()` 或 `Dispose()` 之后，`tx.Database` 以及从它捕获的事务绑定 builder/facade 都会拒绝继续执行。
 
 也可以使用委托式作用域：
 

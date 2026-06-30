@@ -10,19 +10,30 @@ var affected = await connection
     .ExecuteAsync();
 ```
 
-::: warning 安全默认值
-`DELETE` 默认要求 `WHERE` 条件。只有确认要删除所有行时，才调用 `AllowAllRows()`。
-:::
+筛选条件使用和 SELECT 查询相同的 `Where(...)`、`OrWhere(...)`、`WhereGroup(...)` 和 `OrWhereGroup(...)` API。
 
-## 按主键删除实体
+## 按键删除
 
-实体便捷方法会使用键元数据生成删除条件：
+当 key 元数据应该成为删除谓词时，使用 `WhereKey(entity)`：
 
 ```csharp
-await connection
-    .UseDb4Net(Db4NetOptions.Sqlite)
-    .Delete(user)
-    .ExecuteAsync();
+var affected = db.DeleteFrom<User>()
+    .WhereKey(user)
+    .Execute();
 ```
 
-键来自 `[Key]`，或 `Id` / `<TypeName>Id` 约定。键元数据只用于相等谓词或冲突目标，不代表实体跟踪、级联删除或并发控制。
+`Delete(entity)` 和 `WhereKey(entity)` 要求模型有且只有一个映射 key，并且 key 值不是 `null`、`0` 或对应类型的默认值。复合 key 模型请使用显式 `Where(...)` 条件。
+
+## 所有行
+
+`DELETE` 默认要求 `WHERE` 条件。
+
+```csharp
+var affected = db.DeleteFrom<User>()
+    .AllowAllRows()
+    .Execute();
+```
+
+::: warning
+只有确认要删除每一行时，才调用 `AllowAllRows()`。
+:::

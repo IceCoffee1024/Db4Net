@@ -113,6 +113,8 @@ var totalPages = page.TotalPages;
 
 Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
+`Max(...)` and `Min(...)` require value-type member selectors. `Sum(...)` and `Average(...)` do not validate that the selected column is numeric; choose a terminal `TResult` that matches your provider's aggregate result.
+
 ```csharp
 var latestId = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
@@ -250,6 +252,8 @@ var id = await connection
 
 Single-entity convenience methods reject sequence values such as `List<User>` or `User[]`; use the matching `Many` method instead.
 
+`Update(entity)`, `Delete(entity)`, `UpdateMany(...)`, and `DeleteMany(...)` require exactly one mapped key and a non-default key value. Use SQL-shaped builders with explicit `Where(...)` clauses for composite-key models.
+
 For multiple mapped objects, use the `Many` convenience methods. These execute validated, parameterized per-entity commands through Dapper and return the total affected row count. Empty sequences return `0`:
 
 ```csharp
@@ -300,7 +304,7 @@ db.InsertOrIgnoreMany(users, table: "users_staging")
   .Execute();
 ```
 
-`InsertOrIgnore`, `InsertOrIgnoreMany`, `InsertOrUpdate`, and `InsertOrUpdateMany` also support `table` overloads. The explicit table changes only the SQL target table; CLR member-to-column mapping still comes from `T`. `OnConflict(...)` and `Update(...)` use mapped CLR member selectors, not database column-name strings or SQL fragments. When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target; default conflict targets must be non-database-generated keys. The `Many` variants are Dapper multi-execute conveniences that run one parameterized command per entity; they are not provider-native import/copy APIs or set-based synchronization APIs.
+`InsertOrIgnore`, `InsertOrIgnoreMany`, `InsertOrUpdate`, and `InsertOrUpdateMany` also support `table` overloads. The explicit table changes only the SQL target table; CLR member-to-column mapping still comes from `T`. `OnConflict(...)` and `Update(...)` use mapped CLR member selectors, not database column-name strings or SQL fragments. Update columns cannot be database-generated columns and cannot overlap with the conflict target. When `OnConflict(...)` is omitted, Db4Net uses key metadata as the default conflict target; default conflict targets must be non-database-generated keys. The `Many` variants are Dapper multi-execute conveniences that run one parameterized command per entity; they are not provider-native import/copy APIs or set-based synchronization APIs.
 
 Use the SQL-shaped command builders when you need explicit fields or predicates:
 
@@ -540,6 +544,8 @@ The async `ExecuteInTransactionAsync(...)` overloads run async Db4Net operations
 
 When raw Dapper SQL must participate in the same transaction, create the `IDbTransaction` yourself and bind it with `WithTransaction(transaction)`.
 
+After `Commit()`, `Rollback()`, or `Dispose()`, `tx.Database` and any transaction-bound builder or facade captured from it reject further execution.
+
 Async terminal methods also accept a `CancellationToken`:
 
 ```csharp
@@ -559,7 +565,7 @@ SQLite integration tests run by default with an in-memory database. PostgreSQL, 
 
 Current scope is focused on typed `SELECT`, scalar aggregate, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, and conflict-aware insert builders for SQL Server, SQLite, PostgreSQL, and MySQL. Table and view overrides plus single-entity and many-entity command conveniences are supported for safe SQL-shaped APIs, and lightweight transaction scopes are available for grouping explicit operations. Joins, provider-native copy/import APIs, set-based synchronization, optimized batching, change tracking, generated/computed value refresh, relationship loading, `SaveChanges()` style unit-of-work behavior, migrations, and full predicate expression translation are intentionally out of scope for this early version.
 
-SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. SQL Server renders a dialect-specific conflict-aware command; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
+SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `ON DUPLICATE KEY UPDATE`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns but MySQL itself applies duplicate handling to any primary or unique key violation. MySQL `InsertOrIgnore(...)` uses a no-op duplicate-key update assignment. SQL Server renders `MERGE ... WITH (HOLDLOCK)` for conflict-aware inserts; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
 
 Generated-key insert terminals use SQL Server `OUTPUT INSERTED...`, SQLite/PostgreSQL `RETURNING`, and MySQL `LAST_INSERT_ID()` for auto-increment identity keys. SQLite requires runtime SQLite 3.35 or newer for `RETURNING`; SQL Server trigger-enabled tables can require an `OUTPUT ... INTO` pattern that Db4Net does not currently generate; MySQL does not return trigger/default/expression-generated non-identity keys through `LAST_INSERT_ID()`.
 

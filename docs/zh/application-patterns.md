@@ -14,6 +14,8 @@ Db4Net 专注于 query 和 command builder。仓储、service、后台任务和 
 
 不要让仓储猜测是否存在 ambient transaction。仓储需要进入事务时，用事务绑定的 `Db4NetDatabase` 创建它。
 
+基础仓储形态和仓储单独使用示例见[仓储模式](./repository-pattern.md)。
+
 ## 共享仓储
 
 ```csharp

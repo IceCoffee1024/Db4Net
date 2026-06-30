@@ -56,3 +56,9 @@ SELECT [Id], [Name] FROM [Users] WHERE [Id] = @p0
 ::: tip
 Db4Net validates identifiers and parameterizes values, but Dapper still handles execution and materialization.
 :::
+
+## Next Steps
+
+- Read the [Complete Example](./complete-example.md) for an end-to-end workflow.
+- Continue with [Select](./select.md) for querying, paging, counts, existence checks, and aggregates.
+- Review [Limitations](./limitations.md) before designing around joins, generated values, bulk import, or ORM-style behavior.

@@ -5,12 +5,15 @@ Db4Net is intentionally focused on safe, SQL-shaped Dapper queries and commands.
 Included in the current alpha:
 
 - typed `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders
+- typed existence and count query builders through `SelectExistsFrom<T>()` and `SelectCountFrom<T>()`
+- typed scalar aggregate query builders through `SelectAggregateFrom<T>()`
+- paged SELECT terminal methods through `QueryPage(...)` and `QueryPageAsync(...)`
 - dynamic CLR property-name projection with model validation
 - table and view overrides
 - entity and many-entity command conveniences
 - regular single-row insert key return
 - conflict-aware insert conveniences
-- `Where`, `OrWhere`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `Limit`, `Offset`, and `Page`
+- `Where`, `OrWhere`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `OrderByDescending`, `Limit`, `Offset`, and `Page`
 - sync and async Dapper-style terminal methods
 - existing transaction pass-through, lightweight transaction scopes, command timeout, command type, and async cancellation token support
 

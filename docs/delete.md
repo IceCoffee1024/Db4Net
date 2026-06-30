@@ -22,6 +22,8 @@ var affected = db.DeleteFrom<User>()
     .Execute();
 ```
 
+`Delete(entity)` and `WhereKey(entity)` require exactly one mapped key and a non-default key value. Use explicit `Where(...)` clauses for composite-key models.
+
 ## All Rows
 
 `DELETE` requires a `WHERE` clause by default.

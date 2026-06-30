@@ -53,7 +53,7 @@ var id = db.InsertInto<User>()
 
 `ExecuteReturnKey<TResult>()` 默认使用模型唯一的映射键。模型有多个 `[Key]` 属性时，需要显式传入键选择器。选择器必须指向映射键列。
 
-生成键回读只适用于常规单行 `InsertInto<T>()` 和 `Insert(entity)`。`InsertMany(...)`、`InsertOrIgnore(...)` 和 `InsertOrUpdate(...)` 仍返回影响行数。方言注意事项见方言文档，例如 MySQL auto-increment identity 语义、SQLite `RETURNING` 版本要求，以及 SQL Server 触发器限制。
+生成键回读只适用于常规单行 `InsertInto<T>()` 和 `Insert(entity)`。`InsertMany(...)`、`InsertOrIgnore(...)` 和 `InsertOrUpdate(...)` 仍返回影响行数。方言注意事项见[生成键回读](./dialects.md#生成键回读)，例如 MySQL auto-increment identity 语义、SQLite `RETURNING` 版本要求，以及 SQL Server 触发器限制。
 
 ## 检查 SQL
 

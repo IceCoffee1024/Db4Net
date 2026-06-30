@@ -46,7 +46,7 @@ Available single-entity conveniences:
 - `Delete(entity)`
 - `Delete(entity, table)`
 
-`Update(entity)` and `Delete(entity)` use key metadata for the `WHERE` clause.
+`Update(entity)` and `Delete(entity)` use key metadata for the `WHERE` clause. `Update(entity)`, `Delete(entity)`, `UpdateMany(...)`, and `DeleteMany(...)` require exactly one mapped key and a non-default key value; models without a key or with composite keys should use SQL-shaped builders with explicit `Where(...)` clauses.
 
 `Insert(entity).ExecuteReturnKey<TResult>()` uses the model's only mapped key. If a model has multiple keys, pass an explicit key selector such as `ExecuteReturnKey<long>(u => u.Id)`.
 

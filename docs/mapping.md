@@ -41,7 +41,7 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 
 Key metadata identifies mapped columns for equality predicates, conflict targets, and explicit single-row insert key terminals. It does not imply entity tracking, automatic entity mutation, relationship identity maps, or automatic concurrency behavior.
 
-Conflict-aware inserts use all key columns by default, including composite `[Key]` metadata. Entity update/delete conveniences and many update/delete conveniences require a single key column.
+Conflict-aware inserts use all key columns by default, including composite `[Key]` metadata. Entity update/delete conveniences and many update/delete conveniences require a single key column and a non-default key value.
 
 ## Generated and Ignored Members
 
@@ -51,6 +51,6 @@ Conflict-aware inserts use all key columns by default, including composite `[Key
 
 `[DatabaseGenerated(DatabaseGeneratedOption.Identity)]` and `[DatabaseGenerated(DatabaseGeneratedOption.Computed)]` mapped properties are omitted by `Values(entity)`, `Insert(entity)`, `InsertMany(entities)`, and conflict-aware insert values. Database-generated non-key properties are also omitted from entity-driven update assignments in `Update(entity)` and `UpdateMany(entities)`. Explicit `.Value(...)` and `.Set(...)` calls remain caller-controlled.
 
-Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`.
+Database-generated members cannot be used as default or explicit conflict targets, and cannot be selected through `InsertOrUpdate.Update(...)`. Conflict target columns also cannot be selected through `InsertOrUpdate.Update(...)`.
 
 Generated key readback is explicit and limited to regular single-row insert terminals such as `Insert(entity).ExecuteReturnKey<TResult>()` and `InsertInto<T>().Values(entity).ReturnKey(...).Execute<TResult>()`. Db4Net does not mutate entity instances after insert or refresh all computed values.

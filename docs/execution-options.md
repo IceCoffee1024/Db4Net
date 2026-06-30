@@ -73,7 +73,9 @@ tx.Update(otherUser).Execute();
 tx.Commit();
 ```
 
-Disposing a `Db4NetTransaction` without calling `Commit()` rolls it back.
+Use `BeginTransaction(isolationLevel)` when the transaction should start with a specific `IsolationLevel`.
+
+Disposing a `Db4NetTransaction` without calling `Commit()` rolls it back. You can also call `Rollback()` explicitly. After `Commit()`, `Rollback()`, or `Dispose()`, `tx.Database` and any transaction-bound builder or facade captured from it reject further execution.
 
 Use `ExecuteInTransaction(...)` for delegate-based scopes:
 
