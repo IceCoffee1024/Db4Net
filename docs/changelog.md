@@ -1,9 +1,34 @@
 # Changelog
 
-Db4Net keeps one authoritative changelog in the repository root so GitHub, NuGet packaging, and release preparation all point to the same source.
+## 0.1.0-alpha.1 - 2026-06-29
 
-[View the changelog on GitHub](https://github.com/IceCoffee1024/Db4Net/blob/main/CHANGELOG.md)
+### Added
+
+- SQL-shaped typed `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders.
+- Existence, count, paging, scalar aggregate, and subquery filter APIs.
+- Entity and many-entity command conveniences.
+- Conflict-aware inserts for SQL Server, SQLite, PostgreSQL, and MySQL.
+- Explicit filter grouping and CLR property-name string APIs.
+- Lightweight transaction scopes and Dapper execution options.
+- `net8.0` and `netstandard2.0` package assets with XML docs and symbols.
+- English and Simplified Chinese documentation.
+
+### Changed
+
+- Public API names are SQL-shaped and intentionally avoid ORM-style `Save`, `SaveChanges`, `Merge`, `Upsert`, and `Bulk` names.
+- String field names are CLR property names after a model is bound.
+- `UPDATE` and `DELETE` require a `WHERE` clause unless `AllowAllRows()` is called.
+- Entity-driven updates omit database-generated non-key columns.
+- Paging validation rejects invalid `Offset(...)` / SQL Server paging combinations.
+
+### Known Limitations
+
+- No joins; use database views or raw Dapper SQL for complex provider-specific SQL.
+- No LINQ provider or full predicate expression translation.
+- No change tracking, relationship loading, migrations, automatic concurrency tokens, or unit-of-work behavior.
+- Many-entity conveniences are not provider-native bulk import/copy APIs.
+- Generated-key readback does not apply to `InsertMany`, conflict-aware inserts, or full generated/computed value refresh.
 
 ::: tip
-This page is intentionally a thin entry point. Update the root `CHANGELOG.md` when preparing releases.
+The root [`CHANGELOG.md`](https://github.com/IceCoffee1024/Db4Net/blob/main/CHANGELOG.md) remains the authoritative detailed changelog used for release preparation and NuGet packaging.
 :::

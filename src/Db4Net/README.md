@@ -6,13 +6,21 @@ The API is intentionally SQL-shaped: `SelectFrom<T>()`, `SelectExistsFrom<T>()`,
 
 Db4Net is not an ORM and does not try to become a LINQ provider.
 
+## Status
+
+Current version: `0.1.0-alpha.1`
+
+This alpha focuses on safe, SQL-shaped query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
+
+NuGet packages include XML documentation and a symbols package for source debugging.
+
+Package assets target `net8.0` and `netstandard2.0`.
+
 ## Install
 
 ```bash
 dotnet add package Db4Net --prerelease
 ```
-
-Package assets target `net8.0` and `netstandard2.0`.
 
 ## Quick Start
 
