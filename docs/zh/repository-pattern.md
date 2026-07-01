@@ -2,7 +2,7 @@
 
 在需要仓储层时，Db4Net 可以作为仓储内部的 SQL builder 和 Dapper 执行入口使用。
 
-仓储层应该隐藏 Db4Net builder。对外暴露 `FindByIdAsync`、`EmailExistsAsync`、`FindActivePageAsync` 这类业务语义方法；把 `SelectFrom<T>()`、`Query*` 和 `Execute*` 留在数据访问层内部。
+仓储层应该隐藏 Db4Net builder。对外暴露 `FindByIdAsync`、`ExistsByEmailAsync`、`FindActivePageAsync` 这类业务语义方法；把 `SelectFrom<T>()`、`Query*` 和 `Execute*` 留在数据访问层内部。
 
 ## 仓储类
 
@@ -54,7 +54,7 @@ public sealed class UserRepository
             .QueryPageAsync(pageNumber, pageSize, cancellationToken: cancellationToken);
     }
 
-    public Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default)
+    public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         return _db
             .SelectExistsFrom<User>()

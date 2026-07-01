@@ -8,7 +8,7 @@ This page shows practical composition patterns for applications that need reposi
 
 Use this split as the default:
 
-- Repository: data access methods such as `FindByIdAsync`, `EmailExistsAsync`, `DisableAsync`, and report queries. Keep Db4Net builders inside the repository.
+- Repository: data access methods such as `FindByIdAsync`, `ExistsByEmailAsync`, `DisableAsync`, and report queries. Keep Db4Net builders inside the repository.
 - Service: business use cases, validation, orchestration across repositories, and transaction boundaries.
 - Unit of Work: optional application helper that starts a transaction and creates transaction-bound repositories.
 

@@ -2,7 +2,7 @@
 
 Db4Net can sit inside a repository layer when you want application code to call business-shaped data access methods instead of composing SQL builders directly.
 
-The repository should hide Db4Net builders from callers. Expose methods such as `FindByIdAsync`, `EmailExistsAsync`, or `FindActivePageAsync`; keep `SelectFrom<T>()`, `Query*`, and `Execute*` inside the data access layer.
+The repository should hide Db4Net builders from callers. Expose methods such as `FindByIdAsync`, `ExistsByEmailAsync`, or `FindActivePageAsync`; keep `SelectFrom<T>()`, `Query*`, and `Execute*` inside the data access layer.
 
 ## Repository Class
 
@@ -54,7 +54,7 @@ public sealed class UserRepository
             .QueryPageAsync(pageNumber, pageSize, cancellationToken: cancellationToken);
     }
 
-    public Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default)
+    public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         return _db
             .SelectExistsFrom<User>()

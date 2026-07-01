@@ -8,7 +8,7 @@ Db4Net 专注于 query 和 command builder。仓储、service、后台任务和 
 
 默认可以按下面方式拆分：
 
-- Repository：封装 `FindByIdAsync`、`EmailExistsAsync`、`DisableAsync`、报表查询等数据访问方法。Db4Net builder 留在仓储内部。
+- Repository：封装 `FindByIdAsync`、`ExistsByEmailAsync`、`DisableAsync`、报表查询等数据访问方法。Db4Net builder 留在仓储内部。
 - Service：负责业务用例、校验、跨仓储编排和事务边界。
 - Unit of Work：可选的应用层辅助对象，用于开启事务并创建事务绑定的仓储。
 
