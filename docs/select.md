@@ -135,14 +135,20 @@ var page = db
 Typed select builders materialize `T`:
 
 - `Query()`
+- `QueryFirst()`
 - `QueryFirstOrDefault()`
+- `QuerySingle()`
 - `QuerySingleOrDefault()`
 - `QueryAsync()`
+- `QueryFirstAsync()`
 - `QueryFirstOrDefaultAsync()`
+- `QuerySingleAsync()`
 - `QuerySingleOrDefaultAsync()`
 - `QueryPage()`
 - `QueryPageAsync()`
 
-The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()`, `QueryAsync<T>()`, `QueryPage<T>()`, and `QueryPageAsync<T>()`.
+Use `QueryFirst*` when at least one row must exist. Use `QuerySingle*` when exactly one row must exist. The `OrDefault` variants return the default value when no row exists.
+
+The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()`, `QueryFirst<T>()`, `QuerySingle<T>()`, `QueryAsync<T>()`, `QueryFirstAsync<T>()`, `QuerySingleAsync<T>()`, `QueryPage<T>()`, and `QueryPageAsync<T>()`.
 
 Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. For `SelectAggregateFrom<T>()` aggregate queries, specify the scalar read type with terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()`.

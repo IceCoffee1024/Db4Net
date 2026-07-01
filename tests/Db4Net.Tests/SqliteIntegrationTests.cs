@@ -685,6 +685,148 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Query_first_returns_first_row_and_throws_when_no_row_exists()
+    {
+        using var connection = CreateOpenConnection();
+
+        var user = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .OrderBy(u => u.Id)
+            .QueryFirst();
+
+        Assert.Equal("Alice", user.Name);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectFrom<User>()
+                .Where(u => u.Id, Op.Eq, 99)
+                .QueryFirst());
+    }
+
+    [Fact]
+    public async Task Query_first_async_returns_first_row_and_throws_when_no_row_exists()
+    {
+        using var connection = CreateOpenConnection();
+
+        var user = await connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .OrderBy(u => u.Id)
+            .QueryFirstAsync();
+
+        Assert.Equal("Alice", user.Name);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectFrom<User>()
+                .Where(u => u.Id, Op.Eq, 99)
+                .QueryFirstAsync());
+    }
+
+    [Fact]
+    public void Query_single_returns_one_row_and_throws_when_row_count_is_not_one()
+    {
+        using var connection = CreateOpenConnection();
+
+        var user = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .QuerySingle();
+
+        Assert.Equal("Alice", user.Name);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectFrom<User>()
+                .Where(u => u.Id, Op.Eq, 99)
+                .QuerySingle());
+
+        Assert.Throws<InvalidOperationException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectFrom<User>()
+                .QuerySingle());
+    }
+
+    [Fact]
+    public async Task Query_single_async_returns_one_row_and_throws_when_row_count_is_not_one()
+    {
+        using var connection = CreateOpenConnection();
+
+        var user = await connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .QuerySingleAsync();
+
+        Assert.Equal("Alice", user.Name);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectFrom<User>()
+                .Where(u => u.Id, Op.Eq, 99)
+                .QuerySingleAsync());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            connection
+                .UseDb4Net(Db4NetOptions.Sqlite)
+                .SelectFrom<User>()
+                .QuerySingleAsync());
+    }
+
+    [Fact]
+    public void Non_generic_select_builder_exposes_throwing_single_row_terminals()
+    {
+        using var connection = CreateOpenConnection();
+
+        var first = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .Select("Id", "Name")
+            .From<User>()
+            .OrderBy(u => u.Id)
+            .QueryFirst<User>();
+
+        var single = connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .Select("Id", "Name")
+            .From<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .QuerySingle<User>();
+
+        Assert.Equal("Alice", first.Name);
+        Assert.Equal("Alice", single.Name);
+    }
+
+    [Fact]
+    public async Task Non_generic_select_builder_exposes_throwing_single_row_async_terminals()
+    {
+        using var connection = CreateOpenConnection();
+
+        var first = await connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .Select("Id", "Name")
+            .From<User>()
+            .OrderBy(u => u.Id)
+            .QueryFirstAsync<User>();
+
+        var single = await connection
+            .UseDb4Net(Db4NetOptions.Sqlite)
+            .Select("Id", "Name")
+            .From<User>()
+            .Where(u => u.Id, Op.Eq, 1)
+            .QuerySingleAsync<User>();
+
+        Assert.Equal("Alice", first.Name);
+        Assert.Equal("Alice", single.Name);
+    }
+
+    [Fact]
     public void Insert_command_executes_parameterized_sql_with_dapper()
     {
         using var connection = CreateOpenConnection();

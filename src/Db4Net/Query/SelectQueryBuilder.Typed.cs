@@ -458,6 +458,27 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Executes the query through Dapper and returns the first row as <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <returns>The first materialized row.</returns>
+    public T QueryFirst(Db4NetExecutionOptions? options = null)
+    {
+        return base.QueryFirst<T>(options);
+    }
+
+    /// <summary>
+    /// Asynchronously executes the query through Dapper and returns the first row as <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
+    /// <returns>The first materialized row.</returns>
+    public Task<T> QueryFirstAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return base.QueryFirstAsync<T>(options, cancellationToken);
+    }
+
+    /// <summary>
     /// Executes the query through Dapper and returns the first row as <typeparamref name="T"/>, or the default value if no row exists.
     /// </summary>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
@@ -476,6 +497,27 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     public Task<T?> QueryFirstOrDefaultAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         return base.QueryFirstOrDefaultAsync<T>(options, cancellationToken);
+    }
+
+    /// <summary>
+    /// Executes the query through Dapper and returns exactly one row as <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <returns>The single materialized row.</returns>
+    public T QuerySingle(Db4NetExecutionOptions? options = null)
+    {
+        return base.QuerySingle<T>(options);
+    }
+
+    /// <summary>
+    /// Asynchronously executes the query through Dapper and returns exactly one row as <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
+    /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
+    /// <returns>The single materialized row.</returns>
+    public Task<T> QuerySingleAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return base.QuerySingleAsync<T>(options, cancellationToken);
     }
 
     /// <summary>

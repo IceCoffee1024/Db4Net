@@ -96,7 +96,7 @@ public sealed class UserRepository
 常见仓储命名：
 
 - `FindByIdAsync(...)`：返回一条记录；不存在时返回 `null`。
-- `GetByIdAsync(...)`：期望记录必须存在；不存在时可以抛异常。
+- `GetByIdAsync(...)`：期望记录必须存在；可以使用 `QuerySingleAsync()`，或在不存在时主动抛异常。
 - `ListBy...Async(...)`：按简单条件返回列表。
 - `SearchAsync(...)`：使用关键词、可选过滤、排序等较复杂条件。
 - `GetPageAsync(...)`：返回 `PagedResult<T>` 或其他分页 DTO。

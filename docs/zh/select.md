@@ -135,14 +135,20 @@ var page = db
 类型化 `SELECT` 构建器提供 Dapper 风格的查询终结方法：
 
 - `Query()`
+- `QueryFirst()`
 - `QueryFirstOrDefault()`
+- `QuerySingle()`
 - `QuerySingleOrDefault()`
 - `QueryAsync()`
+- `QueryFirstAsync()`
 - `QueryFirstOrDefaultAsync()`
+- `QuerySingleAsync()`
 - `QuerySingleOrDefaultAsync()`
 - `QueryPage()`
 - `QueryPageAsync()`
 
-非泛型 `SELECT` 构建器也保留了 `Query<T>()`、`QueryAsync<T>()`、`QueryPage<T>()` 和 `QueryPageAsync<T>()` 等显式结果类型重载，用于高级物化场景。
+至少需要一行时使用 `QueryFirst*`。必须刚好一行时使用 `QuerySingle*`。`OrDefault` 变体在没有记录时返回默认值。
+
+非泛型 `SELECT` 构建器也保留了 `Query<T>()`、`QueryFirst<T>()`、`QuerySingle<T>()`、`QueryAsync<T>()`、`QueryFirstAsync<T>()`、`QuerySingleAsync<T>()`、`QueryPage<T>()` 和 `QueryPageAsync<T>()` 等显式结果类型重载，用于高级物化场景。
 
 存在性查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回 `bool`。计数查询构建器通过 `Execute()` 和 `ExecuteAsync()` 返回计数。对于 `SelectAggregateFrom<T>()` 聚合查询，请使用终端 `Execute<TResult>()` 或 `ExecuteAsync<TResult>()` 指定标量读取类型。

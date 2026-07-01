@@ -169,8 +169,12 @@ public sealed class ApiContractTests
             typeof(SelectQueryBuilder<>),
             "Query",
             "QueryAsync",
+            "QueryFirst",
+            "QueryFirstAsync",
             "QueryFirstOrDefault",
             "QueryFirstOrDefaultAsync",
+            "QuerySingle",
+            "QuerySingleAsync",
             "QuerySingleOrDefault",
             "QuerySingleOrDefaultAsync");
     }
@@ -201,6 +205,8 @@ public sealed class ApiContractTests
                 or "Page"
                 or "Query"
                 or "QueryAsync"
+                or "QueryFirst"
+                or "QueryFirstAsync"
                 or "QuerySingle"
                 or "QuerySingleAsync"
                 or "QuerySingleOrDefault"
@@ -238,6 +244,8 @@ public sealed class ApiContractTests
                 or "Page"
                 or "Query"
                 or "QueryAsync"
+                or "QueryFirst"
+                or "QueryFirstAsync"
                 or "QuerySingle"
                 or "QuerySingleAsync"
                 or "QuerySingleOrDefault"
@@ -317,6 +325,8 @@ public sealed class ApiContractTests
                 or "Page"
                 or "Query"
                 or "QueryAsync"
+                or "QueryFirst"
+                or "QueryFirstAsync"
                 or "QuerySingle"
                 or "QuerySingleAsync"
                 or "QuerySingleOrDefault"

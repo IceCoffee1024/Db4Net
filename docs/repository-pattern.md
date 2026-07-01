@@ -96,7 +96,7 @@ Use repository method names for data access intent, and service method names for
 Common repository names:
 
 - `FindByIdAsync(...)`: returns one row or `null` when it does not exist.
-- `GetByIdAsync(...)`: expects the row to exist; throw when it does not.
+- `GetByIdAsync(...)`: expects the row to exist; use `QuerySingleAsync()` or throw when it does not.
 - `ListBy...Async(...)`: returns a list for a simple filter.
 - `SearchAsync(...)`: uses richer criteria such as keywords, optional filters, or sort options.
 - `GetPageAsync(...)`: returns a `PagedResult<T>` or another paged DTO.

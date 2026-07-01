@@ -480,15 +480,21 @@ UPDATE [Users] SET [Name] = @p0 WHERE [Id] = @p1
 Typed SELECT builders provide Dapper-style query terminal methods that materialize the bound CLR model:
 
 - `Query()`
+- `QueryFirst()`
 - `QueryFirstOrDefault()`
+- `QuerySingle()`
 - `QuerySingleOrDefault()`
 - `QueryAsync()`
+- `QueryFirstAsync()`
 - `QueryFirstOrDefaultAsync()`
+- `QuerySingleAsync()`
 - `QuerySingleOrDefaultAsync()`
 - `QueryPage()`
 - `QueryPageAsync()`
 
-The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()`, `QueryAsync<T>()`, `QueryPage<T>()`, and `QueryPageAsync<T>()` for advanced materialization scenarios.
+Use `QueryFirst*` when at least one row must exist. Use `QuerySingle*` when exactly one row must exist. The `OrDefault` variants return the default value when no row exists.
+
+The non-generic SELECT builder also keeps explicit result-type overloads such as `Query<T>()`, `QueryFirst<T>()`, `QuerySingle<T>()`, `QueryAsync<T>()`, `QueryFirstAsync<T>()`, `QuerySingleAsync<T>()`, `QueryPage<T>()`, and `QueryPageAsync<T>()` for advanced materialization scenarios.
 
 Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. For `SelectAggregateFrom<T>()` aggregate queries, specify the scalar read type with terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()`.
 
