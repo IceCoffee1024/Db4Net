@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq.Expressions;
 using System.Reflection;
 using Db4Net.Commands;
 using Db4Net.Query;
@@ -69,8 +70,38 @@ public sealed class ApiContractTests
     [Fact]
     public void Select_query_builders_expose_filter_group_api()
     {
-        AssertPublicInstanceMethods(typeof(SelectQueryBuilder), "WhereGroup", "OrWhereGroup");
-        AssertPublicInstanceMethods(typeof(SelectQueryBuilder<>), "WhereGroup", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder), "When", "WhereIf", "OrWhereIf", "WhereGroup", "WhereGroupIf", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder<>), "When", "WhereIf", "OrWhereIf", "WhereGroup", "WhereGroupIf", "OrWhereGroup");
+    }
+
+    [Fact]
+    public void Select_query_builders_expose_directional_order_by_api()
+    {
+        Assert.Contains(PublicInstanceMethods(typeof(SelectQueryBuilder)), method =>
+            method.Name == "OrderBy"
+                && method.GetParameters() is [
+                    { ParameterType: var columnType },
+                    { ParameterType: var descendingType }]
+                && columnType == typeof(string)
+                && descendingType == typeof(bool));
+
+        Assert.Contains(PublicInstanceMethods(typeof(SelectQueryBuilder<>)), method =>
+            method.Name == "OrderBy"
+                && method.GetParameters() is [
+                    { ParameterType: var propertyNameType },
+                    { ParameterType: var descendingType }]
+                && propertyNameType == typeof(string)
+                && descendingType == typeof(bool));
+
+        Assert.Contains(PublicInstanceMethods(typeof(SelectQueryBuilder<>)), method =>
+            method.Name == "OrderBy"
+                && method.IsGenericMethodDefinition
+                && method.GetParameters() is [
+                    { ParameterType: var selectorType },
+                    { ParameterType: var descendingType }]
+                && selectorType.IsGenericType
+                && selectorType.GetGenericTypeDefinition() == typeof(Expression<>)
+                && descendingType == typeof(bool));
     }
 
     [Fact]
@@ -155,8 +186,8 @@ public sealed class ApiContractTests
     [Fact]
     public void Filter_group_builders_expose_filter_only_api()
     {
-        AssertPublicInstanceMethods(typeof(FilterGroupBuilder), "Where", "OrWhere", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "OrWhereGroup");
-        AssertPublicInstanceMethods(typeof(FilterGroupBuilder<>), "Where", "OrWhere", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(FilterGroupBuilder), "Where", "WhereIf", "OrWhere", "OrWhereIf", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "WhereGroupIf", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(FilterGroupBuilder<>), "Where", "WhereIf", "OrWhere", "OrWhereIf", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "WhereGroupIf", "OrWhereGroup");
 
         Assert.DoesNotContain(PublicInstanceMethods(typeof(FilterGroupBuilder)), method => method.Name is "OrderBy" or "Limit" or "Offset" or "Page" or "ToCommand");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(FilterGroupBuilder<>)), method => method.Name is "OrderBy" or "Limit" or "Offset" or "Page" or "ToCommand");
@@ -184,9 +215,13 @@ public sealed class ApiContractTests
     {
         AssertPublicInstanceMethods(
             typeof(SelectCountQueryBuilder<>),
+            "When",
             "Where",
+            "WhereIf",
             "OrWhere",
+            "OrWhereIf",
             "WhereGroup",
+            "WhereGroupIf",
             "OrWhereGroup",
             "ToCommand",
             "Execute",
@@ -220,9 +255,13 @@ public sealed class ApiContractTests
     {
         AssertPublicInstanceMethods(
             typeof(SelectExistsQueryBuilder<>),
+            "When",
             "Where",
+            "WhereIf",
             "OrWhere",
+            "OrWhereIf",
             "WhereGroup",
+            "WhereGroupIf",
             "OrWhereGroup",
             "ToCommand",
             "Execute",
@@ -302,9 +341,13 @@ public sealed class ApiContractTests
     {
         AssertPublicInstanceMethods(
             typeof(SelectAggregateScalarQueryBuilder<>),
+            "When",
             "Where",
+            "WhereIf",
             "OrWhere",
+            "OrWhereIf",
             "WhereGroup",
+            "WhereGroupIf",
             "OrWhereGroup",
             "ToCommand",
             "Execute",

@@ -118,6 +118,35 @@ var totalPages = page.TotalPages;
 
 `QueryPage(...)` is a convenience terminal. It executes a count query and a paged row query internally, using the same execution options for both commands. It owns paging, so do not call `Limit(...)`, `Offset(...)`, or `Page(...)` before `QueryPage(...)`.
 
+## Conditional Filters
+
+For optional search criteria, use `When(...)`, `WhereIf(...)`, `OrWhereIf(...)`, and `WhereGroupIf(...)` to keep dynamic queries in one fluent chain:
+
+```csharp
+var page = await db
+    .SelectFrom<User>()
+    .When(!string.IsNullOrWhiteSpace(keyword), query =>
+        query.Where(u => u.Name, Op.Like, keyword))
+    .WhereGroupIf(hasNameRange, group => group
+        .WhereIf(!string.IsNullOrWhiteSpace(namePrefix), u => u.Name, Op.Like, namePrefix)
+        .OrWhereIf(!string.IsNullOrWhiteSpace(nameSuffix), u => u.Name, Op.Like, nameSuffix))
+    .WhereIf(updatedAfter.HasValue, u => u.UpdatedAt, Op.Gte, updatedAfter)
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber, pageSize);
+```
+
+The same conditional filter API is available on read-only scalar builders:
+
+```csharp
+var total = await db
+    .SelectCountFrom<User>()
+    .WhereIf(!string.IsNullOrWhiteSpace(keyword), u => u.Name, Op.Like, keyword)
+    .WhereIf(updatedAfter.HasValue, u => u.UpdatedAt, Op.Gte, updatedAfter)
+    .ExecuteAsync();
+```
+
+False conditions leave the builder unchanged. `When(...)` is the general escape hatch for grouped filters or other query configuration; `WhereIf(...)` and `OrWhereIf(...)` are shorthand for simple optional predicates. Conditional filters are available on read-only SELECT builders: row queries, count queries, exists queries, and aggregate scalar queries. Keep conditional update and delete predicates explicit with ordinary `if` statements.
+
 Use `Page(...)` for one-based page pagination when you only need rows, or combine `Limit(...)` with `Offset(...)` when you need direct row counts:
 
 ```csharp
@@ -129,6 +158,18 @@ var page = db
 ```
 
 `Offset(...)` must be paired with `Limit(...)`. SQL Server paging also requires at least one `OrderBy(...)` because `OFFSET` / `FETCH` is invalid without `ORDER BY`.
+
+When the sort direction comes from a request DTO, use `OrderBy(..., descending)` instead of branching between `OrderBy(...)` and `OrderByDescending(...)`:
+
+```csharp
+var orderProperty = query.Order?.ToString() ?? nameof(User.UpdatedAt);
+
+var page = await db
+    .SelectFrom<User>()
+    .OrderBy(orderProperty, descending: query.Desc)
+    .OrderBy(u => u.Id, descending: query.Desc)
+    .QueryPageAsync(pageNumber, pageSize);
+```
 
 ## Terminal Methods
 

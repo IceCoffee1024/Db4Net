@@ -7,10 +7,10 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>Db4Net</PackageId>
-    <Version>0.1.0-alpha.4</Version>
+    <Version>0.1.0-alpha.5</Version>
     <Authors>IceCoffee1024</Authors>
     <Description>Safe, SQL-shaped fluent query and command builder for Dapper.</Description>
-    <PackageReleaseNotes>0.1.0-alpha.4 exposes Db4NetDatabase connection and transaction context for raw Dapper interop and simplifies repository/unit-of-work documentation.</PackageReleaseNotes>
+    <PackageReleaseNotes>0.1.0-alpha.5 adds conditional filtering for read-only SELECT builders and runtime ORDER BY direction overloads.</PackageReleaseNotes>
     <PackageTags>dapper;sql;fluent;query-builder</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

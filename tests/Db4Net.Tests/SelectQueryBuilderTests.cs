@@ -36,6 +36,164 @@ public sealed class SelectQueryBuilderTests
         Assert.Equal(10, command.Parameters.Get<int>("p2"));
     }
 
+    [Theory]
+    [InlineData(false, "SELECT [Id], [Name] FROM [Users] ORDER BY [Name], [Id] DESC")]
+    [InlineData(true, "SELECT [Id], [Name] FROM [Users] ORDER BY [Name] DESC, [Id]")]
+    public void String_select_directional_order_by_renders_requested_direction(bool descending, string expectedSql)
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .Select("Id", "Name")
+            .From<User>()
+            .OrderBy("Name", descending)
+            .OrderBy("Id", descending: !descending)
+            .ToCommand();
+
+        Assert.Equal(expectedSql, command.Sql);
+    }
+
+    [Theory]
+    [InlineData(false, "SELECT [Id], [Name] FROM [Users] ORDER BY [Name], [Id] DESC")]
+    [InlineData(true, "SELECT [Id], [Name] FROM [Users] ORDER BY [Name] DESC, [Id]")]
+    public void Typed_select_directional_order_by_renders_requested_direction(bool descending, string expectedSql)
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .OrderBy("Name", descending)
+            .OrderBy(u => u.Id, descending: !descending)
+            .ToCommand();
+
+        Assert.Equal(expectedSql, command.Sql);
+    }
+
+    [Fact]
+    public void Select_from_type_when_applies_configure_only_when_condition_is_true()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .When(true, query => query.Where(u => u.Name, Op.Eq, "Alice"))
+            .When(false, query => query.Where(u => u.Id, Op.Eq, 99))
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Name] = @p0", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+    }
+
+    [Fact]
+    public void Select_from_type_where_if_and_or_where_if_skip_false_conditions()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .WhereIf(false, u => u.Id, Op.Eq, 1)
+            .WhereIf(true, u => u.Name, Op.Eq, "Alice")
+            .OrWhereIf(false, u => u.Id, Op.Eq, 2)
+            .OrWhereIf(true, u => u.Name, Op.Eq, "Bob")
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE [Name] = @p0 OR [Name] = @p1", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal("Bob", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Select_from_type_where_group_if_skips_false_conditions_and_empty_groups()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectFrom<User>()
+            .WhereGroupIf(false, group => group.Where(u => u.Id, Op.Eq, 1))
+            .WhereGroupIf(true, group => group
+                .WhereIf(false, u => u.Id, Op.Eq, 2)
+                .OrWhereIf(false, u => u.Name, Op.Eq, "Skipped"))
+            .WhereGroupIf(true, group => group
+                .WhereIf(true, u => u.Name, Op.Eq, "Alice")
+                .OrWhereIf(true, u => u.Name, Op.Eq, "Bob"))
+            .ToCommand();
+
+        Assert.Equal("SELECT [Id], [Name] FROM [Users] WHERE ([Name] = @p0 OR [Name] = @p1)", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal("Bob", command.Parameters.Get<string>("p1"));
+    }
+
+    [Fact]
+    public void Select_count_from_type_conditional_filters_match_select_builder_behavior()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectCountFrom<User>()
+            .When(true, query => query.Where(u => u.Name, Op.Eq, "Alice"))
+            .When(false, query => query.Where(u => u.Id, Op.Eq, 99))
+            .WhereIf(false, u => u.Id, Op.Eq, 1)
+            .OrWhereIf(true, u => u.Name, Op.Eq, "Bob")
+            .WhereGroupIf(true, group => group
+                .WhereIf(false, u => u.Id, Op.Eq, 2)
+                .OrWhereIf(false, u => u.Name, Op.Eq, "Skipped"))
+            .WhereGroupIf(true, group => group
+                .WhereIf(true, u => u.Id, Op.Gt, 10)
+                .OrWhereIf(true, u => u.Id, Op.Eq, 3))
+            .ToCommand();
+
+        Assert.Equal("SELECT COUNT(*) FROM [Users] WHERE [Name] = @p0 OR [Name] = @p1 AND ([Id] > @p2 OR [Id] = @p3)", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal("Bob", command.Parameters.Get<string>("p1"));
+        Assert.Equal(10, command.Parameters.Get<int>("p2"));
+        Assert.Equal(3, command.Parameters.Get<int>("p3"));
+    }
+
+    [Fact]
+    public void Select_exists_from_type_conditional_filters_match_select_builder_behavior()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectExistsFrom<User>()
+            .When(true, query => query.Where(u => u.Name, Op.Eq, "Alice"))
+            .When(false, query => query.Where(u => u.Id, Op.Eq, 99))
+            .WhereIf(false, u => u.Id, Op.Eq, 1)
+            .OrWhereIf(true, u => u.Name, Op.Eq, "Bob")
+            .WhereGroupIf(true, group => group
+                .WhereIf(false, u => u.Id, Op.Eq, 2)
+                .OrWhereIf(false, u => u.Name, Op.Eq, "Skipped"))
+            .WhereGroupIf(true, group => group
+                .WhereIf(true, u => u.Id, Op.Gt, 10)
+                .OrWhereIf(true, u => u.Id, Op.Eq, 3))
+            .ToCommand();
+
+        Assert.Equal("SELECT CASE WHEN EXISTS (SELECT 1 FROM [Users] WHERE [Name] = @p0 OR [Name] = @p1 AND ([Id] > @p2 OR [Id] = @p3)) THEN 1 ELSE 0 END", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal("Bob", command.Parameters.Get<string>("p1"));
+        Assert.Equal(10, command.Parameters.Get<int>("p2"));
+        Assert.Equal(3, command.Parameters.Get<int>("p3"));
+    }
+
+    [Fact]
+    public void Select_aggregate_from_type_conditional_filters_match_select_builder_behavior()
+    {
+        var command = Db4NetDatabase
+            .Create(Db4NetOptions.SqlServer)
+            .SelectAggregateFrom<User>()
+            .Max(u => u.Id)
+            .When(true, query => query.Where(u => u.Name, Op.Eq, "Alice"))
+            .When(false, query => query.Where(u => u.Id, Op.Eq, 99))
+            .WhereIf(false, u => u.Id, Op.Eq, 1)
+            .OrWhereIf(true, u => u.Name, Op.Eq, "Bob")
+            .WhereGroupIf(true, group => group
+                .WhereIf(false, u => u.Id, Op.Eq, 2)
+                .OrWhereIf(false, u => u.Name, Op.Eq, "Skipped"))
+            .WhereGroupIf(true, group => group
+                .WhereIf(true, u => u.Id, Op.Gt, 10)
+                .OrWhereIf(true, u => u.Id, Op.Eq, 3))
+            .ToCommand();
+
+        Assert.Equal("SELECT MAX([Id]) FROM [Users] WHERE [Name] = @p0 OR [Name] = @p1 AND ([Id] > @p2 OR [Id] = @p3)", command.Sql);
+        Assert.Equal("Alice", command.Parameters.Get<string>("p0"));
+        Assert.Equal("Bob", command.Parameters.Get<string>("p1"));
+        Assert.Equal(10, command.Parameters.Get<int>("p2"));
+        Assert.Equal(3, command.Parameters.Get<int>("p3"));
+    }
+
     [Fact]
     public void Query_page_rejects_pre_applied_paging()
     {

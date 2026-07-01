@@ -13,10 +13,10 @@ public sealed class PackageMetadataTests
         Assert.Equal("net8.0;netstandard2.0", properties["TargetFrameworks"]);
         Assert.Equal("latest", properties["LangVersion"]);
         Assert.Equal("Db4Net", properties["PackageId"]);
-        Assert.Equal("0.1.0-alpha.4", properties["Version"]);
+        Assert.Equal("0.1.0-alpha.5", properties["Version"]);
         Assert.Equal("IceCoffee1024", properties["Authors"]);
         Assert.Equal("Safe, SQL-shaped fluent query and command builder for Dapper.", properties["Description"]);
-        Assert.Equal("0.1.0-alpha.4 exposes Db4NetDatabase connection and transaction context for raw Dapper interop and simplifies repository/unit-of-work documentation.", properties["PackageReleaseNotes"]);
+        Assert.Equal("0.1.0-alpha.5 adds conditional filtering for read-only SELECT builders and runtime ORDER BY direction overloads.", properties["PackageReleaseNotes"]);
         Assert.Equal("dapper;sql;fluent;query-builder", properties["PackageTags"]);
         Assert.Equal("README.md", properties["PackageReadmeFile"]);
         Assert.Equal("MIT", properties["PackageLicenseExpression"]);

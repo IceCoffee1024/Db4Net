@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.0-alpha.5 - 2026-07-01
+
+### Added
+
+- Conditional filtering for read-only SELECT builders with `When(...)`, `WhereIf(...)`, `OrWhereIf(...)`, and `WhereGroupIf(...)`, including row, count, exists, and aggregate queries.
+- Runtime ORDER BY direction overloads for SELECT builders through `OrderBy(..., bool descending)`.
+
 ## 0.1.0-alpha.4 - 2026-07-01
 
 ### Added

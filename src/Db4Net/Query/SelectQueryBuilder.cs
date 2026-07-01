@@ -106,6 +106,48 @@ public partial class SelectQueryBuilder
     }
 
     /// <summary>
+    /// Applies additional query configuration only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to invoke <paramref name="configure"/>.</param>
+    /// <param name="configure">Configures the current query builder.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder When(bool condition, Action<SelectQueryBuilder> configure)
+    {
+        ThrowHelper.ThrowIfNull(configure);
+        if (condition)
+        {
+            configure(this);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder WhereIf(bool condition, string column, Op op, object? value)
+    {
+        return condition ? Where(column, op, value) : this;
+    }
+
+    /// <summary>
+    /// Adds an AND null-check filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder WhereIf(bool condition, string column, Op op)
+    {
+        return condition ? Where(column, op) : this;
+    }
+
+    /// <summary>
     /// Adds an AND <c>IN</c> filter using a string-based column identifier and a single-column SELECT subquery.
     /// </summary>
     /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
@@ -141,6 +183,29 @@ public partial class SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds a parenthesized AND filter group only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the group.</param>
+    /// <param name="configure">Configures the nested filter group.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder WhereGroupIf(bool condition, Action<FilterGroupBuilder> configure)
+    {
+        ThrowHelper.ThrowIfNull(configure);
+        if (!condition)
+        {
+            return this;
+        }
+
+        var group = CreateFilterGroup(configure);
+        if (group.Count > 0)
+        {
+            _filters.AddGroup(FilterBooleanOperator.And, group);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds an OR filter using a string-based column identifier.
     /// </summary>
     /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
@@ -163,6 +228,31 @@ public partial class SelectQueryBuilder
     {
         _filters.AddValueFree(FilterBooleanOperator.Or, column, op);
         return this;
+    }
+
+    /// <summary>
+    /// Adds an OR filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrWhereIf(bool condition, string column, Op op, object? value)
+    {
+        return condition ? OrWhere(column, op, value) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR null-check filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrWhereIf(bool condition, string column, Op op)
+    {
+        return condition ? OrWhere(column, op) : this;
     }
 
     /// <summary>
@@ -209,6 +299,17 @@ public partial class SelectQueryBuilder
     {
         _model.Orders.Add(new OrderClause(column, false));
         return this;
+    }
+
+    /// <summary>
+    /// Adds an ORDER BY clause using a string-based column identifier and a runtime direction.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="descending">Whether to sort descending.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrderBy(string column, bool descending)
+    {
+        return descending ? OrderByDescending(column) : OrderBy(column);
     }
 
     /// <summary>

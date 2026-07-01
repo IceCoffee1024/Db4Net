@@ -1,5 +1,12 @@
 # 变更日志
 
+## 0.1.0-alpha.5 - 2026-07-01
+
+### 新增
+
+- 只读 SELECT builder 条件过滤能力：`When(...)`、`WhereIf(...)`、`OrWhereIf(...)` 和 `WhereGroupIf(...)`，覆盖行查询、count、exists 和聚合查询。
+- SELECT builder 运行时排序方向重载：`OrderBy(..., bool descending)`。
+
 ## 0.1.0-alpha.4 - 2026-07-01
 
 ### 新增

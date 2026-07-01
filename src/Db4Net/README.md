@@ -8,7 +8,7 @@ Db4Net is not an ORM and does not try to become a LINQ provider.
 
 ## Status
 
-Current version: `0.1.0-alpha.4`
+Current version: `0.1.0-alpha.5`
 
 This alpha focuses on safe, SQL-shaped query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
@@ -118,6 +118,37 @@ var totalPages = page.TotalPages;
 ```
 
 `QueryPage(...)` executes a count query and a paged row query internally. It owns paging, so do not call `Limit(...)`, `Offset(...)`, or `Page(...)` before `QueryPage(...)`.
+
+For optional search filters, use `When(...)`, `WhereIf(...)`, `OrWhereIf(...)`, and `WhereGroupIf(...)`:
+
+```csharp
+var page = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .When(!string.IsNullOrWhiteSpace(keyword), query =>
+        query.Where(u => u.Name, Op.Like, keyword))
+    .WhereGroupIf(hasNameRange, group => group
+        .WhereIf(!string.IsNullOrWhiteSpace(namePrefix), u => u.Name, Op.Like, namePrefix)
+        .OrWhereIf(!string.IsNullOrWhiteSpace(nameSuffix), u => u.Name, Op.Like, nameSuffix))
+    .WhereIf(updatedAfter.HasValue, u => u.UpdatedAt, Op.Gte, updatedAfter)
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber, pageSize);
+```
+
+The same conditional filter API is available on read-only scalar builders such as `SelectCountFrom<T>()`, `SelectExistsFrom<T>()`, and aggregate projections from `SelectAggregateFrom<T>()`.
+
+When sort direction comes from a request DTO, use `OrderBy(..., descending)`:
+
+```csharp
+var orderProperty = query.Order?.ToString() ?? nameof(User.UpdatedAt);
+
+var page = await connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .OrderBy(orderProperty, descending: query.Desc)
+    .OrderBy(u => u.Id, descending: query.Desc)
+    .QueryPageAsync(pageNumber, pageSize);
+```
 
 Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
@@ -404,6 +435,8 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 `Op.Eq` with `null` renders `IS NULL`, and `Op.NotEq` with `null` renders `IS NOT NULL`. Prefer `Op.IsNull` and `Op.IsNotNull` when no value is needed.
 
 Use `WhereGroup(...)` / `OrWhereGroup(...)` for nested parentheses. The group builder only exposes filter methods, so ordering, paging, and command rendering stay outside the group.
+
+Use `When(...)`, `WhereIf(...)`, `OrWhereIf(...)`, and `WhereGroupIf(...)` for optional filters on read-only SELECT builders. False conditions leave the builder unchanged; `When(...)` is the general form for grouped keyword search or other conditional query configuration.
 
 Use `WhereIn(...)`, `OrWhereIn(...)`, `WhereNotIn(...)`, and `OrWhereNotIn(...)` for single-column `SELECT` subqueries used by `IN` predicates.
 

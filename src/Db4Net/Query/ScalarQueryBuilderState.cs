@@ -49,6 +49,18 @@ internal sealed class ScalarQueryBuilderState<T>
         _filters.AddGroup(booleanOperator, group.Filters);
     }
 
+    public void AddGroupIfNotEmpty(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder<T>> configure)
+    {
+        ThrowHelper.ThrowIfNull(configure);
+
+        var group = new FilterGroupBuilder<T>();
+        configure(group);
+        if (group.Filters.Count > 0)
+        {
+            _filters.AddGroup(booleanOperator, group.Filters);
+        }
+    }
+
     private static string MapPropertyName(string propertyName)
     {
         return ModelMetadata<T>.GetColumn(propertyName).ColumnName;

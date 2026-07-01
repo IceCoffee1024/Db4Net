@@ -118,6 +118,35 @@ var totalPages = page.TotalPages;
 
 `QueryPage(...)` 是分页便捷终结方法。它内部会执行一次 count 查询和一次分页行查询，并对两条命令使用同一组执行选项。它自己负责分页，所以不要在 `QueryPage(...)` 前调用 `Limit(...)`、`Offset(...)` 或 `Page(...)`。
 
+## 条件过滤
+
+搜索条件可选时，可以用 `When(...)`、`WhereIf(...)`、`OrWhereIf(...)` 和 `WhereGroupIf(...)` 让动态查询保持在同一条 fluent chain 中：
+
+```csharp
+var page = await db
+    .SelectFrom<User>()
+    .When(!string.IsNullOrWhiteSpace(keyword), query =>
+        query.Where(u => u.Name, Op.Like, keyword))
+    .WhereGroupIf(hasNameRange, group => group
+        .WhereIf(!string.IsNullOrWhiteSpace(namePrefix), u => u.Name, Op.Like, namePrefix)
+        .OrWhereIf(!string.IsNullOrWhiteSpace(nameSuffix), u => u.Name, Op.Like, nameSuffix))
+    .WhereIf(updatedAfter.HasValue, u => u.UpdatedAt, Op.Gte, updatedAfter)
+    .OrderBy(u => u.Id)
+    .QueryPageAsync(pageNumber, pageSize);
+```
+
+同一套条件过滤 API 也可用于只读标量 builder：
+
+```csharp
+var total = await db
+    .SelectCountFrom<User>()
+    .WhereIf(!string.IsNullOrWhiteSpace(keyword), u => u.Name, Op.Like, keyword)
+    .WhereIf(updatedAfter.HasValue, u => u.UpdatedAt, Op.Gte, updatedAfter)
+    .ExecuteAsync();
+```
+
+条件为 false 时，builder 保持不变。`When(...)` 适合分组过滤或其他查询配置；`WhereIf(...)` 和 `OrWhereIf(...)` 是简单可选谓词的快捷写法。条件过滤适用于只读 SELECT builder：行查询、count 查询、exists 查询和聚合标量查询。UPDATE 和 DELETE 的条件谓词仍建议用普通 `if` 显式控制，避免误扩大写入范围。
+
 只需要分页行数据时，使用 `Page(...)` 进行从 1 开始的分页；需要直接控制行数时，也可以组合 `Limit(...)` 和 `Offset(...)`：
 
 ```csharp
@@ -129,6 +158,18 @@ var page = db
 ```
 
 `Offset(...)` 必须与 `Limit(...)` 配套使用。SQL Server 分页还要求至少调用一次 `OrderBy(...)`，因为没有 `ORDER BY` 时 `OFFSET` / `FETCH` 是无效 SQL。
+
+当排序方向来自请求 DTO 时，可以使用 `OrderBy(..., descending)`，避免在 `OrderBy(...)` 和 `OrderByDescending(...)` 之间写分支：
+
+```csharp
+var orderProperty = query.Order?.ToString() ?? nameof(User.UpdatedAt);
+
+var page = await db
+    .SelectFrom<User>()
+    .OrderBy(orderProperty, descending: query.Desc)
+    .OrderBy(u => u.Id, descending: query.Desc)
+    .QueryPageAsync(pageNumber, pageSize);
+```
 
 ## 终结方法
 

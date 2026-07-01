@@ -146,6 +146,75 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Applies additional query configuration only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to invoke <paramref name="configure"/>.</param>
+    /// <param name="configure">Configures the current query builder.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> When(bool condition, Action<SelectQueryBuilder<T>> configure)
+    {
+        ThrowHelper.ThrowIfNull(configure);
+        if (condition)
+        {
+            configure(this);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> WhereIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, Op op, object? value)
+    {
+        return condition ? Where(memberSelector, op, value) : this;
+    }
+
+    /// <summary>
+    /// Adds an AND null-check filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> WhereIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, Op op)
+    {
+        return condition ? Where(memberSelector, op) : this;
+    }
+
+    /// <summary>
+    /// Adds an AND filter using a CLR property name only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> WhereIf(bool condition, string propertyName, Op op, object? value)
+    {
+        return condition ? Where(propertyName, op, value) : this;
+    }
+
+    /// <summary>
+    /// Adds an AND null-check filter using a CLR property name only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> WhereIf(bool condition, string propertyName, Op op)
+    {
+        return condition ? Where(propertyName, op) : this;
+    }
+
+    /// <summary>
     /// Adds an AND <c>IN</c> filter using a CLR property name from <typeparamref name="T"/> and a single-column SELECT subquery.
     /// </summary>
     /// <param name="propertyName">The CLR property name to filter by.</param>
@@ -211,6 +280,30 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds a parenthesized AND filter group only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the group.</param>
+    /// <param name="configure">Configures the nested filter group.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> WhereGroupIf(bool condition, Action<FilterGroupBuilder<T>> configure)
+    {
+        ThrowHelper.ThrowIfNull(configure);
+        if (!condition)
+        {
+            return this;
+        }
+
+        var group = new FilterGroupBuilder<T>();
+        configure(group);
+        if (group.Filters.Count > 0)
+        {
+            AddFilterGroup(FilterBooleanOperator.And, group.Filters);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Adds an OR filter using a typed member selector.
     /// </summary>
     /// <typeparam name="TValue">The selected member value type.</typeparam>
@@ -260,6 +353,58 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     {
         base.OrWhere(ModelMetadata<T>.GetColumn(propertyName).ColumnName, op);
         return this;
+    }
+
+    /// <summary>
+    /// Adds an OR filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> OrWhereIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, Op op, object? value)
+    {
+        return condition ? OrWhere(memberSelector, op, value) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR null-check filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> OrWhereIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, Op op)
+    {
+        return condition ? OrWhere(memberSelector, op) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR filter using a CLR property name only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="op">The SQL comparison operator.</param>
+    /// <param name="value">The value to parameterize. <see cref="Op.In"/> requires a non-string enumerable.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrWhereIf(bool condition, string propertyName, Op op, object? value)
+    {
+        return condition ? OrWhere(propertyName, op, value) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR null-check filter using a CLR property name only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="op">The SQL null-check operator. Only <see cref="Op.IsNull"/> and <see cref="Op.IsNotNull"/> are supported.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrWhereIf(bool condition, string propertyName, Op op)
+    {
+        return condition ? OrWhere(propertyName, op) : this;
     }
 
     /// <summary>
@@ -340,6 +485,18 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     }
 
     /// <summary>
+    /// Adds an ORDER BY clause using a typed member selector and a runtime direction.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Id</c>.</param>
+    /// <param name="descending">Whether to sort descending.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder<T> OrderBy<TValue>(Expression<Func<T, TValue>> memberSelector, bool descending)
+    {
+        return descending ? OrderByDescending(memberSelector) : OrderBy(memberSelector);
+    }
+
+    /// <summary>
     /// Adds an ascending ORDER BY clause using a CLR property name from <typeparamref name="T"/>.
     /// </summary>
     /// <param name="propertyName">The CLR property name to order by.</param>
@@ -348,6 +505,17 @@ public sealed class SelectQueryBuilder<T> : SelectQueryBuilder
     {
         base.OrderBy(ModelMetadata<T>.GetColumn(propertyName).ColumnName);
         return this;
+    }
+
+    /// <summary>
+    /// Adds an ORDER BY clause using a CLR property name from <typeparamref name="T"/> and a runtime direction.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to order by.</param>
+    /// <param name="descending">Whether to sort descending.</param>
+    /// <returns>The current query builder.</returns>
+    public new SelectQueryBuilder<T> OrderBy(string propertyName, bool descending)
+    {
+        return descending ? OrderByDescending(propertyName) : OrderBy(propertyName);
     }
 
     /// <summary>
