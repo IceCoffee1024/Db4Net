@@ -185,24 +185,21 @@ Do not register a repository that captures a connection-bound `Db4NetDatabase` a
 Db4Net does not wrap raw SQL. Keep complex joins, CTEs, window functions, and provider-specific SQL in Dapper, using the same scoped connection as Db4Net.
 
 ```csharp
-using System.Data.Common;
 using Dapper;
 using Db4Net;
 
 public sealed class ReportRepository
 {
     private readonly Db4NetDatabase _db;
-    private readonly DbConnection _connection;
 
-    public ReportRepository(Db4NetDatabase db, DbConnection connection)
+    public ReportRepository(Db4NetDatabase db)
     {
         _db = db;
-        _connection = connection;
     }
 
     public Task<IEnumerable<UserActivityRow>> GetUserActivityAsync()
     {
-        return _connection.QueryAsync<UserActivityRow>(
+        return _db.Connection.QueryAsync<UserActivityRow>(
             """
             SELECT u.Id, u.Name, COUNT(a.Id) AS ActivityCount
             FROM Users u
@@ -222,9 +219,9 @@ public sealed class ReportRepository
 }
 ```
 
-For keyed database registrations, inject or resolve the matching keyed `DbConnection` with the matching keyed `Db4NetDatabase`.
+For keyed database registrations, inject or resolve the matching keyed `Db4NetDatabase`; its `Connection` exposes the matching borrowed connection context. Do not close, dispose, or open that connection inside repositories.
 
-When raw Dapper SQL and Db4Net commands must share a Db4Net-owned transaction, use `tx.Connection` and `tx.DbTransaction`.
+When raw Dapper SQL and Db4Net commands must share a Db4Net-owned transaction, use `_db.Connection` and pass `transaction: _db.DbTransaction` explicitly from a repository created with the transaction-bound `tx.Database` facade. `DbTransaction` is `null` when no transaction is active.
 
 ```csharp
 using var tx = _db.BeginTransaction();
@@ -237,14 +234,14 @@ try
         .Where(u => u.Id, Op.Eq, userId)
         .ExecuteAsync(cancellationToken: cancellationToken);
 
-    await tx.Connection.ExecuteAsync(
+    await tx.Database.Connection.ExecuteAsync(
         new CommandDefinition(
             """
             INSERT INTO AuditLogs (EventName, EntityId)
             VALUES (@EventName, @EntityId)
             """,
             new { EventName = "UserRenamed", EntityId = userId },
-            transaction: tx.DbTransaction,
+            transaction: tx.Database.DbTransaction,
             cancellationToken: cancellationToken));
 
     tx.Commit();

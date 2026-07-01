@@ -27,6 +27,44 @@ public sealed class SqliteIntegrationTests
     }
 
     [Fact]
+    public void Database_connection_requires_bound_connection()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            Db4NetDatabase.Create(Db4NetOptions.Sqlite).Connection);
+
+        Assert.Contains("Dapper execution requires an IDbConnection", ex.Message);
+    }
+
+    [Fact]
+    public void Database_context_exposes_bound_connection_and_optional_transaction()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        Assert.Same(connection, db.Connection);
+        Assert.Null(db.DbTransaction);
+
+        using var transaction = connection.BeginTransaction();
+        var txDb = db.WithTransaction(transaction);
+
+        Assert.Same(transaction, txDb.DbTransaction);
+    }
+
+    [Fact]
+    public void Database_with_transaction_can_derive_connection_from_transaction()
+    {
+        using var connection = CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        var db = Db4NetDatabase
+            .Create(Db4NetOptions.Sqlite)
+            .WithTransaction(transaction);
+
+        Assert.Same(connection, db.Connection);
+        Assert.Same(transaction, db.DbTransaction);
+    }
+
+    [Fact]
     public async Task Query_single_or_default_async_executes_parameterized_sql_with_dapper()
     {
         using var connection = CreateOpenConnection();
@@ -1507,6 +1545,63 @@ public sealed class SqliteIntegrationTests
 
         Assert.NotNull(userAfterCommit);
         Assert.Equal("Charlie", userAfterCommit.Name);
+    }
+
+    [Fact]
+    public void Transaction_database_context_rejects_access_after_completion_or_dispose()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        using var committedTransaction = db.BeginTransaction();
+        var committedDatabase = committedTransaction.Database;
+        committedTransaction.Commit();
+        Assert.Throws<InvalidOperationException>(() => committedDatabase.Connection);
+        Assert.Throws<InvalidOperationException>(() => committedDatabase.DbTransaction);
+
+        using var rolledBackTransaction = db.BeginTransaction();
+        var rolledBackDatabase = rolledBackTransaction.Database;
+        rolledBackTransaction.Rollback();
+        Assert.Throws<InvalidOperationException>(() => rolledBackDatabase.Connection);
+        Assert.Throws<InvalidOperationException>(() => rolledBackDatabase.DbTransaction);
+
+        var disposedTransaction = db.BeginTransaction();
+        var disposedDatabase = disposedTransaction.Database;
+        disposedTransaction.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => disposedDatabase.Connection);
+        Assert.Throws<ObjectDisposedException>(() => disposedDatabase.DbTransaction);
+    }
+
+    [Fact]
+    public void Raw_dapper_can_use_transaction_database_context()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        using (var transaction = db.BeginTransaction())
+        {
+            transaction.Database.Connection.Execute(
+                "INSERT INTO Users (Id, Name) VALUES (@Id, @Name)",
+                new { Id = 3, Name = "Charlie" },
+                transaction: transaction.Database.DbTransaction);
+
+            var userInTransaction = transaction.Database
+                .SelectFrom<User>()
+                .Where(u => u.Id, Op.Eq, 3)
+                .QuerySingleOrDefault();
+
+            Assert.NotNull(userInTransaction);
+            Assert.Equal("Charlie", userInTransaction.Name);
+
+            transaction.Rollback();
+        }
+
+        var userAfterRollback = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.Null(userAfterRollback);
     }
 
     [Fact]

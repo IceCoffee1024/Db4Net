@@ -83,17 +83,17 @@ db.ExecuteInTransaction(tx =>
 
 `ExecuteInTransaction(...)` 在委托成功时提交，委托抛异常时回滚。`ExecuteInTransactionAsync(...)` 可以在同一个事务里运行异步 Db4Net 操作，但事务开启、提交和回滚仍使用同步 `IDbTransaction` API，因为 Db4Net 是通过 `IDbConnection` 绑定连接的。
 
-如果 Dapper 原生 SQL 要加入 Db4Net 创建的事务，使用 `tx.Connection`，并把 `tx.DbTransaction` 传给 Dapper。
+如果 Dapper 原生 SQL 要加入当前 Db4Net 事务，使用事务绑定 facade，并显式把 `transaction: tx.Database.DbTransaction` 传给 Dapper。在仓储里，优先使用传入仓储的 `Db4NetDatabase` 上下文：`_db.Connection` 和 `_db.DbTransaction`。`Connection` 是借用的上下文；不要在 repository 中 close、dispose 或 open。没有事务时，`DbTransaction` 为 `null`。仓储构造函数通常只接收 `Db4NetDatabase`。
 
 ```csharp
 using Dapper;
 
 db.ExecuteInTransaction(tx =>
 {
-    tx.Connection.Execute(
+    tx.Database.Connection.Execute(
         "INSERT INTO AuditLogs (EventName, EntityId) VALUES (@EventName, @EntityId)",
         new { EventName = "UserUpdated", EntityId = user.Id },
-        transaction: tx.DbTransaction);
+        transaction: tx.Database.DbTransaction);
 
     tx.Update(user).Execute();
 });

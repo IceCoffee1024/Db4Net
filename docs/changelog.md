@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha.4 - 2026-07-01
+
+### Added
+
+- `Db4NetDatabase.Connection` and `Db4NetDatabase.DbTransaction` expose borrowed raw Dapper interop context on the database facade.
+
+### Changed
+
+- Repository and unit-of-work documentation now uses a single `Repository<T>()` path: repositories inject only `Db4NetDatabase`, use `_db.Connection` for raw Dapper, and pass `transaction: _db.DbTransaction` explicitly when joining the current transaction.
+- Raw Dapper transaction examples now prefer `_db.Connection` / `_db.DbTransaction` or `tx.Database.Connection` / `tx.Database.DbTransaction`; `Db4NetTransaction` remains the transaction scope and `tx.Database` remains the transaction-bound facade.
+
 ## 0.1.0-alpha.3 - 2026-07-01
 
 ### Added

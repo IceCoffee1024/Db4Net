@@ -89,17 +89,17 @@ db.ExecuteInTransaction(tx =>
 
 `ExecuteInTransaction(...)` commits when the delegate succeeds and rolls back when it throws. `ExecuteInTransactionAsync(...)` runs async Db4Net operations in the same transaction, but transaction begin, commit, and rollback use synchronous `IDbTransaction` APIs because Db4Net is bound through `IDbConnection`.
 
-When raw Dapper SQL must participate in a Db4Net-owned transaction, use `tx.Connection` with `transaction: tx.DbTransaction`.
+When raw Dapper SQL must participate in the current Db4Net transaction, use the transaction-bound facade and pass `transaction: tx.Database.DbTransaction` explicitly. In repositories, prefer the `Db4NetDatabase` context passed to the repository: `_db.Connection` and `_db.DbTransaction`. `Connection` is borrowed context; do not close, dispose, or open it from repository code. `DbTransaction` is `null` when no transaction is active. Repository constructors should usually receive only `Db4NetDatabase`.
 
 ```csharp
 using Dapper;
 
 db.ExecuteInTransaction(tx =>
 {
-    tx.Connection.Execute(
+    tx.Database.Connection.Execute(
         "INSERT INTO AuditLogs (EventName, EntityId) VALUES (@EventName, @EntityId)",
         new { EventName = "UserUpdated", EntityId = user.Id },
-        transaction: tx.DbTransaction);
+        transaction: tx.Database.DbTransaction);
 
     tx.Update(user).Execute();
 });

@@ -1,5 +1,16 @@
 # 变更日志
 
+## 0.1.0-alpha.4 - 2026-07-01
+
+### 新增
+
+- `Db4NetDatabase.Connection` 和 `Db4NetDatabase.DbTransaction`，用于在 database facade 上暴露借用的 Dapper 原生互操作上下文。
+
+### 变更
+
+- Repository 和 unit-of-work 文档现在统一使用单一 `Repository<T>()` 路径：仓储只注入 `Db4NetDatabase`，通过 `_db.Connection` 执行 Dapper 原生 SQL，并在需要加入当前事务时显式传入 `transaction: _db.DbTransaction`。
+- Dapper 原生事务示例现在优先使用 `_db.Connection` / `_db.DbTransaction` 或 `tx.Database.Connection` / `tx.Database.DbTransaction`；`Db4NetTransaction` 仍然是事务 scope，`tx.Database` 仍然是事务绑定 facade。
+
 ## 0.1.0-alpha.3 - 2026-07-01
 
 ### 新增

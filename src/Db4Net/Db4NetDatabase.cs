@@ -20,6 +20,30 @@ public sealed partial class Db4NetDatabase
     }
 
     /// <summary>
+    /// Gets the connection Dapper execution uses for this facade.
+    /// </summary>
+    public IDbConnection Connection
+    {
+        get
+        {
+            _executionOptions?.Validate();
+            return RequireConnection();
+        }
+    }
+
+    /// <summary>
+    /// Gets the default transaction Dapper execution uses for this facade, if one is configured.
+    /// </summary>
+    public IDbTransaction? DbTransaction
+    {
+        get
+        {
+            _executionOptions?.Validate();
+            return _executionOptions?.Transaction;
+        }
+    }
+
+    /// <summary>
     /// Creates a Db4Net facade that can build SQL without executing it.
     /// </summary>
     /// <param name="options">The SQL generation options to use.</param>
@@ -56,7 +80,11 @@ public sealed partial class Db4NetDatabase
     public Db4NetDatabase WithTransaction(IDbTransaction transaction)
     {
         ThrowHelper.ThrowIfNull(transaction);
-        return WithExecutionOptions(new Db4NetExecutionOptions { Transaction = transaction });
+        var connection = _connection ?? transaction.Connection;
+        return new Db4NetDatabase(
+            _options,
+            connection,
+            Db4NetExecutionOptions.Merge(_executionOptions, new Db4NetExecutionOptions { Transaction = transaction }));
     }
 
     private static void EnsureEntityType<T>(string? sequenceAlternative = null)

@@ -463,6 +463,9 @@ public sealed class ApiContractTests
             "ExecuteInTransaction",
             "ExecuteInTransactionAsync");
 
+        AssertPublicInstanceProperties(typeof(Db4NetDatabase), "Connection", "DbTransaction");
+        Assert.Equal(typeof(System.Data.IDbConnection), typeof(Db4NetDatabase).GetProperty("Connection", BindingFlags.Public | BindingFlags.Instance)!.PropertyType);
+        Assert.Equal(typeof(System.Data.IDbTransaction), typeof(Db4NetDatabase).GetProperty("DbTransaction", BindingFlags.Public | BindingFlags.Instance)!.PropertyType);
         AssertPublicInstanceMethods(typeof(Db4NetTransaction), "Commit", "Rollback");
         Assert.NotNull(typeof(Db4NetTransaction).GetProperty("Database", BindingFlags.Public | BindingFlags.Instance));
         Assert.NotNull(typeof(Db4NetTransaction).GetProperty("Connection", BindingFlags.Public | BindingFlags.Instance));
@@ -625,6 +628,16 @@ public sealed class ApiContractTests
         foreach (var methodName in methodNames)
         {
             Assert.Contains(publicStaticMethods, method => method.Name == methodName);
+        }
+    }
+
+    private static void AssertPublicInstanceProperties(Type type, params string[] propertyNames)
+    {
+        var publicInstanceProperties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        foreach (var propertyName in propertyNames)
+        {
+            Assert.Contains(publicInstanceProperties, property => property.Name == propertyName);
         }
     }
 

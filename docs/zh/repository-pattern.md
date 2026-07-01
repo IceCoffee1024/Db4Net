@@ -185,24 +185,21 @@ Db4Net 的事务作用域是单连接作用域。不要假设一次 `ExecuteInTr
 Db4Net 不包装原生 SQL。复杂 join、CTE、窗口函数和数据库专有 SQL 继续放在 Dapper 中，并和 Db4Net 使用同一个 scoped connection。
 
 ```csharp
-using System.Data.Common;
 using Dapper;
 using Db4Net;
 
 public sealed class ReportRepository
 {
     private readonly Db4NetDatabase _db;
-    private readonly DbConnection _connection;
 
-    public ReportRepository(Db4NetDatabase db, DbConnection connection)
+    public ReportRepository(Db4NetDatabase db)
     {
         _db = db;
-        _connection = connection;
     }
 
     public Task<IEnumerable<UserActivityRow>> GetUserActivityAsync()
     {
-        return _connection.QueryAsync<UserActivityRow>(
+        return _db.Connection.QueryAsync<UserActivityRow>(
             """
             SELECT u.Id, u.Name, COUNT(a.Id) AS ActivityCount
             FROM Users u
@@ -222,9 +219,9 @@ public sealed class ReportRepository
 }
 ```
 
-如果使用 keyed database 注册，请注入或解析匹配的 keyed `DbConnection` 和 keyed `Db4NetDatabase`。
+如果使用 keyed database 注册，请注入或解析匹配的 keyed `Db4NetDatabase`；它的 `Connection` 暴露匹配的借用连接上下文。不要在 repository 中 close、dispose 或 open 这个连接。
 
-当 Dapper 原生 SQL 和 Db4Net 命令需要共用 Db4Net 创建的事务时，使用 `tx.Connection` 和 `tx.DbTransaction`。
+当 Dapper 原生 SQL 和 Db4Net 命令需要共用 Db4Net 创建的事务时，在用事务绑定 `tx.Database` facade 创建的仓储里使用 `_db.Connection`，并显式传入 `transaction: _db.DbTransaction`。没有事务时，`DbTransaction` 为 `null`。
 
 ```csharp
 using var tx = _db.BeginTransaction();
@@ -237,14 +234,14 @@ try
         .Where(u => u.Id, Op.Eq, userId)
         .ExecuteAsync(cancellationToken: cancellationToken);
 
-    await tx.Connection.ExecuteAsync(
+    await tx.Database.Connection.ExecuteAsync(
         new CommandDefinition(
             """
             INSERT INTO AuditLogs (EventName, EntityId)
             VALUES (@EventName, @EntityId)
             """,
             new { EventName = "UserRenamed", EntityId = userId },
-            transaction: tx.DbTransaction,
+            transaction: tx.Database.DbTransaction,
             cancellationToken: cancellationToken));
 
     tx.Commit();

@@ -14,7 +14,7 @@ Documentation: <https://db4net.icecoffee1024.com>
 
 ## Status
 
-Current version: `0.1.0-alpha.3`
+Current version: `0.1.0-alpha.4`
 
 This alpha focuses on safe, SQL-shaped query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
@@ -277,7 +277,7 @@ db.ExecuteInTransaction(tx =>
 ```
 
 This is a connection-bound `IDbTransaction` convenience, not an ORM unit of work. Db4Net still does not track entities, detect changes, batch saves, or add `SaveChanges()`.
-When raw Dapper SQL must participate in a Db4Net-owned transaction, use `tx.Connection` with `transaction: tx.DbTransaction`. If the transaction is created outside Db4Net, bind it with `WithTransaction(transaction)`.
+`Db4NetDatabase.Connection` is a borrowed connection context for raw Dapper interop. Do not close, dispose, or open it inside repositories. `Db4NetDatabase.DbTransaction` is `null` when no transaction is active; pass `transaction: _db.DbTransaction` explicitly when raw Dapper SQL must participate in the current Db4Net transaction. `Db4NetTransaction` remains the transaction scope, and `tx.Database` is the transaction-bound facade. If the transaction is created outside Db4Net, bind it with `WithTransaction(transaction)`.
 After `Commit()`, `Rollback()`, or `Dispose()`, `tx.Database` and any transaction-bound builder or facade captured from it reject further execution.
 
 Use conflict-aware insert conveniences when inserts should ignore or update rows that already match a conflict target:
