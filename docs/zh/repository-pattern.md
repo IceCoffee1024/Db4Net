@@ -89,6 +89,23 @@ public sealed class UserRepository
 
 这种形态让仓储的 API 边界保持清晰：调用方看到的是仓储方法和返回类型，而不是 Db4Net builder 类型。
 
+## 方法命名
+
+仓储方法名表达数据访问意图，service 方法名表达业务用例。
+
+常见仓储命名：
+
+- `FindByIdAsync(...)`：返回一条记录；不存在时返回 `null`。
+- `GetByIdAsync(...)`：期望记录必须存在；不存在时可以抛异常。
+- `ListBy...Async(...)`：按简单条件返回列表。
+- `SearchAsync(...)`：使用关键词、可选过滤、排序等较复杂条件。
+- `GetPageAsync(...)`：返回 `PagedResult<T>` 或其他分页 DTO。
+- `ExistsBy...Async(...)`：返回是否存在。
+- `CountAsync(...)`：返回匹配行数。
+- `AddAsync(...)`、`UpdateAsync(...)`、`DeleteAsync(...)`：执行数据变更。
+
+Db4Net 的 `Query*`、`Execute*` 这类执行命名建议留在仓储内部。Service 方法应该描述业务动作，例如 `RegisterUserAsync(...)`、`DisableUserAsync(...)` 或 `ChangeEmailAsync(...)`。
+
 ## 连接作用域
 
 持有 `Db4NetDatabase` 的仓储应该跟随该 facade 绑定的连接或事务生命周期。对于使用 `Microsoft.Extensions.DependencyInjection` 的请求级应用，推荐把连接、`Db4NetDatabase` 和仓储都注册为 scoped service。完整 DI 配置见[应用模式](./application-patterns.md#请求级-di)。

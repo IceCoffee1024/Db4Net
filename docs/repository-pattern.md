@@ -89,6 +89,23 @@ public sealed class UserRepository
 
 This shape keeps the repository easy to test at the API boundary: callers see repository methods and return types, not Db4Net builder types.
 
+## Method Naming
+
+Use repository method names for data access intent, and service method names for business use cases.
+
+Common repository names:
+
+- `FindByIdAsync(...)`: returns one row or `null` when it does not exist.
+- `GetByIdAsync(...)`: expects the row to exist; throw when it does not.
+- `ListBy...Async(...)`: returns a list for a simple filter.
+- `SearchAsync(...)`: uses richer criteria such as keywords, optional filters, or sort options.
+- `GetPageAsync(...)`: returns a `PagedResult<T>` or another paged DTO.
+- `ExistsBy...Async(...)`: returns a boolean existence check.
+- `CountAsync(...)`: returns a matching row count.
+- `AddAsync(...)`, `UpdateAsync(...)`, and `DeleteAsync(...)`: perform data changes.
+
+Keep Db4Net execution names such as `Query*` and `Execute*` inside the repository. Service methods should describe the business operation instead, for example `RegisterUserAsync(...)`, `DisableUserAsync(...)`, or `ChangeEmailAsync(...)`.
+
 ## Connection Scope
 
 A repository that stores a `Db4NetDatabase` should follow the lifetime of the connection or transaction bound to that facade. In request-scoped applications that use `Microsoft.Extensions.DependencyInjection`, register the connection, `Db4NetDatabase`, and repositories as scoped services. See [Application Patterns](./application-patterns.md#request-scoped-di) for the complete DI setup.
