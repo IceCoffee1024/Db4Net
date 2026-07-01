@@ -14,7 +14,7 @@ Documentation: <https://db4net.icecoffee1024.com>
 
 ## Status
 
-Current version: `0.1.0-alpha.1`
+Current version: `0.1.0-alpha.2`
 
 This alpha focuses on safe, SQL-shaped query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 

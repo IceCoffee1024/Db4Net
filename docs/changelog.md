@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-alpha.2 - 2026-07-01
+
+### Added
+
+- Throwing SELECT terminal methods: `QueryFirst`, `QueryFirstAsync`, `QuerySingle`, and `QuerySingleAsync`.
+
+### Changed
+
+- Documentation now clarifies `FindByIdAsync` vs `GetByIdAsync` repository naming and SELECT terminal method semantics.
+
 ## 0.1.0-alpha.1 - 2026-06-29
 
 ### Added

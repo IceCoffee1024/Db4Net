@@ -13,10 +13,10 @@ public sealed class PackageMetadataTests
         Assert.Equal("net8.0;netstandard2.0", properties["TargetFrameworks"]);
         Assert.Equal("latest", properties["LangVersion"]);
         Assert.Equal("Db4Net", properties["PackageId"]);
-        Assert.Equal("0.1.0-alpha.1", properties["Version"]);
+        Assert.Equal("0.1.0-alpha.2", properties["Version"]);
         Assert.Equal("IceCoffee1024", properties["Authors"]);
         Assert.Equal("Safe, SQL-shaped fluent query and command builder for Dapper.", properties["Description"]);
-        Assert.Equal("0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, paged SELECT results, terminal-typed scalar aggregate queries, single-row insert key return, entity and many conveniences, conflict-aware inserts, generated-column safeguards, paging validation, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.", properties["PackageReleaseNotes"]);
+        Assert.Equal("0.1.0-alpha.2 adds throwing SELECT terminal methods: QueryFirst, QueryFirstAsync, QuerySingle, and QuerySingleAsync.", properties["PackageReleaseNotes"]);
         Assert.Equal("dapper;sql;fluent;query-builder", properties["PackageTags"]);
         Assert.Equal("README.md", properties["PackageReadmeFile"]);
         Assert.Equal("MIT", properties["PackageLicenseExpression"]);

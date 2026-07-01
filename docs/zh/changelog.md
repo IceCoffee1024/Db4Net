@@ -1,5 +1,15 @@
 # 变更日志
 
+## 0.1.0-alpha.2 - 2026-07-01
+
+### 新增
+
+- 抛异常语义的 SELECT 终结方法：`QueryFirst`、`QueryFirstAsync`、`QuerySingle` 和 `QuerySingleAsync`。
+
+### 变更
+
+- 文档现在说明 `FindByIdAsync` 与 `GetByIdAsync` 的仓储命名区别，以及 SELECT 终结方法语义。
+
 ## 0.1.0-alpha.1 - 2026-06-29
 
 ### 新增

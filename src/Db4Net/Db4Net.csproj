@@ -7,10 +7,10 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>Db4Net</PackageId>
-    <Version>0.1.0-alpha.1</Version>
+    <Version>0.1.0-alpha.2</Version>
     <Authors>IceCoffee1024</Authors>
     <Description>Safe, SQL-shaped fluent query and command builder for Dapper.</Description>
-    <PackageReleaseNotes>0.1.0-alpha.1 adds SQL-shaped single-table SELECT/CUD builders, existence, count, paged SELECT results, terminal-typed scalar aggregate queries, single-row insert key return, entity and many conveniences, conflict-aware inserts, generated-column safeguards, paging validation, explicit filter groups, lightweight transaction scopes, net8.0/netstandard2.0 package assets, and bilingual documentation.</PackageReleaseNotes>
+    <PackageReleaseNotes>0.1.0-alpha.2 adds throwing SELECT terminal methods: QueryFirst, QueryFirstAsync, QuerySingle, and QuerySingleAsync.</PackageReleaseNotes>
     <PackageTags>dapper;sql;fluent;query-builder</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
