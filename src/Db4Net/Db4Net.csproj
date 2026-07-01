@@ -7,10 +7,10 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>Db4Net</PackageId>
-    <Version>0.1.0-alpha.2</Version>
+    <Version>0.1.0-alpha.3</Version>
     <Authors>IceCoffee1024</Authors>
     <Description>Safe, SQL-shaped fluent query and command builder for Dapper.</Description>
-    <PackageReleaseNotes>0.1.0-alpha.2 adds throwing SELECT terminal methods: QueryFirst, QueryFirstAsync, QuerySingle, and QuerySingleAsync.</PackageReleaseNotes>
+    <PackageReleaseNotes>0.1.0-alpha.3 exposes Db4NetTransaction connection and transaction accessors for raw Dapper integration and expands application pattern guidance for larger DI applications.</PackageReleaseNotes>
     <PackageTags>dapper;sql;fluent;query-builder</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

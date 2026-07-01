@@ -196,6 +196,178 @@ services.AddScoped<AppUnitOfWorkFactory>();
 services.AddScoped<UserService>();
 ```
 
+This explicit property style works well for a small feature-specific unit of work. In a larger application, do not put every repository in the system on one global `AppUnitOfWork`; create focused units of work per use case area, or use DI-based repository creation as shown below.
+
+## Large DI Applications
+
+If the application already uses `Microsoft.Extensions.DependencyInjection`, a separate `RepositoryFactory` is optional. Keep `IServiceProvider` inside infrastructure code, create transaction-bound repositories on demand, and do not expose the service provider to business services.
+
+```csharp
+using System.Data;
+using Db4Net;
+using Dapper;
+using Microsoft.Extensions.DependencyInjection;
+
+public sealed class DiUnitOfWork : IDisposable
+{
+    private readonly Db4NetTransaction _tx;
+    private readonly IServiceProvider _services;
+
+    public DiUnitOfWork(Db4NetDatabase db, IServiceProvider services)
+    {
+        _tx = db.BeginTransaction();
+        _services = services;
+    }
+
+    public TRepository Repository<TRepository>()
+        where TRepository : class
+    {
+        return ActivatorUtilities.CreateInstance<TRepository>(
+            _services,
+            _tx.Database);
+    }
+
+    public TRepository RepositoryWithTransaction<TRepository>()
+        where TRepository : class
+    {
+        return ActivatorUtilities.CreateInstance<TRepository>(
+            _services,
+            _tx.Database,
+            _tx.Connection,
+            _tx.DbTransaction);
+    }
+
+    public void Commit()
+    {
+        _tx.Commit();
+    }
+
+    public void Dispose()
+    {
+        _tx.Dispose();
+    }
+}
+
+public sealed class DiUnitOfWorkFactory
+{
+    private readonly Db4NetDatabase _db;
+    private readonly IServiceProvider _services;
+
+    public DiUnitOfWorkFactory(Db4NetDatabase db, IServiceProvider services)
+    {
+        _db = db;
+        _services = services;
+    }
+
+    public DiUnitOfWork Begin()
+    {
+        return new DiUnitOfWork(_db, _services);
+    }
+}
+```
+
+Repositories should usually be lightweight and stateless, so caching repository instances inside the unit of work is not required. If a repository has expensive state or the application needs same-instance reuse, add a small dictionary cache in the application unit-of-work class.
+
+Use `Repository<TRepository>()` for repositories that only need the Db4Net facade. Use `RepositoryWithTransaction<TRepository>()` only for repositories whose constructor accepts `IDbConnection` and `IDbTransaction` for raw Dapper SQL in the same transaction.
+
+```csharp
+public sealed class AuditRepository
+{
+    private readonly Db4NetDatabase _db;
+    private readonly IDbConnection _connection;
+    private readonly IDbTransaction? _transaction;
+
+    public AuditRepository(
+        Db4NetDatabase db,
+        IDbConnection connection,
+        IDbTransaction? transaction = null)
+    {
+        _db = db;
+        _connection = connection;
+        _transaction = transaction;
+    }
+
+    public Task<int> WriteRawAsync(
+        string eventName,
+        long entityId,
+        CancellationToken cancellationToken = default)
+    {
+        return _connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                INSERT INTO AuditLogs (EventName, EntityId)
+                VALUES (@EventName, @EntityId)
+                """,
+                new { EventName = eventName, EntityId = entityId },
+                transaction: _transaction,
+                cancellationToken: cancellationToken));
+    }
+}
+```
+
+The service still depends on the unit-of-work abstraction, not on `IServiceProvider`.
+
+```csharp
+public sealed class UserService
+{
+    private readonly DiUnitOfWorkFactory _unitOfWorkFactory;
+
+    public UserService(DiUnitOfWorkFactory unitOfWorkFactory)
+    {
+        _unitOfWorkFactory = unitOfWorkFactory;
+    }
+
+    public async Task DisableUserAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        using var uow = _unitOfWorkFactory.Begin();
+
+        var users = uow.Repository<UserRepository>();
+        var audit = uow.RepositoryWithTransaction<AuditRepository>();
+
+        await users.DisableAsync(userId, cancellationToken);
+        await audit.WriteRawAsync("UserDisabled", userId, cancellationToken);
+
+        uow.Commit();
+    }
+}
+```
+
+Register these helpers as scoped because they capture the scoped `Db4NetDatabase`.
+
+```csharp
+services.AddScoped<DiUnitOfWorkFactory>();
+services.AddScoped<UserService>();
+```
+
+For even smaller business services, use a transaction runner and keep repository creation inside the delegate:
+
+```csharp
+public sealed class TransactionRunner
+{
+    private readonly Db4NetDatabase _db;
+    private readonly IServiceProvider _services;
+
+    public TransactionRunner(Db4NetDatabase db, IServiceProvider services)
+    {
+        _db = db;
+        _services = services;
+    }
+
+    public async Task ExecuteAsync(
+        Func<DiUnitOfWork, CancellationToken, Task> work,
+        CancellationToken cancellationToken = default)
+    {
+        using var uow = new DiUnitOfWork(_db, _services);
+
+        await work(uow, cancellationToken);
+
+        uow.Commit();
+    }
+}
+```
+
+Register `TransactionRunner` as scoped as well. This avoids a large repository factory while still making the transaction boundary explicit.
+
 ## Request-Scoped DI
 
 In request-scoped applications that use `Microsoft.Extensions.DependencyInjection`, register the connection and `Db4NetDatabase` as scoped services. Register the repository factory as singleton because it does not capture a connection.
@@ -353,8 +525,10 @@ tx.Commit();
 | --- | --- |
 | Request-scoped web action | Inject repository or service |
 | Multiple repositories in one use case | Service controls transaction and creates repositories from `tx.Database` |
+| Large DI application with many repositories | Use focused units of work or DI-based repository creation with `ActivatorUtilities` |
 | Singleton or background worker in a DI application | Use `IServiceScopeFactory` per operation |
 | No DI application | Use an application-side `Db4NetSessionFactory` |
-| Raw Dapper and Db4Net in one transaction | Create your own `IDbTransaction`, pass it to Dapper, and bind Db4Net with `WithTransaction(...)` |
+| Raw Dapper inside a Db4Net-owned transaction | Use `tx.Connection` and `tx.DbTransaction` |
+| Externally owned transaction | Pass it to Dapper and bind Db4Net with `WithTransaction(...)` |
 
 Do not register scoped `DbConnection`, connection-bound `Db4NetDatabase`, or repositories that capture them as singletons.

@@ -2,6 +2,16 @@
 
 All notable changes to Db4Net will be documented in this file.
 
+## 0.1.0-alpha.3 - 2026-07-01
+
+### Added
+
+- `Db4NetTransaction.Connection` and `Db4NetTransaction.DbTransaction` for raw Dapper SQL that must participate in a Db4Net-owned transaction.
+
+### Changed
+
+- Documentation now clarifies large-application repository/unit-of-work patterns, DI-based repository creation, and raw Dapper transaction sharing.
+
 ## 0.1.0-alpha.2 - 2026-07-01
 
 ### Added

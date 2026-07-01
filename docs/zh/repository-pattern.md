@@ -224,37 +224,39 @@ public sealed class ReportRepository
 
 如果使用 keyed database 注册，请注入或解析匹配的 keyed `DbConnection` 和 keyed `Db4NetDatabase`。
 
-当 Dapper 原生 SQL 和 Db4Net 命令需要共用同一个事务时，请自行创建事务，把它传给 Dapper，并通过 `WithTransaction(...)` 绑定到 Db4Net。
+当 Dapper 原生 SQL 和 Db4Net 命令需要共用 Db4Net 创建的事务时，使用 `tx.Connection` 和 `tx.DbTransaction`。
 
 ```csharp
-using var transaction = _connection.BeginTransaction();
+using var tx = _db.BeginTransaction();
 
 try
 {
-    var txDb = _db.WithTransaction(transaction);
-
-    await txDb
+    await tx.Database
         .Update<User>()
         .Set(u => u.Name, "Alice")
         .Where(u => u.Id, Op.Eq, userId)
         .ExecuteAsync(cancellationToken: cancellationToken);
 
-    await _connection.ExecuteAsync(
-        """
-        INSERT INTO AuditLogs (EventName, EntityId)
-        VALUES (@EventName, @EntityId)
-        """,
-        new { EventName = "UserRenamed", EntityId = userId },
-        transaction);
+    await tx.Connection.ExecuteAsync(
+        new CommandDefinition(
+            """
+            INSERT INTO AuditLogs (EventName, EntityId)
+            VALUES (@EventName, @EntityId)
+            """,
+            new { EventName = "UserRenamed", EntityId = userId },
+            transaction: tx.DbTransaction,
+            cancellationToken: cancellationToken));
 
-    transaction.Commit();
+    tx.Commit();
 }
 catch
 {
-    transaction.Rollback();
+    tx.Rollback();
     throw;
 }
 ```
+
+如果事务由 Db4Net 外部创建并拥有，再把它传给 Dapper，并通过 `WithTransaction(...)` 绑定到 Db4Net。
 
 ## 事务
 

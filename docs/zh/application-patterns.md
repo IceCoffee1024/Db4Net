@@ -196,6 +196,178 @@ services.AddScoped<AppUnitOfWorkFactory>();
 services.AddScoped<UserService>();
 ```
 
+这种显式属性方式适合小型、按功能聚焦的工作单元。大型应用里，不建议把系统里的几十上百个仓储都塞进一个全局 `AppUnitOfWork`；更好的做法是按业务区域拆成聚焦的工作单元，或者使用下面的 DI 动态创建方式。
+
+## 大型 DI 应用
+
+如果应用已经使用 `Microsoft.Extensions.DependencyInjection`，单独的 `RepositoryFactory` 就不是必须的。可以把 `IServiceProvider` 封装在基础设施代码里，按需创建事务绑定的仓储，不要把 service provider 暴露给业务 service。
+
+```csharp
+using System.Data;
+using Db4Net;
+using Dapper;
+using Microsoft.Extensions.DependencyInjection;
+
+public sealed class DiUnitOfWork : IDisposable
+{
+    private readonly Db4NetTransaction _tx;
+    private readonly IServiceProvider _services;
+
+    public DiUnitOfWork(Db4NetDatabase db, IServiceProvider services)
+    {
+        _tx = db.BeginTransaction();
+        _services = services;
+    }
+
+    public TRepository Repository<TRepository>()
+        where TRepository : class
+    {
+        return ActivatorUtilities.CreateInstance<TRepository>(
+            _services,
+            _tx.Database);
+    }
+
+    public TRepository RepositoryWithTransaction<TRepository>()
+        where TRepository : class
+    {
+        return ActivatorUtilities.CreateInstance<TRepository>(
+            _services,
+            _tx.Database,
+            _tx.Connection,
+            _tx.DbTransaction);
+    }
+
+    public void Commit()
+    {
+        _tx.Commit();
+    }
+
+    public void Dispose()
+    {
+        _tx.Dispose();
+    }
+}
+
+public sealed class DiUnitOfWorkFactory
+{
+    private readonly Db4NetDatabase _db;
+    private readonly IServiceProvider _services;
+
+    public DiUnitOfWorkFactory(Db4NetDatabase db, IServiceProvider services)
+    {
+        _db = db;
+        _services = services;
+    }
+
+    public DiUnitOfWork Begin()
+    {
+        return new DiUnitOfWork(_db, _services);
+    }
+}
+```
+
+仓储通常应该是轻量、无状态对象，所以 unit of work 内部一般不需要缓存仓储实例。如果某个仓储有昂贵状态，或者应用确实需要同一次工作单元内复用同一个实例，可以在应用侧 unit-of-work 类里加一个很小的字典缓存。
+
+只需要 Db4Net facade 的仓储使用 `Repository<TRepository>()`。只有构造函数接收 `IDbConnection` 和 `IDbTransaction`、并且需要在同一事务里执行 Dapper 原生 SQL 的仓储，才使用 `RepositoryWithTransaction<TRepository>()`。
+
+```csharp
+public sealed class AuditRepository
+{
+    private readonly Db4NetDatabase _db;
+    private readonly IDbConnection _connection;
+    private readonly IDbTransaction? _transaction;
+
+    public AuditRepository(
+        Db4NetDatabase db,
+        IDbConnection connection,
+        IDbTransaction? transaction = null)
+    {
+        _db = db;
+        _connection = connection;
+        _transaction = transaction;
+    }
+
+    public Task<int> WriteRawAsync(
+        string eventName,
+        long entityId,
+        CancellationToken cancellationToken = default)
+    {
+        return _connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                INSERT INTO AuditLogs (EventName, EntityId)
+                VALUES (@EventName, @EntityId)
+                """,
+                new { EventName = eventName, EntityId = entityId },
+                transaction: _transaction,
+                cancellationToken: cancellationToken));
+    }
+}
+```
+
+业务 service 仍然依赖 unit-of-work 抽象，而不是依赖 `IServiceProvider`。
+
+```csharp
+public sealed class UserService
+{
+    private readonly DiUnitOfWorkFactory _unitOfWorkFactory;
+
+    public UserService(DiUnitOfWorkFactory unitOfWorkFactory)
+    {
+        _unitOfWorkFactory = unitOfWorkFactory;
+    }
+
+    public async Task DisableUserAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        using var uow = _unitOfWorkFactory.Begin();
+
+        var users = uow.Repository<UserRepository>();
+        var audit = uow.RepositoryWithTransaction<AuditRepository>();
+
+        await users.DisableAsync(userId, cancellationToken);
+        await audit.WriteRawAsync("UserDisabled", userId, cancellationToken);
+
+        uow.Commit();
+    }
+}
+```
+
+这些辅助对象捕获 scoped `Db4NetDatabase`，因此应注册为 scoped。
+
+```csharp
+services.AddScoped<DiUnitOfWorkFactory>();
+services.AddScoped<UserService>();
+```
+
+如果希望业务 service 更薄，也可以封装一个 transaction runner，在委托里创建仓储：
+
+```csharp
+public sealed class TransactionRunner
+{
+    private readonly Db4NetDatabase _db;
+    private readonly IServiceProvider _services;
+
+    public TransactionRunner(Db4NetDatabase db, IServiceProvider services)
+    {
+        _db = db;
+        _services = services;
+    }
+
+    public async Task ExecuteAsync(
+        Func<DiUnitOfWork, CancellationToken, Task> work,
+        CancellationToken cancellationToken = default)
+    {
+        using var uow = new DiUnitOfWork(_db, _services);
+
+        await work(uow, cancellationToken);
+
+        uow.Commit();
+    }
+}
+```
+
+`TransactionRunner` 也应注册为 scoped。这样可以避免一个庞大的仓储工厂，同时仍然让事务边界保持显式。
+
 ## 请求级 DI
 
 使用 `Microsoft.Extensions.DependencyInjection` 的请求级应用中，把连接和 `Db4NetDatabase` 注册为 scoped service。`RepositoryFactory` 不捕获连接，可以注册为 singleton。
@@ -353,8 +525,10 @@ tx.Commit();
 | --- | --- |
 | 请求级 Web action | 注入 repository 或 service |
 | 一个用例需要多个仓储 | Service 控制事务，并用 `tx.Database` 创建仓储 |
+| 大型 DI 应用，有很多仓储 | 使用聚焦的工作单元，或用 `ActivatorUtilities` 按需创建仓储 |
 | DI 应用中的 singleton 或后台任务 | 每次操作使用 `IServiceScopeFactory` 创建 scope |
 | 无 DI 应用 | 使用应用侧 `Db4NetSessionFactory` |
-| Dapper 原生 SQL 和 Db4Net 共用事务 | 自行创建 `IDbTransaction`，传给 Dapper，并通过 `WithTransaction(...)` 绑定到 Db4Net |
+| Dapper 原生 SQL 加入 Db4Net 创建的事务 | 使用 `tx.Connection` 和 `tx.DbTransaction` |
+| 外部创建并拥有的事务 | 传给 Dapper，并通过 `WithTransaction(...)` 绑定到 Db4Net |
 
 不要把 scoped `DbConnection`、连接绑定的 `Db4NetDatabase` 或捕获它们的仓储注册为 singleton。

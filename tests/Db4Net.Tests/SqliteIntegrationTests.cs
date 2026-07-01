@@ -1,4 +1,5 @@
 using Db4Net;
+using Dapper;
 using Microsoft.Data.Sqlite;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -1468,6 +1469,44 @@ public sealed class SqliteIntegrationTests
             users,
             user => Assert.Equal("Alice", user.Name),
             user => Assert.Equal("Bob", user.Name));
+    }
+
+    [Fact]
+    public void Transaction_scope_exposes_connection_and_transaction_for_raw_dapper()
+    {
+        using var connection = CreateOpenConnection();
+        var db = connection.UseDb4Net(Db4NetOptions.Sqlite);
+
+        using var transaction = db.BeginTransaction();
+
+        Assert.Same(connection, transaction.Connection);
+        Assert.Same(connection, transaction.DbTransaction.Connection);
+
+        transaction.Connection.Execute(
+            "INSERT INTO Users (Id, Name) VALUES (@Id, @Name)",
+            new { Id = 3, Name = "Charlie" },
+            transaction: transaction.DbTransaction);
+
+        var userInTransaction = transaction
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.NotNull(userInTransaction);
+        Assert.Equal("Charlie", userInTransaction.Name);
+
+        transaction.Commit();
+
+        Assert.Throws<InvalidOperationException>(() => transaction.Connection);
+        Assert.Throws<InvalidOperationException>(() => transaction.DbTransaction);
+
+        var userAfterCommit = db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, 3)
+            .QuerySingleOrDefault();
+
+        Assert.NotNull(userAfterCommit);
+        Assert.Equal("Charlie", userAfterCommit.Name);
     }
 
     [Fact]

@@ -89,7 +89,23 @@ db.ExecuteInTransaction(tx =>
 
 `ExecuteInTransaction(...)` commits when the delegate succeeds and rolls back when it throws. `ExecuteInTransactionAsync(...)` runs async Db4Net operations in the same transaction, but transaction begin, commit, and rollback use synchronous `IDbTransaction` APIs because Db4Net is bound through `IDbConnection`.
 
-When raw Dapper SQL must participate in the same transaction, create the `IDbTransaction` yourself and bind it with `WithTransaction(transaction)`.
+When raw Dapper SQL must participate in a Db4Net-owned transaction, use `tx.Connection` with `transaction: tx.DbTransaction`.
+
+```csharp
+using Dapper;
+
+db.ExecuteInTransaction(tx =>
+{
+    tx.Connection.Execute(
+        "INSERT INTO AuditLogs (EventName, EntityId) VALUES (@EventName, @EntityId)",
+        new { EventName = "UserUpdated", EntityId = user.Id },
+        transaction: tx.DbTransaction);
+
+    tx.Update(user).Execute();
+});
+```
+
+When the transaction is created outside Db4Net, pass it to Dapper and bind Db4Net with `WithTransaction(transaction)`.
 
 This is not an ORM unit of work: Db4Net does not track entities, detect changes, batch saves, or add `SaveChanges()`.
 

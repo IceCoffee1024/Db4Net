@@ -8,7 +8,7 @@ Db4Net is not an ORM and does not try to become a LINQ provider.
 
 ## Status
 
-Current version: `0.1.0-alpha.2`
+Current version: `0.1.0-alpha.3`
 
 This alpha focuses on safe, SQL-shaped query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
@@ -556,7 +556,7 @@ connection
 
 The async `ExecuteInTransactionAsync(...)` overloads run async Db4Net operations inside the same transaction. Transaction begin, commit, and rollback use the synchronous `IDbTransaction` APIs because Db4Net is connection-bound through `IDbConnection`.
 
-When raw Dapper SQL must participate in the same transaction, create the `IDbTransaction` yourself and bind it with `WithTransaction(transaction)`.
+When raw Dapper SQL must participate in a Db4Net-owned transaction, use `tx.Connection` with `transaction: tx.DbTransaction`. If the transaction is created outside Db4Net, bind it with `WithTransaction(transaction)`.
 
 After `Commit()`, `Rollback()`, or `Dispose()`, `tx.Database` and any transaction-bound builder or facade captured from it reject further execution.
 

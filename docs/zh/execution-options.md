@@ -83,7 +83,23 @@ db.ExecuteInTransaction(tx =>
 
 `ExecuteInTransaction(...)` 在委托成功时提交，委托抛异常时回滚。`ExecuteInTransactionAsync(...)` 可以在同一个事务里运行异步 Db4Net 操作，但事务开启、提交和回滚仍使用同步 `IDbTransaction` API，因为 Db4Net 是通过 `IDbConnection` 绑定连接的。
 
-如果原生 Dapper SQL 也需要加入同一个事务，请自己创建 `IDbTransaction`，再通过 `WithTransaction(transaction)` 绑定到 Db4Net。
+如果 Dapper 原生 SQL 要加入 Db4Net 创建的事务，使用 `tx.Connection`，并把 `tx.DbTransaction` 传给 Dapper。
+
+```csharp
+using Dapper;
+
+db.ExecuteInTransaction(tx =>
+{
+    tx.Connection.Execute(
+        "INSERT INTO AuditLogs (EventName, EntityId) VALUES (@EventName, @EntityId)",
+        new { EventName = "UserUpdated", EntityId = user.Id },
+        transaction: tx.DbTransaction);
+
+    tx.Update(user).Execute();
+});
+```
+
+如果事务由 Db4Net 外部创建并拥有，再把它传给 Dapper，并通过 `WithTransaction(transaction)` 绑定到 Db4Net。
 
 这不是 ORM Unit of Work：Db4Net 不跟踪实体、不检测变更、不批量保存，也不提供 `SaveChanges()`。
 

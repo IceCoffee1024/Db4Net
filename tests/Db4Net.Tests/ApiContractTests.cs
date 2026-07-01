@@ -465,6 +465,8 @@ public sealed class ApiContractTests
 
         AssertPublicInstanceMethods(typeof(Db4NetTransaction), "Commit", "Rollback");
         Assert.NotNull(typeof(Db4NetTransaction).GetProperty("Database", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(typeof(Db4NetTransaction).GetProperty("Connection", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(typeof(Db4NetTransaction).GetProperty("DbTransaction", BindingFlags.Public | BindingFlags.Instance));
         Assert.Null(typeof(Db4NetTransaction).GetProperty("Transaction", BindingFlags.Public | BindingFlags.Instance));
         AssertPublicStaticMethods(
             typeof(Db4NetTransactionExtensions),

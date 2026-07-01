@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-alpha.3 - 2026-07-01
+
+### Added
+
+- `Db4NetTransaction.Connection` and `Db4NetTransaction.DbTransaction` for raw Dapper SQL that must participate in a Db4Net-owned transaction.
+
+### Changed
+
+- Application pattern documentation now covers larger DI applications, transaction runners, repository creation with `ActivatorUtilities`, and raw Dapper transaction sharing.
+
 ## 0.1.0-alpha.2 - 2026-07-01
 
 ### Added

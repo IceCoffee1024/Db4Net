@@ -224,37 +224,39 @@ public sealed class ReportRepository
 
 For keyed database registrations, inject or resolve the matching keyed `DbConnection` with the matching keyed `Db4NetDatabase`.
 
-When raw Dapper SQL and Db4Net commands must share a transaction, create the transaction yourself, pass it to Dapper, and bind it to Db4Net with `WithTransaction(...)`.
+When raw Dapper SQL and Db4Net commands must share a Db4Net-owned transaction, use `tx.Connection` and `tx.DbTransaction`.
 
 ```csharp
-using var transaction = _connection.BeginTransaction();
+using var tx = _db.BeginTransaction();
 
 try
 {
-    var txDb = _db.WithTransaction(transaction);
-
-    await txDb
+    await tx.Database
         .Update<User>()
         .Set(u => u.Name, "Alice")
         .Where(u => u.Id, Op.Eq, userId)
         .ExecuteAsync(cancellationToken: cancellationToken);
 
-    await _connection.ExecuteAsync(
-        """
-        INSERT INTO AuditLogs (EventName, EntityId)
-        VALUES (@EventName, @EntityId)
-        """,
-        new { EventName = "UserRenamed", EntityId = userId },
-        transaction);
+    await tx.Connection.ExecuteAsync(
+        new CommandDefinition(
+            """
+            INSERT INTO AuditLogs (EventName, EntityId)
+            VALUES (@EventName, @EntityId)
+            """,
+            new { EventName = "UserRenamed", EntityId = userId },
+            transaction: tx.DbTransaction,
+            cancellationToken: cancellationToken));
 
-    transaction.Commit();
+    tx.Commit();
 }
 catch
 {
-    transaction.Rollback();
+    tx.Rollback();
     throw;
 }
 ```
+
+If the transaction is created outside Db4Net, pass it to Dapper and bind it to Db4Net with `WithTransaction(...)`.
 
 ## Transactions
 

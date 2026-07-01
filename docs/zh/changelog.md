@@ -1,5 +1,15 @@
 # 变更日志
 
+## 0.1.0-alpha.3 - 2026-07-01
+
+### 新增
+
+- `Db4NetTransaction.Connection` 和 `Db4NetTransaction.DbTransaction`，用于让 Dapper 原生 SQL 参与 Db4Net 创建的事务。
+
+### 变更
+
+- 应用模式文档现在补充大型 DI 应用、transaction runner、通过 `ActivatorUtilities` 创建仓储，以及 Dapper 原生 SQL 共用事务的建议。
+
 ## 0.1.0-alpha.2 - 2026-07-01
 
 ### 新增

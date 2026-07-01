@@ -8,6 +8,7 @@ namespace Db4Net;
 public sealed class Db4NetTransaction : IDisposable
 {
     private readonly Db4NetDatabase _database;
+    private readonly IDbConnection _connection;
     private readonly IDbTransaction _transaction;
     private bool _completed;
     private bool _disposed;
@@ -15,6 +16,8 @@ public sealed class Db4NetTransaction : IDisposable
     internal Db4NetTransaction(Db4NetDatabase database, IDbTransaction transaction)
     {
         _transaction = transaction;
+        _connection = transaction.Connection
+            ?? throw new InvalidOperationException("The transaction is not associated with a connection.");
         _database = database.WithExecutionOptions(new Db4NetExecutionOptions
         {
             Transaction = transaction,
@@ -31,6 +34,30 @@ public sealed class Db4NetTransaction : IDisposable
         {
             ThrowIfNotActive();
             return _database;
+        }
+    }
+
+    /// <summary>
+    /// Gets the connection associated with this active transaction.
+    /// </summary>
+    public IDbConnection Connection
+    {
+        get
+        {
+            ThrowIfNotActive();
+            return _connection;
+        }
+    }
+
+    /// <summary>
+    /// Gets the underlying active database transaction.
+    /// </summary>
+    public IDbTransaction DbTransaction
+    {
+        get
+        {
+            ThrowIfNotActive();
+            return _transaction;
         }
     }
 
