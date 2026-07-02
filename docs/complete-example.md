@@ -71,12 +71,12 @@ Use `SelectFrom<T>()` when you want mapped entity rows. Use `SelectFrom<T>(...)`
 var exists = await db
     .SelectExistsFrom<User>()
     .Where(u => u.Id, Op.Eq, userId)
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 
 var activeCount = await db
     .SelectCountFrom<User>()
     .Where(u => u.IsActive, Op.Eq, true)
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 ```
 
 Prefer `SelectExistsFrom<T>()` for existence checks instead of counting rows and comparing with zero.

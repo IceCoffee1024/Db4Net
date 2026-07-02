@@ -46,6 +46,7 @@ internal sealed class SelectQueryModel
         return filter switch
         {
             FilterClause clause => clause,
+            FilterBetweenClause clause => clause,
             FilterSubqueryClause clause => clause with { Subquery = clause.Subquery.Clone() },
             FilterGroup group => group with { Filters = group.Filters.Select(CloneFilter).ToArray() },
             _ => throw new NotSupportedException($"Filter node {filter.GetType().Name} is not supported.")
@@ -64,6 +65,9 @@ internal sealed record FilterSubqueryClause(FilterBooleanOperator BooleanOperato
     : FilterNode(BooleanOperator);
 
 internal sealed record FilterGroup(FilterBooleanOperator BooleanOperator, IReadOnlyList<FilterNode> Filters)
+    : FilterNode(BooleanOperator);
+
+internal sealed record FilterBetweenClause(FilterBooleanOperator BooleanOperator, string Column, object? Low, object? High)
     : FilterNode(BooleanOperator);
 
 internal enum FilterBooleanOperator

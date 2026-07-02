@@ -43,6 +43,10 @@ public sealed class DeleteManyCommandBuilder<T>
     /// </summary>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <returns>The affected row count returned by Dapper.</returns>
+    /// <remarks>
+    /// Each entity is deleted in a separate statement. To ensure atomicity and avoid partial writes on failure,
+    /// pass a transaction via <paramref name="options"/> or wrap the call in a <see cref="Db4NetTransaction"/>.
+    /// </remarks>
     public int Execute(Db4NetExecutionOptions? options = null)
     {
         if (_entities.Length == 0)
@@ -60,6 +64,10 @@ public sealed class DeleteManyCommandBuilder<T>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
     /// <returns>The affected row count returned by Dapper.</returns>
+    /// <remarks>
+    /// Each entity is deleted in a separate statement. To ensure atomicity and avoid partial writes on failure,
+    /// pass a transaction via <paramref name="options"/> or wrap the call in a <see cref="Db4NetTransaction"/>.
+    /// </remarks>
     public Task<int> ExecuteAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         if (_entities.Length == 0)

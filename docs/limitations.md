@@ -5,7 +5,7 @@ Db4Net is intentionally focused on safe, SQL-shaped Dapper queries and commands.
 Included in the current alpha:
 
 - typed `SELECT`, `INSERT`, `UPDATE`, and `DELETE` builders
-- typed existence and count query builders through `SelectExistsFrom<T>()` and `SelectCountFrom<T>()`
+- typed existence and count query builders through `SelectExistsFrom<T>()` and `SelectCountFrom<T>()`, with explicit `ExecuteScalar(...)` / `ExecuteScalarAsync(...)` terminals
 - typed scalar aggregate query builders through `SelectAggregateFrom<T>()`
 - paged SELECT terminal methods through `QueryPage(...)` and `QueryPageAsync(...)`
 - dynamic CLR property-name projection with model validation
@@ -13,7 +13,7 @@ Included in the current alpha:
 - entity and many-entity command conveniences
 - regular single-row insert key return
 - conflict-aware insert conveniences
-- `Where`, `OrWhere`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `OrderByDescending`, `Limit`, `Offset`, and `Page`
+- `Where`, `OrWhere`, `WhereBetween`, `Op.NotLike`, `Op.NotIn`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `OrderByDescending`, `Limit`, `Offset`, and `Page`
 - sync and async Dapper-style terminal methods
 - existing transaction pass-through, lightweight transaction scopes, command timeout, command type, and async cancellation token support
 
@@ -24,6 +24,7 @@ Intentionally out of scope:
 - set-based synchronization or optimized batching
 - generated-key readback for `InsertMany(...)` or conflict-aware inserts
 - automatic refresh of all database-generated or computed values
+- MySQL `InsertOrUpdate(...)` compatibility with MySQL 5.7, MySQL 8.0.0-8.0.18, or MariaDB; generated MySQL upsert SQL follows MySQL 8.0.19+ row-alias syntax
 - MySQL generated-key readback for non-auto-increment generated keys such as trigger/default/expression-generated values
 - SQL Server generated-key readback for trigger-enabled tables that require `OUTPUT ... INTO`
 - SQLite generated-key readback on SQLite runtimes older than 3.35

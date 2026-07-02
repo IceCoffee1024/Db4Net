@@ -9,11 +9,19 @@ namespace Db4Net.Commands;
 public abstract class CommandBuilderBase
 {
     private readonly DapperCommandExecutor _executor;
+    private readonly IDbConnection? _connection;
+    private readonly Db4NetExecutionOptions? _executionOptions;
 
     internal CommandBuilderBase(IDbConnection? connection, Db4NetExecutionOptions? executionOptions = null)
     {
+        _connection = connection;
+        _executionOptions = executionOptions;
         _executor = new DapperCommandExecutor(connection, executionOptions);
     }
+
+    internal IDbConnection? Connection => _connection;
+
+    internal Db4NetExecutionOptions? ExecutionOptions => _executionOptions;
 
     /// <summary>
     /// Renders the SQL text and parameters without executing the command.

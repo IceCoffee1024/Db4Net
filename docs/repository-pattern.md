@@ -59,7 +59,7 @@ public sealed class UserRepository
         return _db
             .SelectExistsFrom<User>()
             .Where(u => u.Email, Op.Eq, email)
-            .ExecuteAsync(cancellationToken: cancellationToken);
+            .ExecuteScalarAsync(cancellationToken: cancellationToken);
     }
 
     public Task<long> AddAsync(User user, CancellationToken cancellationToken = default)

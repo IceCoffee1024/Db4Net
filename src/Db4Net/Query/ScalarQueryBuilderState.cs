@@ -49,6 +49,16 @@ internal sealed class ScalarQueryBuilderState<T>
         _filters.AddGroup(booleanOperator, group.Filters);
     }
 
+    public void AddBetween(FilterBooleanOperator booleanOperator, string propertyName, object? low, object? high)
+    {
+        _filters.AddBetween(booleanOperator, () => MapPropertyName(propertyName), low, high);
+    }
+
+    public void AddBetween<TValue>(FilterBooleanOperator booleanOperator, System.Linq.Expressions.Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        _filters.AddBetween(booleanOperator, () => ModelMetadataProvider.GetColumnName(memberSelector), low, high);
+    }
+
     public void AddGroupIfNotEmpty(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder<T>> configure)
     {
         ThrowHelper.ThrowIfNull(configure);

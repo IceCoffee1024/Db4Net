@@ -12,7 +12,32 @@ var users = db.SelectFrom<User>()
     .Query();
 ```
 
+常见操作符包括相等、比较、`Like`、`NotLike`、`In`、`NotIn` 和空值判断：
+
+```csharp
+.Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
+.Where(u => u.Id, Op.NotIn, blockedIds)
+.Where(u => u.Name, Op.NotLike, "test%")
+.Where(u => u.DeletedAt, Op.IsNull)
+.Where(u => u.Name, Op.IsNotNull)
+```
+
 `Op.Eq` 搭配 `null` 会渲染为 `IS NULL`，`Op.NotEq` 搭配 `null` 会渲染为 `IS NOT NULL`。不需要值时，优先使用 `Op.IsNull` 和 `Op.IsNotNull`。
+
+`Op.In` 和 `Op.NotIn` 要求传入非字符串、且至少包含一个元素的 enumerable。
+
+## 范围筛选
+
+使用 `WhereBetween(...)` 和 `OrWhereBetween(...)` 表达包含边界的 `BETWEEN` 谓词：
+
+```csharp
+var users = db.SelectFrom<User>()
+    .WhereBetween(u => u.UpdatedAt, from, to)
+    .OrWhereBetween(u => u.CreatedAt, archiveFrom, archiveTo)
+    .Query();
+```
+
+上下界都会渲染为参数，并且不能为 `null`。可选范围条件可以使用 `WhereBetweenIf(...)` 和 `OrWhereBetweenIf(...)`。
 
 ## `IN` 子查询
 

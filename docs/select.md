@@ -38,18 +38,18 @@ String fields are CLR property names, not database column names or SQL fragments
 
 ## Existence, Count, and Aggregate Queries
 
-Use `SelectExistsFrom<T>()` for existence checks. It is the supported existence-check API and is preferable to `SelectCountFrom<T>().Execute() > 0` when only existence matters:
+Use `SelectExistsFrom<T>()` for existence checks. It is the supported existence-check API and is preferable to `SelectCountFrom<T>().ExecuteScalar() > 0` when only existence matters:
 
 ```csharp
 var exists = db
     .SelectExistsFrom<User>()
     .Where(u => u.Id, Op.Eq, id)
-    .Execute();
+    .ExecuteScalar();
 
 var existsInArchive = await db
     .SelectExistsFrom<User>("users_2026")
     .Where(u => u.Name, Op.Like, "A%")
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 ```
 
 Use `SelectCountFrom<T>()` when you need the number of matching rows:
@@ -58,15 +58,15 @@ Use `SelectCountFrom<T>()` when you need the number of matching rows:
 var count = db
     .SelectCountFrom<User>()
     .Where(u => u.Id, Op.Gt, 0)
-    .Execute();
+    .ExecuteScalar();
 
 var matchingCount = await db
     .SelectCountFrom<User>("users_2026")
     .Where(u => u.Name, Op.Like, "A%")
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 ```
 
-Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `ExecuteScalar<TResult>()` or `ExecuteScalarAsync<TResult>()` call, for example `Max(selector).ExecuteScalar<TResult>()` or `CountDistinct(selector).ExecuteScalarAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
 `Max(...)` and `Min(...)` require value-type member selectors. `Sum(...)` and `Average(...)` do not validate that the selected column is numeric; the database executes the aggregate and Dapper reads it as your terminal `TResult`, so choose a result type that matches your provider's aggregate result.
 
@@ -75,27 +75,27 @@ var latestId = db
     .SelectAggregateFrom<User>()
     .Max(u => u.Id)
     .Where(u => u.Name, Op.Like, "A%")
-    .Execute<int?>();
+    .ExecuteScalar<int?>();
 
 var distinctNames = await db
     .SelectAggregateFrom<User>("users_2026")
     .CountDistinct(u => u.Name)
-    .ExecuteAsync<long>();
+    .ExecuteScalarAsync<long>();
 
 var totalAmount = db
     .SelectAggregateFrom<OrderMetric>()
     .Sum(o => o.Amount)
-    .Execute<decimal>();
+    .ExecuteScalar<decimal>();
 
 var totalQuantity = db
     .SelectAggregateFrom<OrderMetric>()
     .Sum(o => o.Quantity)
-    .Execute<long>();
+    .ExecuteScalar<long>();
 
 var averageQuantity = db
     .SelectAggregateFrom<OrderMetric>()
     .Average(o => o.Quantity)
-    .Execute<decimal>();
+    .ExecuteScalar<decimal>();
 ```
 
 Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, `Select("SUM(...)")`, `Select("AVG(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
@@ -142,10 +142,10 @@ var total = await db
     .SelectCountFrom<User>()
     .WhereIf(!string.IsNullOrWhiteSpace(keyword), u => u.Name, Op.Like, keyword)
     .WhereIf(updatedAfter.HasValue, u => u.UpdatedAt, Op.Gte, updatedAfter)
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 ```
 
-False conditions leave the builder unchanged. `When(...)` is the general escape hatch for grouped filters or other query configuration; `WhereIf(...)` and `OrWhereIf(...)` are shorthand for simple optional predicates. Conditional filters are available on read-only SELECT builders: row queries, count queries, exists queries, and aggregate scalar queries. Keep conditional update and delete predicates explicit with ordinary `if` statements.
+False conditions leave the builder unchanged. `When(...)` is the general escape hatch for grouped filters or other query configuration; `WhereIf(...)` and `OrWhereIf(...)` are shorthand for simple optional predicates. Conditional filters are available on read-only SELECT builders: row queries, count queries, exists queries, and aggregate scalar queries. Range-specific `WhereBetweenIf(...)` and `OrWhereBetweenIf(...)` are also available on `UPDATE` and `DELETE` builders.
 
 Use `Page(...)` for one-based page pagination when you only need rows, or combine `Limit(...)` with `Offset(...)` when you need direct row counts:
 
@@ -192,4 +192,4 @@ Use `QueryFirst*` when at least one row must exist. Use `QuerySingle*` when exac
 
 The non-generic select builder also exposes explicit result-type overloads such as `Query<T>()`, `QueryFirst<T>()`, `QuerySingle<T>()`, `QueryAsync<T>()`, `QueryFirstAsync<T>()`, `QuerySingleAsync<T>()`, `QueryPage<T>()`, and `QueryPageAsync<T>()`.
 
-Existence query builders return a `bool` through `Execute()` and `ExecuteAsync()`. Count query builders return the count through `Execute()` and `ExecuteAsync()`. For `SelectAggregateFrom<T>()` aggregate queries, specify the scalar read type with terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()`.
+Existence query builders return a `bool` through `ExecuteScalar()` and `ExecuteScalarAsync()`. Count query builders return the count through `ExecuteScalar()` and `ExecuteScalarAsync()`. For `SelectAggregateFrom<T>()` aggregate queries, specify the scalar read type with terminal `ExecuteScalar<TResult>()` or `ExecuteScalarAsync<TResult>()`.

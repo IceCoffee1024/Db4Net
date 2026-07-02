@@ -363,6 +363,114 @@ public sealed class FilterGroupBuilder<T> : FilterGroupBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public new FilterGroupBuilder<T> WhereBetween(string propertyName, object? low, object? high)
+    {
+        base.WhereBetween(ModelMetadata<T>.GetColumn(propertyName).ColumnName, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder<T> WhereBetween<TValue>(Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        base.WhereBetween(ModelMetadataProvider.GetColumnName(memberSelector), low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public new FilterGroupBuilder<T> WhereBetweenIf(bool condition, string propertyName, object? low, object? high)
+    {
+        return condition ? WhereBetween(propertyName, low, high) : this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter only when <paramref name="condition"/> is true, using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder<T> WhereBetweenIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        return condition ? WhereBetween(memberSelector, low, high) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public new FilterGroupBuilder<T> OrWhereBetween(string propertyName, object? low, object? high)
+    {
+        base.OrWhereBetween(ModelMetadata<T>.GetColumn(propertyName).ColumnName, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder<T> OrWhereBetween<TValue>(Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        base.OrWhereBetween(ModelMetadataProvider.GetColumnName(memberSelector), low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public new FilterGroupBuilder<T> OrWhereBetweenIf(bool condition, string propertyName, object? low, object? high)
+    {
+        return condition ? OrWhereBetween(propertyName, low, high) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter only when <paramref name="condition"/> is true, using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder<T> OrWhereBetweenIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        return condition ? OrWhereBetween(memberSelector, low, high) : this;
+    }
+
     private void AddGroup(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder<T>> configure)
     {
         ThrowHelper.ThrowIfNull(configure);

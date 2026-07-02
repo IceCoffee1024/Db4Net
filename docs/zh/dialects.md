@@ -26,7 +26,14 @@ var db = connection.UseDb4Net(Db4NetOptions.SqlServer);
 
 SQLite 和 PostgreSQL 渲染原生 `ON CONFLICT` 语法。
 
-MySQL 对 `InsertOrIgnore(...)` 渲染 `INSERT IGNORE`，对 `InsertOrUpdate(...)` 渲染 `ON DUPLICATE KEY UPDATE`。显式 `OnConflict(...)` 选择器表达的是 Db4Net 期望的冲突列，但 MySQL 自身会对任意主键或唯一键冲突应用 duplicate handling。`INSERT IGNORE` 也可能按 MySQL 规则把部分数据错误降级为 warning；请只在接受 MySQL ignore 语义时使用它。
+MySQL 对 `InsertOrIgnore(...)` 渲染 `INSERT IGNORE`。`InsertOrUpdate(...)` 跟随 MySQL 8.0.19+ 的 row-alias upsert 语法：
+
+```sql
+INSERT INTO `Users` (`Email`, `Name`) VALUES (@Email, @Name) AS _new
+ON DUPLICATE KEY UPDATE `Name` = _new.`Name`
+```
+
+这跟随 MySQL 8+ 对已弃用 `VALUES(col)` 引用的替代写法，但生成的 `InsertOrUpdate(...)` SQL 不兼容 MySQL 5.7、MySQL 8.0.0-8.0.18 或 MariaDB。显式 `OnConflict(...)` 选择器表达的是 Db4Net 期望的冲突列，但 MySQL 自身会对任意主键或唯一键冲突应用 duplicate handling。`INSERT IGNORE` 也可能按 MySQL 规则把部分数据错误降级为 warning；请只在接受 MySQL ignore 语义时使用它。
 
 SQL Server 会为冲突感知插入渲染 `MERGE ... WITH (HOLDLOCK)` 命令。它不是 provider 原生导入/copy API，也不是优化批量导入或集合式同步抽象。
 

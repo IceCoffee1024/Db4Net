@@ -44,5 +44,5 @@ Database-generated mapped members cannot be used as default or explicit conflict
 :::
 
 ::: warning Dialect differences
-SQLite and PostgreSQL render native `ON CONFLICT`. MySQL renders `INSERT IGNORE` for `InsertOrIgnore(...)` and `ON DUPLICATE KEY UPDATE` for `InsertOrUpdate(...)`; duplicate-key handling applies to any primary or unique key violation, and `INSERT IGNORE` can also turn some data errors into warnings according to MySQL rules. SQL Server renders `MERGE ... WITH (HOLDLOCK)`. See [Conflict Inserts](./dialects.md#conflict-inserts) in the dialect guide.
+SQLite and PostgreSQL render native `ON CONFLICT`. MySQL renders `INSERT IGNORE` for `InsertOrIgnore(...)`. MySQL `InsertOrUpdate(...)` follows the MySQL 8.0.19+ row-alias form, for example `INSERT ... VALUES (...) AS _new ON DUPLICATE KEY UPDATE col = _new.col`; this generated SQL is not compatible with MySQL 5.7, MySQL 8.0.0-8.0.18, or MariaDB. Duplicate-key handling applies to any primary or unique key violation, and `INSERT IGNORE` can also turn some data errors into warnings according to MySQL rules. SQL Server renders `MERGE ... WITH (HOLDLOCK)`. See [Conflict Inserts](./dialects.md#conflict-inserts) in the dialect guide.
 :::

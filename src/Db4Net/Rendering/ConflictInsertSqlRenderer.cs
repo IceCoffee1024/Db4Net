@@ -22,10 +22,10 @@ internal sealed class ConflictInsertSqlRenderer
     {
         var parameterWriter = new SqlParameterWriter();
         var parameterNames = values.Select(value => parameterWriter.Add(value.Value)).ToArray();
-        var sql = RenderSql(
-            table,
+        var sql = _dialect.RenderConflictInsert(
             behavior,
-            values.Select(value => value.Column).ToArray(),
+            table,
+            values.Select(v => v.Column).ToArray(),
             parameterNames,
             conflictColumns,
             updateColumns);
@@ -40,11 +40,11 @@ internal sealed class ConflictInsertSqlRenderer
         IReadOnlyList<ColumnMetadata> conflictColumns,
         IReadOnlyList<ColumnMetadata> updateColumns)
     {
-        return RenderSql(
-            table,
+        return _dialect.RenderConflictInsert(
             behavior,
-            insertColumns.Select(column => column.ColumnName).ToArray(),
-            insertColumns.Select(column => column.PropertyName).ToArray(),
+            table,
+            insertColumns.Select(c => c.ColumnName).ToArray(),
+            insertColumns.Select(c => c.PropertyName).ToArray(),
             conflictColumns,
             updateColumns);
     }
@@ -66,99 +66,5 @@ internal sealed class ConflictInsertSqlRenderer
         return new RenderedSqlCommand(
             RenderTemplate(table, behavior, insertColumns, conflictColumns, updateColumns),
             parameters);
-    }
-
-    private string RenderSql(
-        string table,
-        ConflictInsertBehavior behavior,
-        IReadOnlyList<string> insertColumnNames,
-        IReadOnlyList<string> parameterNames,
-        IReadOnlyList<ColumnMetadata> conflictColumns,
-        IReadOnlyList<ColumnMetadata> updateColumns)
-    {
-        if (insertColumnNames.Count == 0)
-        {
-            throw new InvalidOperationException("INSERT requires at least one value.");
-        }
-
-        return _dialect switch
-        {
-            SqlServerDialect => RenderSqlServer(table, behavior, insertColumnNames, parameterNames, conflictColumns, updateColumns),
-            MySqlDialect => RenderMySql(table, behavior, insertColumnNames, parameterNames, updateColumns),
-            _ => RenderOnConflict(table, behavior, insertColumnNames, parameterNames, conflictColumns, updateColumns),
-        };
-    }
-
-    private string RenderOnConflict(
-        string table,
-        ConflictInsertBehavior behavior,
-        IReadOnlyList<string> insertColumnNames,
-        IReadOnlyList<string> parameterNames,
-        IReadOnlyList<ColumnMetadata> conflictColumns,
-        IReadOnlyList<ColumnMetadata> updateColumns)
-    {
-        var insert = RenderInsertPrefix(table, insertColumnNames, parameterNames);
-        var conflictTarget = string.Join(", ", conflictColumns.Select(column => _dialect.QuoteIdentifier(column.ColumnName)));
-
-        if (behavior == ConflictInsertBehavior.Ignore)
-        {
-            return $"{insert} ON CONFLICT ({conflictTarget}) DO NOTHING";
-        }
-
-        var updates = string.Join(", ", updateColumns.Select(column => $"{_dialect.QuoteIdentifier(column.ColumnName)} = excluded.{_dialect.QuoteIdentifier(column.ColumnName)}"));
-        return $"{insert} ON CONFLICT ({conflictTarget}) DO UPDATE SET {updates}";
-    }
-
-    private string RenderMySql(
-        string table,
-        ConflictInsertBehavior behavior,
-        IReadOnlyList<string> insertColumnNames,
-        IReadOnlyList<string> parameterNames,
-        IReadOnlyList<ColumnMetadata> updateColumns)
-    {
-        var insert = RenderInsertPrefix(table, insertColumnNames, parameterNames);
-        if (behavior == ConflictInsertBehavior.Ignore)
-        {
-            return RenderInsertPrefix(table, insertColumnNames, parameterNames, "INSERT IGNORE INTO");
-        }
-
-        var updates = string.Join(", ", updateColumns.Select(column => $"{_dialect.QuoteIdentifier(column.ColumnName)} = VALUES({_dialect.QuoteIdentifier(column.ColumnName)})"));
-        return $"{insert} ON DUPLICATE KEY UPDATE {updates}";
-    }
-
-    private string RenderSqlServer(
-        string table,
-        ConflictInsertBehavior behavior,
-        IReadOnlyList<string> insertColumnNames,
-        IReadOnlyList<string> parameterNames,
-        IReadOnlyList<ColumnMetadata> conflictColumns,
-        IReadOnlyList<ColumnMetadata> updateColumns)
-    {
-        var quotedInsertColumns = insertColumnNames.Select(_dialect.QuoteIdentifier).ToArray();
-        var values = string.Join(", ", parameterNames.Select(parameterName => $"@{parameterName}"));
-        var sourceColumns = string.Join(", ", quotedInsertColumns);
-        var on = string.Join(" AND ", conflictColumns.Select(column => $"target.{_dialect.QuoteIdentifier(column.ColumnName)} = source.{_dialect.QuoteIdentifier(column.ColumnName)}"));
-        var insertColumns = string.Join(", ", quotedInsertColumns);
-        var insertValues = string.Join(", ", insertColumnNames.Select(column => $"source.{_dialect.QuoteIdentifier(column)}"));
-        var insert = $"MERGE INTO {_dialect.QuoteIdentifier(table)} WITH (HOLDLOCK) AS target USING (VALUES ({values})) AS source ({sourceColumns}) ON {on}";
-
-        if (behavior == ConflictInsertBehavior.Update)
-        {
-            var updates = string.Join(", ", updateColumns.Select(column => $"{_dialect.QuoteIdentifier(column.ColumnName)} = source.{_dialect.QuoteIdentifier(column.ColumnName)}"));
-            insert += $" WHEN MATCHED THEN UPDATE SET {updates}";
-        }
-
-        return $"{insert} WHEN NOT MATCHED THEN INSERT ({insertColumns}) VALUES ({insertValues});";
-    }
-
-    private string RenderInsertPrefix(
-        string table,
-        IReadOnlyList<string> insertColumnNames,
-        IReadOnlyList<string> parameterNames,
-        string insertKeyword = "INSERT INTO")
-    {
-        var columns = string.Join(", ", insertColumnNames.Select(_dialect.QuoteIdentifier));
-        var parameters = string.Join(", ", parameterNames.Select(parameterName => $"@{parameterName}"));
-        return $"{insertKeyword} {_dialect.QuoteIdentifier(table)} ({columns}) VALUES ({parameters})";
     }
 }

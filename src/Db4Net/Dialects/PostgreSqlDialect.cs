@@ -1,27 +1,20 @@
+using Db4Net.Commands;
+using Db4Net.Metadata;
+
 namespace Db4Net.Dialects;
 
-internal sealed class PostgreSqlDialect : ISqlDialect
+internal sealed class PostgreSqlDialect : AnsiSqlDialectBase
 {
-    public bool RenderOffsetBeforeLimit => false;
+    public override bool RenderOffsetBeforeLimit => false;
 
-    public string QuoteIdentifier(string identifier)
+    public override string RenderPaging(string limitParameterName, string? offsetParameterName)
     {
-        return SqlIdentifier.QuoteParts(identifier, part => $"""
-            "{part}"
-            """.Trim());
+        return offsetParameterName is null
+            ? $"LIMIT @{limitParameterName}"
+            : $"LIMIT @{limitParameterName} OFFSET @{offsetParameterName}";
     }
 
-    public string RenderPaging(string limitParameterName, string? offsetParameterName)
-    {
-        if (offsetParameterName is null)
-        {
-            return $"LIMIT @{limitParameterName}";
-        }
-
-        return $"LIMIT @{limitParameterName} OFFSET @{offsetParameterName}";
-    }
-
-    public string RenderInsert(
+    public override string RenderInsert(
         string table,
         IReadOnlyList<string> insertColumnNames,
         IReadOnlyList<string> parameterNames,
@@ -30,11 +23,33 @@ internal sealed class PostgreSqlDialect : ISqlDialect
         bool returnKeyIsIdentity = false)
     {
         var columns = string.Join(", ", insertColumnNames.Select(QuoteIdentifier));
-        var parameters = string.Join(", ", parameterNames.Select(parameterName => $"@{parameterName}"));
+        var parameters = string.Join(", ", parameterNames.Select(p => $"@{p}"));
         var sql = $"INSERT INTO {QuoteIdentifier(table)} ({columns}) VALUES ({parameters})";
 
         return returnKeyColumnName is null
             ? sql
             : $"{sql} RETURNING {QuoteIdentifier(returnKeyColumnName)}";
+    }
+
+    public override string RenderConflictInsert(
+        ConflictInsertBehavior behavior,
+        string table,
+        IReadOnlyList<string> insertColumnNames,
+        IReadOnlyList<string> parameterNames,
+        IReadOnlyList<ColumnMetadata> conflictColumns,
+        IReadOnlyList<ColumnMetadata> updateColumns)
+    {
+        var columns = string.Join(", ", insertColumnNames.Select(QuoteIdentifier));
+        var parameters = string.Join(", ", parameterNames.Select(p => $"@{p}"));
+        var insert = $"INSERT INTO {QuoteIdentifier(table)} ({columns}) VALUES ({parameters})";
+        var conflictTarget = string.Join(", ", conflictColumns.Select(c => QuoteIdentifier(c.ColumnName)));
+
+        if (behavior == ConflictInsertBehavior.Ignore)
+        {
+            return $"{insert} ON CONFLICT ({conflictTarget}) DO NOTHING";
+        }
+
+        var updates = string.Join(", ", updateColumns.Select(c => $"{QuoteIdentifier(c.ColumnName)} = excluded.{QuoteIdentifier(c.ColumnName)}"));
+        return $"{insert} ON CONFLICT ({conflictTarget}) DO UPDATE SET {updates}";
     }
 }

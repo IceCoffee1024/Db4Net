@@ -70,8 +70,11 @@ public sealed class ApiContractTests
     [Fact]
     public void Select_query_builders_expose_filter_group_api()
     {
-        AssertPublicInstanceMethods(typeof(SelectQueryBuilder), "When", "WhereIf", "OrWhereIf", "WhereGroup", "WhereGroupIf", "OrWhereGroup");
-        AssertPublicInstanceMethods(typeof(SelectQueryBuilder<>), "When", "WhereIf", "OrWhereIf", "WhereGroup", "WhereGroupIf", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder), "When", "WhereIf", "OrWhereIf", "WhereGroup", "WhereGroupIf", "OrWhereGroup", "WhereBetween", "WhereBetweenIf", "OrWhereBetween", "OrWhereBetweenIf", "Fork");
+        AssertPublicInstanceMethods(typeof(SelectQueryBuilder<>), "When", "WhereIf", "OrWhereIf", "WhereGroup", "WhereGroupIf", "OrWhereGroup", "WhereBetween", "WhereBetweenIf", "OrWhereBetween", "OrWhereBetweenIf", "Fork");
+        // SelectQueryBuilder<T> must override BetweenIf variants to ensure correct column-name mapping.
+        Assert.Contains(PublicInstanceMethods(typeof(SelectQueryBuilder<>)), m => m.Name == "WhereBetweenIf" && m.IsGenericMethodDefinition);
+        Assert.Contains(PublicInstanceMethods(typeof(SelectQueryBuilder<>)), m => m.Name == "OrWhereBetweenIf" && m.IsGenericMethodDefinition);
     }
 
     [Fact]
@@ -186,8 +189,8 @@ public sealed class ApiContractTests
     [Fact]
     public void Filter_group_builders_expose_filter_only_api()
     {
-        AssertPublicInstanceMethods(typeof(FilterGroupBuilder), "Where", "WhereIf", "OrWhere", "OrWhereIf", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "WhereGroupIf", "OrWhereGroup");
-        AssertPublicInstanceMethods(typeof(FilterGroupBuilder<>), "Where", "WhereIf", "OrWhere", "OrWhereIf", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "WhereGroupIf", "OrWhereGroup");
+        AssertPublicInstanceMethods(typeof(FilterGroupBuilder), "Where", "WhereIf", "OrWhere", "OrWhereIf", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "WhereGroupIf", "OrWhereGroup", "WhereBetween", "WhereBetweenIf", "OrWhereBetween", "OrWhereBetweenIf");
+        AssertPublicInstanceMethods(typeof(FilterGroupBuilder<>), "Where", "WhereIf", "OrWhere", "OrWhereIf", "WhereIn", "OrWhereIn", "WhereNotIn", "OrWhereNotIn", "WhereGroup", "WhereGroupIf", "OrWhereGroup", "WhereBetween", "WhereBetweenIf", "OrWhereBetween", "OrWhereBetweenIf");
 
         Assert.DoesNotContain(PublicInstanceMethods(typeof(FilterGroupBuilder)), method => method.Name is "OrderBy" or "Limit" or "Offset" or "Page" or "ToCommand");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(FilterGroupBuilder<>)), method => method.Name is "OrderBy" or "Limit" or "Offset" or "Page" or "ToCommand");
@@ -223,9 +226,13 @@ public sealed class ApiContractTests
             "WhereGroup",
             "WhereGroupIf",
             "OrWhereGroup",
+            "WhereBetween",
+            "WhereBetweenIf",
+            "OrWhereBetween",
+            "OrWhereBetweenIf",
             "ToCommand",
-            "Execute",
-            "ExecuteAsync");
+            "ExecuteScalar",
+            "ExecuteScalarAsync");
     }
 
     [Fact]
@@ -263,12 +270,16 @@ public sealed class ApiContractTests
             "WhereGroup",
             "WhereGroupIf",
             "OrWhereGroup",
+            "WhereBetween",
+            "WhereBetweenIf",
+            "OrWhereBetween",
+            "OrWhereBetweenIf",
             "ToCommand",
-            "Execute",
-            "ExecuteAsync");
+            "ExecuteScalar",
+            "ExecuteScalarAsync");
 
-        Assert.Contains(PublicInstanceMethods(typeof(SelectExistsQueryBuilder<>)), method => method.Name == "Execute" && method.ReturnType == typeof(bool));
-        Assert.Contains(PublicInstanceMethods(typeof(SelectExistsQueryBuilder<>)), method => method.Name == "ExecuteAsync" && method.ReturnType == typeof(Task<bool>));
+        Assert.Contains(PublicInstanceMethods(typeof(SelectExistsQueryBuilder<>)), method => method.Name == "ExecuteScalar" && method.ReturnType == typeof(bool));
+        Assert.Contains(PublicInstanceMethods(typeof(SelectExistsQueryBuilder<>)), method => method.Name == "ExecuteScalarAsync" && method.ReturnType == typeof(Task<bool>));
     }
 
     [Fact]
@@ -303,6 +314,8 @@ public sealed class ApiContractTests
                 or "WhereGroup"
                 or "OrWhereGroup"
                 or "ToCommand"
+                or "ExecuteScalar"
+                or "ExecuteScalarAsync"
                 or "Execute"
                 or "ExecuteAsync"
                 or "Avg"
@@ -349,11 +362,15 @@ public sealed class ApiContractTests
             "WhereGroup",
             "WhereGroupIf",
             "OrWhereGroup",
+            "WhereBetween",
+            "WhereBetweenIf",
+            "OrWhereBetween",
+            "OrWhereBetweenIf",
             "ToCommand",
-            "Execute",
-            "ExecuteAsync");
+            "ExecuteScalar",
+            "ExecuteScalarAsync");
         Assert.DoesNotContain(PublicInstanceMethods(typeof(SelectAggregateScalarQueryBuilder<>)), method =>
-            (method.Name is "Execute" or "ExecuteAsync") && !method.IsGenericMethodDefinition);
+            (method.Name is "ExecuteScalar" or "ExecuteScalarAsync") && !method.IsGenericMethodDefinition);
     }
 
     [Fact]
@@ -449,7 +466,7 @@ public sealed class ApiContractTests
     [Fact]
     public void Update_command_builder_exposes_update_api()
     {
-        AssertPublicInstanceMethods(typeof(UpdateCommandBuilder<>), "Set", "Where", "WhereGroup", "OrWhereGroup", "WhereKey", "AllowAllRows");
+        AssertPublicInstanceMethods(typeof(UpdateCommandBuilder<>), "Set", "Where", "WhereGroup", "OrWhereGroup", "WhereKey", "AllowAllRows", "WhereBetween", "WhereBetweenIf", "OrWhereBetween", "OrWhereBetweenIf");
         AssertNoBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "Set");
         AssertBuilderEntityMethodSignature(typeof(UpdateCommandBuilder<>), "WhereKey");
     }
@@ -457,7 +474,7 @@ public sealed class ApiContractTests
     [Fact]
     public void Delete_command_builder_exposes_delete_api()
     {
-        AssertPublicInstanceMethods(typeof(DeleteCommandBuilder<>), "Where", "WhereGroup", "OrWhereGroup", "WhereKey", "AllowAllRows");
+        AssertPublicInstanceMethods(typeof(DeleteCommandBuilder<>), "Where", "WhereGroup", "OrWhereGroup", "WhereKey", "AllowAllRows", "WhereBetween", "WhereBetweenIf", "OrWhereBetween", "OrWhereBetweenIf");
         AssertBuilderEntityMethodSignature(typeof(DeleteCommandBuilder<>), "WhereKey");
     }
 

@@ -292,6 +292,68 @@ public sealed class SelectAggregateScalarQueryBuilder<T>
         return this;
     }
 
+    /// <summary>Adds an AND <c>BETWEEN</c> filter using a CLR property name from <typeparamref name="T"/>.</summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectAggregateScalarQueryBuilder<T> WhereBetween(string propertyName, object? low, object? high)
+    {
+        _state.AddBetween(FilterBooleanOperator.And, propertyName, low, high);
+        return this;
+    }
+
+    /// <summary>Adds an AND <c>BETWEEN</c> filter using a typed member selector.</summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectAggregateScalarQueryBuilder<T> WhereBetween<TValue>(Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        _state.AddBetween(FilterBooleanOperator.And, memberSelector, low, high);
+        return this;
+    }
+
+    /// <summary>Adds an AND <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.</summary>
+    public SelectAggregateScalarQueryBuilder<T> WhereBetweenIf(bool condition, string propertyName, object? low, object? high)
+        => condition ? WhereBetween(propertyName, low, high) : this;
+
+    /// <summary>Adds an AND <c>BETWEEN</c> filter only when <paramref name="condition"/> is true, using a typed member selector.</summary>
+    public SelectAggregateScalarQueryBuilder<T> WhereBetweenIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+        => condition ? WhereBetween(memberSelector, low, high) : this;
+
+    /// <summary>Adds an OR <c>BETWEEN</c> filter using a CLR property name from <typeparamref name="T"/>.</summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectAggregateScalarQueryBuilder<T> OrWhereBetween(string propertyName, object? low, object? high)
+    {
+        _state.AddBetween(FilterBooleanOperator.Or, propertyName, low, high);
+        return this;
+    }
+
+    /// <summary>Adds an OR <c>BETWEEN</c> filter using a typed member selector.</summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectAggregateScalarQueryBuilder<T> OrWhereBetween<TValue>(Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        _state.AddBetween(FilterBooleanOperator.Or, memberSelector, low, high);
+        return this;
+    }
+
+    /// <summary>Adds an OR <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.</summary>
+    public SelectAggregateScalarQueryBuilder<T> OrWhereBetweenIf(bool condition, string propertyName, object? low, object? high)
+        => condition ? OrWhereBetween(propertyName, low, high) : this;
+
+    /// <summary>Adds an OR <c>BETWEEN</c> filter only when <paramref name="condition"/> is true, using a typed member selector.</summary>
+    public SelectAggregateScalarQueryBuilder<T> OrWhereBetweenIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+        => condition ? OrWhereBetween(memberSelector, low, high) : this;
+
     /// <summary>
     /// Renders the SQL text and parameters without executing the query.
     /// </summary>
@@ -302,24 +364,24 @@ public sealed class SelectAggregateScalarQueryBuilder<T>
     }
 
     /// <summary>
-    /// Executes the scalar aggregate query through Dapper using an explicit scalar result type.
+    /// Executes the scalar aggregate query through Dapper and returns the scalar result.
     /// </summary>
     /// <typeparam name="TResult">The scalar result type returned by the aggregate query.</typeparam>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <returns>The aggregate result returned by the database.</returns>
-    public TResult Execute<TResult>(Db4NetExecutionOptions? options = null)
+    public TResult ExecuteScalar<TResult>(Db4NetExecutionOptions? options = null)
     {
         return _executor.Execute<TResult>(ToCommand(), options);
     }
 
     /// <summary>
-    /// Asynchronously executes the scalar aggregate query through Dapper using an explicit scalar result type.
+    /// Asynchronously executes the scalar aggregate query through Dapper and returns the scalar result.
     /// </summary>
     /// <typeparam name="TResult">The scalar result type returned by the aggregate query.</typeparam>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
     /// <returns>The aggregate result returned by the database.</returns>
-    public Task<TResult> ExecuteAsync<TResult>(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<TResult> ExecuteScalarAsync<TResult>(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         return _executor.ExecuteAsync<TResult>(ToCommand(), options, cancellationToken);
     }

@@ -1,5 +1,19 @@
 # 变更日志
 
+## 0.1.0-alpha.6 - 2026-07-02
+
+### 新增
+
+- count、exists 和 aggregate builder 的标量 SELECT 终结方法改为 `ExecuteScalar(...)` / `ExecuteScalarAsync(...)`。
+- `Op.NotLike`、`Op.NotIn`，以及 `WhereBetween(...)` / `OrWhereBetween(...)` 过滤 API。
+- 用于条件范围过滤的 `WhereBetweenIf(...)` 和 `OrWhereBetweenIf(...)`。
+
+### 变更
+
+- Breaking change：标量 SELECT builder 不再使用 `Execute(...)` / `ExecuteAsync(...)`；请改用 `ExecuteScalar(...)` / `ExecuteScalarAsync(...)`。
+- MySQL `InsertOrUpdate(...)` 现在跟随 MySQL 8.0.19+ row-alias upsert 语法。MySQL 5.7、MySQL 8.0.0-8.0.18 和 MariaDB 不兼容这类生成的 `InsertOrUpdate(...)` SQL。
+- 冲突插入 SQL 渲染下沉到各 dialect 层。
+
 ## 0.1.0-alpha.5 - 2026-07-01
 
 ### 新增

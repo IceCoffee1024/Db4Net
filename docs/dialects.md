@@ -27,7 +27,14 @@ They also control how regular single-row inserts return generated keys.
 
 ## Conflict Inserts
 
-SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `INSERT IGNORE` for `InsertOrIgnore(...)` and `ON DUPLICATE KEY UPDATE` for `InsertOrUpdate(...)`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns, but MySQL handles any primary or unique key violation according to its own duplicate-key rules. MySQL `INSERT IGNORE` can also turn some data errors into warnings according to MySQL rules, so use it when MySQL's ignore semantics are acceptable.
+SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `INSERT IGNORE` for `InsertOrIgnore(...)`. MySQL `InsertOrUpdate(...)` follows the MySQL 8.0.19+ row-alias upsert form:
+
+```sql
+INSERT INTO `Users` (`Email`, `Name`) VALUES (@Email, @Name) AS _new
+ON DUPLICATE KEY UPDATE `Name` = _new.`Name`
+```
+
+This follows the MySQL 8+ replacement for deprecated `VALUES(col)` references, but the generated `InsertOrUpdate(...)` SQL is not compatible with MySQL 5.7, MySQL 8.0.0-8.0.18, or MariaDB. Explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns, but MySQL handles any primary or unique key violation according to its own duplicate-key rules. MySQL `INSERT IGNORE` can also turn some data errors into warnings according to MySQL rules, so use it when MySQL's ignore semantics are acceptable.
 
 SQL Server renders a `MERGE ... WITH (HOLDLOCK)` command for conflict-aware inserts. It is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
 

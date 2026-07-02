@@ -13,15 +13,11 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
 {
     private readonly InsertCommandModel _model;
     private readonly Db4NetOptions _options;
-    private readonly IDbConnection? _connection;
-    private readonly Db4NetExecutionOptions? _executionOptions;
 
     internal InsertCommandBuilder(Db4NetOptions options, IDbConnection? connection, string table, Db4NetExecutionOptions? executionOptions = null)
         : base(connection, executionOptions)
     {
         _options = options;
-        _connection = connection;
-        _executionOptions = executionOptions;
         _model = new InsertCommandModel { Table = table };
     }
 
@@ -76,9 +72,9 @@ public sealed class InsertCommandBuilder<T> : CommandBuilderBase
     {
         return new InsertReturnKeyCommandBuilder<T>(
             _options,
-            _connection,
+            Connection,
             CreateReturnKeyModel(ResolveReturnKey(keySelector)),
-            _executionOptions);
+            ExecutionOptions);
     }
 
     /// <summary>

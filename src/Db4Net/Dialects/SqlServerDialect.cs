@@ -1,8 +1,13 @@
+using Db4Net.Commands;
+using Db4Net.Metadata;
+
 namespace Db4Net.Dialects;
 
 internal sealed class SqlServerDialect : ISqlDialect
 {
     public bool RenderOffsetBeforeLimit => true;
+
+    public bool RequiresOrderByForPaging => true;
 
     public string QuoteIdentifier(string identifier)
     {
@@ -11,12 +16,8 @@ internal sealed class SqlServerDialect : ISqlDialect
 
     public string RenderPaging(string limitParameterName, string? offsetParameterName)
     {
-        if (offsetParameterName is null)
-        {
-            return $"FETCH NEXT @{limitParameterName} ROWS ONLY";
-        }
-
-        return $"OFFSET @{offsetParameterName} ROWS FETCH NEXT @{limitParameterName} ROWS ONLY";
+        var offset = offsetParameterName is null ? "0" : $"@{offsetParameterName}";
+        return $"OFFSET {offset} ROWS FETCH NEXT @{limitParameterName} ROWS ONLY";
     }
 
     public string RenderInsert(
@@ -34,5 +35,30 @@ internal sealed class SqlServerDialect : ISqlDialect
             : $" OUTPUT INSERTED.{QuoteIdentifier(returnKeyColumnName)}";
 
         return $"INSERT INTO {QuoteIdentifier(table)} ({columns}){output} VALUES ({parameters})";
+    }
+
+    public string RenderConflictInsert(
+        ConflictInsertBehavior behavior,
+        string table,
+        IReadOnlyList<string> insertColumnNames,
+        IReadOnlyList<string> parameterNames,
+        IReadOnlyList<ColumnMetadata> conflictColumns,
+        IReadOnlyList<ColumnMetadata> updateColumns)
+    {
+        var quotedInsertColumns = insertColumnNames.Select(QuoteIdentifier).ToArray();
+        var values = string.Join(", ", parameterNames.Select(p => $"@{p}"));
+        var sourceColumns = string.Join(", ", quotedInsertColumns);
+        var on = string.Join(" AND ", conflictColumns.Select(c => $"target.{QuoteIdentifier(c.ColumnName)} = source.{QuoteIdentifier(c.ColumnName)}"));
+        var insertCols = string.Join(", ", quotedInsertColumns);
+        var insertVals = string.Join(", ", insertColumnNames.Select(c => $"source.{QuoteIdentifier(c)}"));
+        var merge = $"MERGE INTO {QuoteIdentifier(table)} WITH (HOLDLOCK) AS target USING (VALUES ({values})) AS source ({sourceColumns}) ON {on}";
+
+        if (behavior == ConflictInsertBehavior.Update)
+        {
+            var updates = string.Join(", ", updateColumns.Select(c => $"{QuoteIdentifier(c.ColumnName)} = source.{QuoteIdentifier(c.ColumnName)}"));
+            merge += $" WHEN MATCHED THEN UPDATE SET {updates}";
+        }
+
+        return $"{merge} WHEN NOT MATCHED THEN INSERT ({insertCols}) VALUES ({insertVals});";
     }
 }

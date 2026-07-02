@@ -154,24 +154,25 @@ internal static class ModelMetadataProvider
 
 internal static class ModelMetadata<T>
 {
-    public static readonly string TableName = ModelMetadataProvider.BuildTableName(typeof(T));
+    private static readonly Lazy<ModelMetadataState> _state = new(
+        () => ModelMetadataState.Build(typeof(T)),
+        System.Threading.LazyThreadSafetyMode.PublicationOnly);
 
-    public static readonly IReadOnlyList<ColumnMetadata> Columns = ModelMetadataProvider.BuildColumnMetadata(typeof(T));
+    public static string TableName => _state.Value.TableName;
 
-    public static readonly IReadOnlyList<ColumnMetadata> KeyColumns = Columns.Where(column => column.IsKey).ToArray();
+    public static IReadOnlyList<ColumnMetadata> Columns => _state.Value.Columns;
 
-    public static readonly IReadOnlyList<ColumnMetadata> NonKeyColumns = Columns.Where(column => !column.IsKey).ToArray();
+    public static IReadOnlyList<ColumnMetadata> KeyColumns => _state.Value.KeyColumns;
 
-    public static readonly IReadOnlyList<ColumnMetadata> UpdateColumns = Columns.Where(column => !column.IsKey && !column.IsDatabaseGenerated).ToArray();
+    public static IReadOnlyList<ColumnMetadata> NonKeyColumns => _state.Value.NonKeyColumns;
 
-    public static readonly IReadOnlyList<ColumnMetadata> InsertColumns = Columns.Where(column => !column.IsDatabaseGenerated).ToArray();
+    public static IReadOnlyList<ColumnMetadata> UpdateColumns => _state.Value.UpdateColumns;
 
-    private static readonly Dictionary<string, ColumnMetadata> ColumnsByPropertyName =
-        Columns.ToDictionary(column => column.PropertyName, StringComparer.Ordinal);
+    public static IReadOnlyList<ColumnMetadata> InsertColumns => _state.Value.InsertColumns;
 
     public static ColumnMetadata GetColumn(string propertyName)
     {
-        if (ColumnsByPropertyName.TryGetValue(propertyName, out var column))
+        if (_state.Value.ColumnsByPropertyName.TryGetValue(propertyName, out var column))
         {
             return column;
         }
@@ -181,27 +182,63 @@ internal static class ModelMetadata<T>
 
     public static IReadOnlyList<ColumnMetadata> RequireKeyColumns()
     {
-        if (KeyColumns.Count == 0)
+        var keys = KeyColumns;
+        if (keys.Count == 0)
         {
             throw new InvalidOperationException($"Type '{typeof(T).Name}' does not have a key. Add [Key] or an Id/{typeof(T).Name}Id property.");
         }
 
-        if (KeyColumns.Count > 1)
+        if (keys.Count > 1)
         {
             throw new InvalidOperationException($"Composite keys are not supported for type '{typeof(T).Name}'. Use explicit Where clauses instead.");
         }
 
-        return KeyColumns;
+        return keys;
     }
 
     public static IReadOnlyList<ColumnMetadata> RequireConflictColumns()
     {
-        if (KeyColumns.Count == 0)
+        var keys = KeyColumns;
+        if (keys.Count == 0)
         {
             throw new InvalidOperationException($"Type '{typeof(T).Name}' does not have a key. Add [Key] or an Id/{typeof(T).Name}Id property.");
         }
 
-        return KeyColumns;
+        return keys;
+    }
+
+    private sealed class ModelMetadataState
+    {
+        public string TableName { get; init; } = string.Empty;
+        public IReadOnlyList<ColumnMetadata> Columns { get; init; } = [];
+        public IReadOnlyList<ColumnMetadata> KeyColumns { get; init; } = [];
+        public IReadOnlyList<ColumnMetadata> NonKeyColumns { get; init; } = [];
+        public IReadOnlyList<ColumnMetadata> UpdateColumns { get; init; } = [];
+        public IReadOnlyList<ColumnMetadata> InsertColumns { get; init; } = [];
+        public Dictionary<string, ColumnMetadata> ColumnsByPropertyName { get; init; } = [];
+
+        public static ModelMetadataState Build(Type type)
+        {
+            try
+            {
+                var tableName = ModelMetadataProvider.BuildTableName(type);
+                var columns = ModelMetadataProvider.BuildColumnMetadata(type);
+                return new ModelMetadataState
+                {
+                    TableName = tableName,
+                    Columns = columns,
+                    KeyColumns = columns.Where(c => c.IsKey).ToArray(),
+                    NonKeyColumns = columns.Where(c => !c.IsKey).ToArray(),
+                    UpdateColumns = columns.Where(c => !c.IsKey && !c.IsDatabaseGenerated).ToArray(),
+                    InsertColumns = columns.Where(c => !c.IsDatabaseGenerated).ToArray(),
+                    ColumnsByPropertyName = columns.ToDictionary(c => c.PropertyName, StringComparer.Ordinal)
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to initialize metadata for type '{type.Name}'. See inner exception for details.", ex);
+            }
+        }
     }
 }
 

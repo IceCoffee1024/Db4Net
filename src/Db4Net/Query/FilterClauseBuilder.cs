@@ -54,6 +54,21 @@ internal sealed class FilterClauseBuilder
         AddSubquery(booleanOperator, columnFactory(), negated, subquery);
     }
 
+    public void AddBetween(FilterBooleanOperator booleanOperator, string column, object? low, object? high)
+    {
+        if (low is null) throw new ArgumentNullException(nameof(low), "WhereBetween lower bound must not be null.");
+        if (high is null) throw new ArgumentNullException(nameof(high), "WhereBetween upper bound must not be null.");
+        Filters.Add(new FilterBetweenClause(booleanOperator, column, low, high));
+    }
+
+    public void AddBetween(FilterBooleanOperator booleanOperator, Func<string> columnFactory, object? low, object? high)
+    {
+        ThrowHelper.ThrowIfNull(columnFactory);
+        if (low is null) throw new ArgumentNullException(nameof(low), "WhereBetween lower bound must not be null.");
+        if (high is null) throw new ArgumentNullException(nameof(high), "WhereBetween upper bound must not be null.");
+        Filters.Add(new FilterBetweenClause(booleanOperator, columnFactory(), low, high));
+    }
+
     public void AddGroup(FilterBooleanOperator booleanOperator, IReadOnlyList<FilterNode> filters)
     {
         ThrowHelper.ThrowIfNull(filters);
@@ -78,6 +93,31 @@ internal sealed class FilterClauseBuilder
         if (op is (Op.IsNull or Op.IsNotNull) && value is not null)
         {
             throw new ArgumentException($"Operator {op} does not accept a value.", nameof(value));
+        }
+
+        if (op is (Op.Like or Op.NotLike) && value is null)
+        {
+            throw new ArgumentException($"Operator {op} does not accept a null value. Use Op.IsNull to test for null.", nameof(value));
+        }
+
+        if (op is Op.In or Op.NotIn)
+        {
+            if (value is string || value is not System.Collections.IEnumerable)
+            {
+                throw new ArgumentException($"Op.{op} requires a non-string enumerable value.", nameof(value));
+            }
+
+            var hasItems = false;
+            foreach (var _ in (System.Collections.IEnumerable)value)
+            {
+                hasItems = true;
+                break;
+            }
+
+            if (!hasItems)
+            {
+                throw new ArgumentException($"Op.{op} requires at least one value.", nameof(value));
+            }
         }
     }
 

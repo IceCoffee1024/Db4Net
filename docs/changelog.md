@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0-alpha.6 - 2026-07-02
+
+### Added
+
+- Scalar SELECT terminal methods now use `ExecuteScalar(...)` / `ExecuteScalarAsync(...)` on count, exists, and aggregate builders.
+- `Op.NotLike`, `Op.NotIn`, and `WhereBetween(...)` / `OrWhereBetween(...)` filter APIs.
+- `WhereBetweenIf(...)` and `OrWhereBetweenIf(...)` for conditional range filters.
+
+### Changed
+
+- Breaking change: scalar SELECT builders no longer use `Execute(...)` / `ExecuteAsync(...)`; use `ExecuteScalar(...)` / `ExecuteScalarAsync(...)`.
+- MySQL `InsertOrUpdate(...)` now follows MySQL 8.0.19+ row-alias upsert syntax. MySQL 5.7, MySQL 8.0.0-8.0.18, and MariaDB are not compatible with that generated `InsertOrUpdate(...)` SQL.
+- Dialect-specific conflict insert SQL is now rendered by the dialect layer.
+
 ## 0.1.0-alpha.5 - 2026-07-01
 
 ### Added

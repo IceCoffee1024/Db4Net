@@ -35,5 +35,5 @@ db.InsertOrUpdateMany(users, table: "users_2026")
 :::
 
 ::: warning 方言差异
-SQLite 和 PostgreSQL 渲染原生 `ON CONFLICT`。MySQL 对 `InsertOrIgnore(...)` 渲染 `INSERT IGNORE`，对 `InsertOrUpdate(...)` 渲染 `ON DUPLICATE KEY UPDATE`；duplicate-key 处理会应用到任意主键或唯一键冲突，且 `INSERT IGNORE` 也可能按 MySQL 规则把部分数据错误降级为 warning。SQL Server 渲染 `MERGE ... WITH (HOLDLOCK)`。更多细节见[冲突插入语法](./dialects.md#冲突插入语法)。
+SQLite 和 PostgreSQL 渲染原生 `ON CONFLICT`。MySQL 对 `InsertOrIgnore(...)` 渲染 `INSERT IGNORE`。`InsertOrUpdate(...)` 跟随 MySQL 8.0.19+ 的 row-alias 写法，例如 `INSERT ... VALUES (...) AS _new ON DUPLICATE KEY UPDATE col = _new.col`；这类生成 SQL 不兼容 MySQL 5.7、MySQL 8.0.0-8.0.18 或 MariaDB。duplicate-key 处理会应用到任意主键或唯一键冲突，且 `INSERT IGNORE` 也可能按 MySQL 规则把部分数据错误降级为 warning。SQL Server 渲染 `MERGE ... WITH (HOLDLOCK)`。更多细节见[冲突插入语法](./dialects.md#冲突插入语法)。
 :::

@@ -288,6 +288,114 @@ public sealed class SelectCountQueryBuilder<T>
     }
 
     /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectCountQueryBuilder<T> WhereBetween(string propertyName, object? low, object? high)
+    {
+        _state.AddBetween(FilterBooleanOperator.And, propertyName, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectCountQueryBuilder<T> WhereBetween<TValue>(Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        _state.AddBetween(FilterBooleanOperator.And, memberSelector, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectCountQueryBuilder<T> WhereBetweenIf(bool condition, string propertyName, object? low, object? high)
+    {
+        return condition ? WhereBetween(propertyName, low, high) : this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter only when <paramref name="condition"/> is true, using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectCountQueryBuilder<T> WhereBetweenIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        return condition ? WhereBetween(memberSelector, low, high) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter using a CLR property name from <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectCountQueryBuilder<T> OrWhereBetween(string propertyName, object? low, object? high)
+    {
+        _state.AddBetween(FilterBooleanOperator.Or, propertyName, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectCountQueryBuilder<T> OrWhereBetween<TValue>(Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        _state.AddBetween(FilterBooleanOperator.Or, memberSelector, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="propertyName">The CLR property name to filter by.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectCountQueryBuilder<T> OrWhereBetweenIf(bool condition, string propertyName, object? low, object? high)
+    {
+        return condition ? OrWhereBetween(propertyName, low, high) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter only when <paramref name="condition"/> is true, using a typed member selector.
+    /// </summary>
+    /// <typeparam name="TValue">The selected member value type.</typeparam>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="memberSelector">A simple member selector, for example <c>u =&gt; u.Age</c>.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectCountQueryBuilder<T> OrWhereBetweenIf<TValue>(bool condition, Expression<Func<T, TValue>> memberSelector, object? low, object? high)
+    {
+        return condition ? OrWhereBetween(memberSelector, low, high) : this;
+    }
+
+    /// <summary>
     /// Renders the SQL text and parameters without executing the query.
     /// </summary>
     /// <returns>The rendered SQL command definition.</returns>
@@ -297,22 +405,22 @@ public sealed class SelectCountQueryBuilder<T>
     }
 
     /// <summary>
-    /// Executes the count query through Dapper.
+    /// Executes the count query through Dapper and returns the scalar count.
     /// </summary>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <returns>The count returned by the database.</returns>
-    public long Execute(Db4NetExecutionOptions? options = null)
+    public long ExecuteScalar(Db4NetExecutionOptions? options = null)
     {
         return _executor.Execute<long>(ToCommand(), options);
     }
 
     /// <summary>
-    /// Asynchronously executes the count query through Dapper.
+    /// Asynchronously executes the count query through Dapper and returns the scalar count.
     /// </summary>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
     /// <returns>The count returned by the database.</returns>
-    public Task<long> ExecuteAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<long> ExecuteScalarAsync(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         return _executor.ExecuteAsync<long>(ToCommand(), options, cancellationToken);
     }

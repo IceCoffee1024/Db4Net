@@ -24,7 +24,7 @@ public partial class SelectQueryBuilder
     /// <typeparam name="TResult">The result type Dapper should materialize.</typeparam>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
-    /// <returns>The materialized rows.</returns>
+    /// <returns>The materialized rows. All rows are loaded into memory before the task completes.</returns>
     public Task<IEnumerable<TResult>> QueryAsync<TResult>(Db4NetExecutionOptions? options = null, CancellationToken cancellationToken = default)
     {
         return RequireConnection().QueryAsync<TResult>(CreateDapperCommand(options, cancellationToken));
@@ -61,6 +61,11 @@ public partial class SelectQueryBuilder
     /// <param name="pageSize">The number of rows per page.</param>
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <returns>The paged result and total row count.</returns>
+    /// <remarks>
+    /// This method executes two separate queries: one COUNT and one page query.
+    /// To ensure a consistent snapshot between both queries, pass a transaction via
+    /// <paramref name="options"/> or wrap the call in a <see cref="Db4NetTransaction"/>.
+    /// </remarks>
     public PagedResult<TResult> QueryPage<TResult>(
         int pageNumber,
         int pageSize,
@@ -82,6 +87,11 @@ public partial class SelectQueryBuilder
     /// <param name="options">Optional Dapper execution settings such as transaction, timeout, or command type.</param>
     /// <param name="cancellationToken">The cancellation token passed to Dapper.</param>
     /// <returns>The paged result and total row count.</returns>
+    /// <remarks>
+    /// This method executes two separate queries: one COUNT and one page query.
+    /// To ensure a consistent snapshot between both queries, pass a transaction via
+    /// <paramref name="options"/> or wrap the call in a <see cref="Db4NetTransaction"/>.
+    /// </remarks>
     public async Task<PagedResult<TResult>> QueryPageAsync<TResult>(
         int pageNumber,
         int pageSize,

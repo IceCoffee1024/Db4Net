@@ -229,7 +229,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectCountFrom<User>()
             .Where(u => u.Id, Op.Gt, 1)
-            .Execute();
+            .ExecuteScalar();
 
         Assert.Equal(1L, count);
     }
@@ -251,7 +251,7 @@ public sealed class SqliteIntegrationTests
         var count = await db
             .SelectCountFrom<MappedUser>("app_users_staging")
             .Where(u => u.DisplayName, Op.Like, "A%")
-            .ExecuteAsync();
+            .ExecuteScalarAsync();
 
         Assert.Equal(1L, count);
     }
@@ -271,7 +271,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectCountFrom<User>()
             .Where(u => u.Id, Op.Gt, 2)
-            .Execute(new Db4NetExecutionOptions { Transaction = transaction });
+            .ExecuteScalar(new Db4NetExecutionOptions { Transaction = transaction });
 
         transaction.Rollback();
 
@@ -279,7 +279,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectCountFrom<User>()
             .Where(u => u.Id, Op.Gt, 2)
-            .Execute();
+            .ExecuteScalar();
 
         Assert.Equal(1L, countInTransaction);
         Assert.Equal(0L, countAfterRollback);
@@ -299,14 +299,14 @@ public sealed class SqliteIntegrationTests
         var countInTransaction = transaction
             .SelectCountFrom<User>()
             .Where(u => u.Id, Op.Gt, 2)
-            .Execute(new Db4NetExecutionOptions { CommandTimeout = 30 });
+            .ExecuteScalar(new Db4NetExecutionOptions { CommandTimeout = 30 });
 
         transaction.Rollback();
 
         var countAfterRollback = db
             .SelectCountFrom<User>()
             .Where(u => u.Id, Op.Gt, 2)
-            .Execute();
+            .ExecuteScalar();
 
         Assert.Equal(1L, countInTransaction);
         Assert.Equal(0L, countAfterRollback);
@@ -323,7 +323,7 @@ public sealed class SqliteIntegrationTests
             connection
                 .UseDb4Net(Db4NetOptions.Sqlite)
                 .SelectCountFrom<User>()
-                .ExecuteAsync(cancellationToken: cancellation.Token));
+                .ExecuteScalarAsync(cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -335,12 +335,12 @@ public sealed class SqliteIntegrationTests
         var exists = db
             .SelectExistsFrom<User>()
             .Where(u => u.Id, Op.Eq, 1)
-            .Execute();
+            .ExecuteScalar();
 
         var missing = db
             .SelectExistsFrom<User>()
             .Where(u => u.Id, Op.Eq, 99)
-            .Execute();
+            .ExecuteScalar();
 
         Assert.True(exists);
         Assert.False(missing);
@@ -363,7 +363,7 @@ public sealed class SqliteIntegrationTests
         var exists = await db
             .SelectExistsFrom<MappedUser>("app_users_staging")
             .Where(u => u.DisplayName, Op.Like, "A%")
-            .ExecuteAsync();
+            .ExecuteScalarAsync();
 
         Assert.True(exists);
     }
@@ -383,7 +383,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectExistsFrom<User>()
             .Where(u => u.Id, Op.Eq, 3)
-            .Execute(new Db4NetExecutionOptions { Transaction = transaction });
+            .ExecuteScalar(new Db4NetExecutionOptions { Transaction = transaction });
 
         transaction.Rollback();
 
@@ -391,7 +391,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectExistsFrom<User>()
             .Where(u => u.Id, Op.Eq, 3)
-            .Execute();
+            .ExecuteScalar();
 
         Assert.True(existsInTransaction);
         Assert.False(existsAfterRollback);
@@ -411,14 +411,14 @@ public sealed class SqliteIntegrationTests
         var existsInTransaction = transaction
             .SelectExistsFrom<User>()
             .Where(u => u.Id, Op.Eq, 3)
-            .Execute(new Db4NetExecutionOptions { CommandTimeout = 30 });
+            .ExecuteScalar(new Db4NetExecutionOptions { CommandTimeout = 30 });
 
         transaction.Rollback();
 
         var existsAfterRollback = db
             .SelectExistsFrom<User>()
             .Where(u => u.Id, Op.Eq, 3)
-            .Execute();
+            .ExecuteScalar();
 
         Assert.True(existsInTransaction);
         Assert.False(existsAfterRollback);
@@ -435,7 +435,7 @@ public sealed class SqliteIntegrationTests
             connection
                 .UseDb4Net(Db4NetOptions.Sqlite)
                 .SelectExistsFrom<User>()
-                .ExecuteAsync(cancellationToken: cancellation.Token));
+                .ExecuteScalarAsync(cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -448,7 +448,7 @@ public sealed class SqliteIntegrationTests
             .SelectAggregateFrom<User>()
             .Max(u => u.Id)
             .Where(u => u.Id, Op.Gt, 1)
-            .Execute<int?>();
+            .ExecuteScalar<int?>();
 
         Assert.Equal(2, max);
     }
@@ -462,7 +462,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<User>()
             .Min(u => u.Id)
-            .Execute<int?>();
+            .ExecuteScalar<int?>();
 
         Assert.Equal(1, min);
     }
@@ -477,7 +477,7 @@ public sealed class SqliteIntegrationTests
             .SelectAggregateFrom<User>()
             .Max(u => u.Id)
             .Where(u => u.Id, Op.Eq, 99)
-            .Execute<int?>();
+            .ExecuteScalar<int?>();
 
         Assert.Null(max);
     }
@@ -500,7 +500,7 @@ public sealed class SqliteIntegrationTests
         var count = await db
             .SelectAggregateFrom<MappedUser>("app_users_staging")
             .CountDistinct(u => u.DisplayName)
-            .ExecuteAsync<long>();
+            .ExecuteScalarAsync<long>();
 
         Assert.Equal(2L, count);
     }
@@ -519,14 +519,14 @@ public sealed class SqliteIntegrationTests
         var maxInTransaction = transaction
             .SelectAggregateFrom<User>()
             .Max(u => u.Id)
-            .Execute<int?>(new Db4NetExecutionOptions { CommandTimeout = 30 });
+            .ExecuteScalar<int?>(new Db4NetExecutionOptions { CommandTimeout = 30 });
 
         transaction.Rollback();
 
         var maxAfterRollback = db
             .SelectAggregateFrom<User>()
             .Max(u => u.Id)
-            .Execute<int?>();
+            .ExecuteScalar<int?>();
 
         Assert.Equal(3, maxInTransaction);
         Assert.Equal(2, maxAfterRollback);
@@ -541,7 +541,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
             .Sum(o => o.Amount)
-            .Execute<decimal>();
+            .ExecuteScalar<decimal>();
 
         Assert.Equal(31.0m, sum);
     }
@@ -555,7 +555,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
             .Sum(o => o.Quantity)
-            .Execute<long>();
+            .ExecuteScalar<long>();
 
         Assert.Equal(7L, sum);
     }
@@ -570,7 +570,7 @@ public sealed class SqliteIntegrationTests
             .SelectAggregateFrom<OrderMetric>()
             .Sum(o => o.Amount)
             .Where(o => o.Id, Op.Eq, 99)
-            .Execute<decimal?>();
+            .ExecuteScalar<decimal?>();
 
         Assert.Null(sum);
     }
@@ -584,7 +584,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
             .Average(o => o.Quantity)
-            .Execute<decimal>();
+            .ExecuteScalar<decimal>();
 
         Assert.Equal(3.5m, average);
     }
@@ -598,7 +598,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
             .Average(o => o.Quantity)
-            .Execute<double>();
+            .ExecuteScalar<double>();
 
         Assert.Equal(3.5d, average);
     }
@@ -612,7 +612,7 @@ public sealed class SqliteIntegrationTests
             .UseDb4Net(Db4NetOptions.Sqlite)
             .SelectAggregateFrom<OrderMetric>()
             .Average(o => o.Quantity)
-            .ExecuteAsync<decimal>();
+            .ExecuteScalarAsync<decimal>();
 
         Assert.Equal(3.5m, average);
     }
@@ -627,7 +627,7 @@ public sealed class SqliteIntegrationTests
             .SelectAggregateFrom<OrderMetric>()
             .Average(o => o.Quantity)
             .Where(o => o.Id, Op.Eq, 99)
-            .Execute<decimal?>();
+            .ExecuteScalar<decimal?>();
 
         Assert.Null(average);
     }

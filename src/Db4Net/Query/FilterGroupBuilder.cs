@@ -203,6 +203,58 @@ public class FilterGroupBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter using a string-based column identifier.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder WhereBetween(string column, object? low, object? high)
+    {
+        _filters.AddBetween(FilterBooleanOperator.And, column, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder WhereBetweenIf(bool condition, string column, object? low, object? high)
+    {
+        return condition ? WhereBetween(column, low, high) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter using a string-based column identifier.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder OrWhereBetween(string column, object? low, object? high)
+    {
+        _filters.AddBetween(FilterBooleanOperator.Or, column, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current group builder.</returns>
+    public FilterGroupBuilder OrWhereBetweenIf(bool condition, string column, object? low, object? high)
+    {
+        return condition ? OrWhereBetween(column, low, high) : this;
+    }
+
     internal void AddGroup(FilterBooleanOperator booleanOperator, Action<FilterGroupBuilder> configure)
     {
         ThrowHelper.ThrowIfNull(configure);

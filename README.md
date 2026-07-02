@@ -14,9 +14,9 @@ Documentation: <https://db4net.icecoffee1024.com>
 
 ## Status
 
-Current version: `0.1.0-alpha.5`
+Current version: `0.1.0-alpha.6`
 
-This alpha focuses on safe, SQL-shaped query and command builders for Dapper, including typed `SELECT`, scalar aggregate queries, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
+This alpha focuses on safe, SQL-shaped query and command builders for Dapper, including typed `SELECT`, scalar queries with explicit `ExecuteScalar` terminals, `BETWEEN` / `NOT LIKE` / `NOT IN` filters, single-column `IN` subquery filters, `INSERT`, single-row insert key return, `UPDATE`, `DELETE`, entity conveniences, many-entity conveniences, conflict-aware inserts, explicit filter grouping, and dialect-aware rendering for SQL Server, SQLite, PostgreSQL, and MySQL.
 
 NuGet packages include XML documentation and a symbols package for source debugging.
 
@@ -66,20 +66,20 @@ var rows = connection
 
 String fields are CLR property names, not database column names or SQL fragments. They are validated against the mapped CLR model and converted to quoted database column names. For example, use `"DisplayName"` rather than `"display_name"` when `[Column("display_name")]` is applied. Values are always passed as Dapper parameters.
 
-Use `SelectExistsFrom<T>()` for existence checks. It is the supported existence-check API and is preferable to `SelectCountFrom<T>().Execute() > 0` when only existence matters:
+Use `SelectExistsFrom<T>()` for existence checks. It is the supported existence-check API and is preferable to `SelectCountFrom<T>().ExecuteScalar() > 0` when only existence matters:
 
 ```csharp
 var exists = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectExistsFrom<User>()
     .Where(u => u.Id, Op.Eq, id)
-    .Execute();
+    .ExecuteScalar();
 
 var existsInArchive = await connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectExistsFrom<User>("users_2026")
     .Where(u => u.Name, Op.Like, "A%")
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 ```
 
 Use `SelectCountFrom<T>()` when you need the number of matching rows:
@@ -89,13 +89,13 @@ var count = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectCountFrom<User>()
     .Where(u => u.Id, Op.Gt, 0)
-    .Execute();
+    .ExecuteScalar();
 
 var matchingCount = await connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectCountFrom<User>("users_2026")
     .Where(u => u.Name, Op.Like, "A%")
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 ```
 
 Use `QueryPage(...)` when UI pagination needs both page rows and the total count for the same filters:
@@ -131,7 +131,21 @@ var page = await connection
     .QueryPageAsync(pageNumber, pageSize);
 ```
 
-The same conditional filter API is available on read-only scalar builders such as `SelectCountFrom<T>()`, `SelectExistsFrom<T>()`, and aggregate projections from `SelectAggregateFrom<T>()`.
+The same conditional filter API is available on read-only scalar builders such as `SelectCountFrom<T>()`, `SelectExistsFrom<T>()`, and aggregate projections from `SelectAggregateFrom<T>()`. Range-specific `WhereBetweenIf(...)` and `OrWhereBetweenIf(...)` are also available on `UPDATE` and `DELETE` builders.
+
+Use `WhereBetween(...)` / `OrWhereBetween(...)` for inclusive range filters, and `Op.NotLike` / `Op.NotIn` for negative pattern and list predicates:
+
+```csharp
+var recentUsers = connection
+    .UseDb4Net(Db4NetOptions.SqlServer)
+    .SelectFrom<User>()
+    .WhereBetween(u => u.UpdatedAt, from, to)
+    .Where(u => u.Name, Op.NotLike, "test%")
+    .Where(u => u.Id, Op.NotIn, blockedIds)
+    .Query();
+```
+
+`Op.In` and `Op.NotIn` require a non-string enumerable with at least one value. `WhereBetween(...)` bounds must not be `null`.
 
 When sort direction comes from a request DTO, use `OrderBy(..., descending)`:
 
@@ -146,7 +160,7 @@ var page = await connection
     .QueryPageAsync(pageNumber, pageSize);
 ```
 
-Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `Execute<TResult>()` or `ExecuteAsync<TResult>()` call, for example `Max(selector).Execute<TResult>()` or `CountDistinct(selector).ExecuteAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
+Use `SelectAggregateFrom<T>()` for column-level scalar aggregates. `Max(...)`, `Min(...)`, `Sum(...)`, `Average(...)`, and `CountDistinct(...)` build scalar aggregate projections. Put explicit result typing on the terminal `ExecuteScalar<TResult>()` or `ExecuteScalarAsync<TResult>()` call, for example `Max(selector).ExecuteScalar<TResult>()` or `CountDistinct(selector).ExecuteScalarAsync<long>()`; use a nullable `TResult` when you need to preserve SQL `NULL` for empty result sets.
 
 `Max(...)` and `Min(...)` require value-type member selectors. `Sum(...)` and `Average(...)` do not validate that the selected column is numeric; choose a terminal `TResult` that matches your provider's aggregate result.
 
@@ -156,31 +170,31 @@ var latestId = connection
     .SelectAggregateFrom<User>()
     .Max(u => u.Id)
     .Where(u => u.Name, Op.Like, "A%")
-    .Execute<int?>();
+    .ExecuteScalar<int?>();
 
 var distinctNames = await connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<User>("users_2026")
     .CountDistinct(u => u.Name)
-    .ExecuteAsync<long>();
+    .ExecuteScalarAsync<long>();
 
 var totalAmount = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
     .Sum(o => o.Amount)
-    .Execute<decimal>();
+    .ExecuteScalar<decimal>();
 
 var totalQuantity = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
     .Sum(o => o.Quantity)
-    .Execute<long>();
+    .ExecuteScalar<long>();
 
 var averageQuantity = connection
     .UseDb4Net(Db4NetOptions.SqlServer)
     .SelectAggregateFrom<OrderMetric>()
     .Average(o => o.Quantity)
-    .Execute<decimal>();
+    .ExecuteScalar<decimal>();
 ```
 
 Do not use `Select("COUNT(*)")`, `Select("MAX(...)")`, `Select("SUM(...)")`, `Select("AVG(...)")`, or similar strings for scalar queries. String select values are validated identifiers, not raw SQL expressions.
@@ -429,7 +443,7 @@ SELECT [Id], [display_name] AS [Name] FROM [app_users]
 Db4Net handles identifier quoting and paging syntax through the configured dialect.
 For `SELECT` paging, `Offset(...)` must be paired with `Limit(...)`, and SQL Server paging requires at least one `OrderBy(...)`.
 
-SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `INSERT IGNORE` for `InsertOrIgnore(...)` and `ON DUPLICATE KEY UPDATE` for `InsertOrUpdate(...)`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns, but MySQL itself applies duplicate handling to any primary or unique key violation. MySQL `INSERT IGNORE` can also turn some data errors into warnings according to MySQL rules. SQL Server renders `MERGE ... WITH (HOLDLOCK)` for conflict-aware inserts; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
+SQLite and PostgreSQL render native `ON CONFLICT` syntax. MySQL renders `INSERT IGNORE` for `InsertOrIgnore(...)`. MySQL `InsertOrUpdate(...)` follows the MySQL 8.0.19+ row-alias upsert form, for example `INSERT ... VALUES (...) AS _new ON DUPLICATE KEY UPDATE col = _new.col`; explicit `OnConflict(...)` selectors declare Db4Net's intended conflict columns, but MySQL itself applies duplicate handling to any primary or unique key violation. This generated `InsertOrUpdate(...)` SQL is not compatible with MySQL 5.7, MySQL 8.0.0-8.0.18, or MariaDB. MySQL `INSERT IGNORE` can also turn some data errors into warnings according to MySQL rules. SQL Server renders `MERGE ... WITH (HOLDLOCK)` for conflict-aware inserts; this is not a provider-native import/copy API, optimized batch import, or set-based synchronization abstraction.
 
 Generated-key insert terminals use SQL Server `OUTPUT INSERTED...`, SQLite/PostgreSQL `RETURNING`, and MySQL `LAST_INSERT_ID()` for auto-increment identity keys. SQLite requires runtime SQLite 3.35 or newer for `RETURNING`; SQL Server trigger-enabled tables can require an `OUTPUT ... INTO` pattern that Db4Net does not currently generate; MySQL does not return trigger/default/expression-generated non-identity keys through `LAST_INSERT_ID()`.
 
@@ -438,10 +452,9 @@ Generated-key insert terminals use SQL Server `OUTPUT INSERTED...`, SQLite/Postg
 Included in the current alpha:
 
 - Typed `SELECT` builders
-- Typed existence query builders through `SelectExistsFrom<T>()`
-- Typed count query builders through `SelectCountFrom<T>()`
 - Paged SELECT terminal methods through `QueryPage(...)` and `QueryPageAsync(...)`
-- Typed scalar aggregate query builders through `SelectAggregateFrom<T>()` with `Max`, `Min`, `Sum`, `Average`, `CountDistinct`, and terminal result typing for all scalar aggregates
+- Typed scalar query builders through `SelectExistsFrom<T>()`, `SelectCountFrom<T>()`, and `SelectAggregateFrom<T>()`, with explicit `ExecuteScalar(...)` / `ExecuteScalarAsync(...)` terminals
+- Typed scalar aggregate projections through `SelectAggregateFrom<T>()` with `Max`, `Min`, `Sum`, `Average`, and `CountDistinct`
 - Typed `INSERT`, `UPDATE`, and `DELETE` builders
 - Single-row insert key return through `ExecuteReturnKey<TResult>()`, `ExecuteReturnKeyAsync<TResult>()`, and `ReturnKey(...).Execute<TResult>()`
 - SQL-shaped command target overrides such as `InsertInto<T>("users_staging")`, `Update<T>("users_2026")`, and `DeleteFrom<T>("users_2026")`
@@ -449,9 +462,9 @@ Included in the current alpha:
 - Many entity command conveniences such as `InsertMany(users)`, `InsertMany(users, table)`, `UpdateMany(users)`, `UpdateMany(users, table)`, `DeleteMany(users)`, and `DeleteMany(users, table)`
 - Conflict-aware insert conveniences such as `InsertOrIgnore(user)`, `InsertOrIgnoreMany(users)`, `InsertOrUpdate(user)`, `InsertOrUpdateMany(users)`, and their `table` overloads
 - Dynamic property-name projection with model validation
-- `Where`, `OrWhere`, conditional `When` / `WhereIf` / `OrWhereIf` / `WhereGroupIf`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `OrderByDescending`, `Limit`, `Offset`, and `Page`
+- `Where`, `OrWhere`, `WhereBetween`, `Op.NotLike`, `Op.NotIn`, conditional `When` / `WhereIf` / `OrWhereIf` / `WhereGroupIf`, single-column `WhereIn` subqueries, `WhereGroup`, `OrWhereGroup`, `OrderBy`, `OrderByDescending`, `Limit`, `Offset`, and `Page`
 - `OrderBy(..., bool descending)` for request-driven sort directions
-- The same conditional filter methods are also available on read-only scalar SELECT builders.
+- The same conditional filter methods are also available on read-only scalar SELECT builders, and range-specific `WhereBetweenIf(...)` / `OrWhereBetweenIf(...)` is available on command filters.
 - `Value`, `Set`, `Execute`, and `ExecuteAsync` for command builders
 - Sync and async Dapper-style query terminal methods
 - Existing transaction pass-through, lightweight transaction scopes, command timeout, command type, and async cancellation token support

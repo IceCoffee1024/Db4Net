@@ -71,12 +71,12 @@ var user = await db
 var exists = await db
     .SelectExistsFrom<User>()
     .Where(u => u.Id, Op.Eq, userId)
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 
 var activeCount = await db
     .SelectCountFrom<User>()
     .Where(u => u.IsActive, Op.Eq, true)
-    .ExecuteAsync();
+    .ExecuteScalarAsync();
 ```
 
 只判断是否存在时，优先使用 `SelectExistsFrom<T>()`，不要先 count 再和 0 比较。

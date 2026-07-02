@@ -45,6 +45,9 @@ internal sealed class FilterSqlRenderer
             case FilterClause clause:
                 RenderClause(sql, clause);
                 break;
+            case FilterBetweenClause clause:
+                RenderBetweenClause(sql, clause);
+                break;
             case FilterSubqueryClause clause:
                 RenderSubqueryClause(sql, clause);
                 break;
@@ -61,6 +64,15 @@ internal sealed class FilterSqlRenderer
         sql.Append(_context.Dialect.QuoteIdentifier(filter.Column));
         sql.Append(' ');
         sql.Append(RenderOperator(filter));
+    }
+
+    private void RenderBetweenClause(StringBuilder sql, FilterBetweenClause filter)
+    {
+        sql.Append(_context.Dialect.QuoteIdentifier(filter.Column));
+        sql.Append(" BETWEEN @");
+        sql.Append(_context.Parameters.Add(filter.Low));
+        sql.Append(" AND @");
+        sql.Append(_context.Parameters.Add(filter.High));
     }
 
     private void RenderSubqueryClause(StringBuilder sql, FilterSubqueryClause filter)
@@ -106,29 +118,21 @@ internal sealed class FilterSqlRenderer
             Op.Lt => $"< @{_context.Parameters.Add(filter.Value)}",
             Op.Lte => $"<= @{_context.Parameters.Add(filter.Value)}",
             Op.Like => $"LIKE @{_context.Parameters.Add(filter.Value)}",
-            Op.In => $"IN ({RenderInParameters(filter.Value)})",
+            Op.NotLike => $"NOT LIKE @{_context.Parameters.Add(filter.Value)}",
+            Op.In => $"IN ({RenderListParameters(filter.Value)})",
+            Op.NotIn => $"NOT IN ({RenderListParameters(filter.Value)})",
             Op.IsNull => "IS NULL",
             Op.IsNotNull => "IS NOT NULL",
             _ => throw new NotSupportedException($"Operator {filter.Operator} is not supported.")
         };
     }
 
-    private string RenderInParameters(object? value)
+    private string RenderListParameters(object? value)
     {
-        if (value is string || value is not IEnumerable values)
-        {
-            throw new ArgumentException("Op.In requires a non-string enumerable value.", nameof(value));
-        }
-
         var parameterNames = new List<string>();
-        foreach (var item in values)
+        foreach (var item in (IEnumerable)value!)
         {
             parameterNames.Add($"@{_context.Parameters.Add(item)}");
-        }
-
-        if (parameterNames.Count == 0)
-        {
-            throw new ArgumentException("Op.In requires at least one value.", nameof(value));
         }
 
         return string.Join(", ", parameterNames);

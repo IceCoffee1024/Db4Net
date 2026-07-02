@@ -7,13 +7,20 @@ namespace Db4Net.Query;
 /// <summary>
 /// Builds SELECT statements using string-based table and column identifiers.
 /// </summary>
+/// <remarks>
+/// Builder instances are mutable: each method modifies the current builder in place and returns <c>this</c>.
+/// Do not reuse a builder across multiple independent queries — the second call will accumulate
+/// filters, columns, and ordering on top of the first. Use <see cref="Fork"/> to branch from a
+/// shared base into two independent builders.
+/// </remarks>
 public partial class SelectQueryBuilder
 {
-    private readonly IDbConnection? _connection;
-    private readonly Db4NetExecutionOptions? _executionOptions;
     private readonly FilterClauseBuilder _filters;
     private readonly SelectQueryModel _model;
-    private readonly Db4NetOptions _options;
+
+    internal readonly IDbConnection? _connection;
+    internal readonly Db4NetExecutionOptions? _executionOptions;
+    internal readonly Db4NetOptions _options;
 
     internal SelectQueryBuilder(Db4NetOptions options, IDbConnection? connection, SelectQueryModel? model = null, Db4NetExecutionOptions? executionOptions = null)
     {
@@ -393,6 +400,17 @@ public partial class SelectQueryBuilder
         return this;
     }
 
+    /// <summary>
+    /// Returns an independent copy of this builder that shares the current filters, columns, and ordering
+    /// but can be modified without affecting the original.
+    /// Use this when branching from a common base query.
+    /// </summary>
+    /// <returns>A new builder with the current query state cloned.</returns>
+    public SelectQueryBuilder Fork()
+    {
+        return new SelectQueryBuilder(_options, _connection, _model.Clone(), _executionOptions);
+    }
+
     internal SelectQueryModel ToModelSnapshot()
     {
         return _model.Clone();
@@ -460,10 +478,63 @@ public partial class SelectQueryBuilder
         return filter switch
         {
             FilterClause clause => clause with { Column = MapPropertyName<T>(clause.Column) },
+            FilterBetweenClause clause => clause with { Column = MapPropertyName<T>(clause.Column) },
             FilterSubqueryClause clause => clause with { Column = MapPropertyName<T>(clause.Column) },
             FilterGroup group => group with { Filters = group.Filters.Select(MapFilter<T>).ToArray() },
             _ => throw new NotSupportedException($"Filter node {filter.GetType().Name} is not supported.")
         };
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter using a string-based column identifier.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="low">The inclusive lower bound.</param>
+    /// <param name="high">The inclusive upper bound.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder WhereBetween(string column, object? low, object? high)
+    {
+        _filters.AddBetween(FilterBooleanOperator.And, column, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter using a string-based column identifier.
+    /// </summary>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="low">The inclusive lower bound.</param>
+    /// <param name="high">The inclusive upper bound.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrWhereBetween(string column, object? low, object? high)
+    {
+        _filters.AddBetween(FilterBooleanOperator.Or, column, low, high);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an AND <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder WhereBetweenIf(bool condition, string column, object? low, object? high)
+    {
+        return condition ? WhereBetween(column, low, high) : this;
+    }
+
+    /// <summary>
+    /// Adds an OR <c>BETWEEN</c> filter only when <paramref name="condition"/> is true.
+    /// </summary>
+    /// <param name="condition">Whether to add the filter.</param>
+    /// <param name="column">The column identifier. It is validated and quoted by the configured SQL dialect.</param>
+    /// <param name="low">The inclusive lower bound. Must not be null.</param>
+    /// <param name="high">The inclusive upper bound. Must not be null.</param>
+    /// <returns>The current query builder.</returns>
+    public SelectQueryBuilder OrWhereBetweenIf(bool condition, string column, object? low, object? high)
+    {
+        return condition ? OrWhereBetween(column, low, high) : this;
     }
 
     private void AddSubqueryFilter(FilterBooleanOperator booleanOperator, string column, bool negated, SelectQueryBuilder subquery)

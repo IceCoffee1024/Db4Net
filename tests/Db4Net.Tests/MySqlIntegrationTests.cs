@@ -102,6 +102,7 @@ public sealed class MySqlIntegrationTests
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("mysql", "conflict_users");
         await using var connection = await OpenConnectionAsync();
+        await ExternalDatabaseTestSupport.SkipIfMySqlRowAliasSyntaxUnsupportedAsync(connection);
 
         try
         {
@@ -138,6 +139,7 @@ public sealed class MySqlIntegrationTests
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("mysql", "conflict_many");
         await using var connection = await OpenConnectionAsync();
+        await ExternalDatabaseTestSupport.SkipIfMySqlRowAliasSyntaxUnsupportedAsync(connection);
 
         try
         {
@@ -182,6 +184,7 @@ public sealed class MySqlIntegrationTests
     {
         var table = ExternalDatabaseTestSupport.CreateTableName("mysql", "unique_users");
         await using var connection = await OpenConnectionAsync();
+        await ExternalDatabaseTestSupport.SkipIfMySqlRowAliasSyntaxUnsupportedAsync(connection);
 
         try
         {

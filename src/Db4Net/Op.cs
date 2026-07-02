@@ -26,8 +26,14 @@ public enum Op
     /// <summary>SQL LIKE comparison.</summary>
     Like,
 
+    /// <summary>SQL NOT LIKE comparison.</summary>
+    NotLike,
+
     /// <summary>SQL IN comparison. The value must be a non-string enumerable.</summary>
     In,
+
+    /// <summary>SQL NOT IN comparison. The value must be a non-string enumerable.</summary>
+    NotIn,
 
     /// <summary>SQL IS NULL comparison.</summary>
     IsNull,

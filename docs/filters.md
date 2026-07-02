@@ -10,15 +10,32 @@ var users = db.SelectFrom<User>()
     .Query();
 ```
 
-Common operators include equality, comparisons, `Like`, `In`, and null checks:
+Common operators include equality, comparisons, `Like`, `NotLike`, `In`, `NotIn`, and null checks:
 
 ```csharp
 .Where(u => u.Id, Op.In, new[] { 1, 2, 3 })
+.Where(u => u.Id, Op.NotIn, blockedIds)
+.Where(u => u.Name, Op.NotLike, "test%")
 .Where(u => u.DeletedAt, Op.IsNull)
 .Where(u => u.Name, Op.IsNotNull)
 ```
 
 `Op.Eq` with `null` renders `IS NULL`, and `Op.NotEq` with `null` renders `IS NOT NULL`. Prefer `Op.IsNull` and `Op.IsNotNull` when no value is needed.
+
+`Op.In` and `Op.NotIn` require a non-string enumerable with at least one value.
+
+## Range Filters
+
+Use `WhereBetween(...)` and `OrWhereBetween(...)` for inclusive `BETWEEN` predicates:
+
+```csharp
+var users = db.SelectFrom<User>()
+    .WhereBetween(u => u.UpdatedAt, from, to)
+    .OrWhereBetween(u => u.CreatedAt, archiveFrom, archiveTo)
+    .Query();
+```
+
+Both bounds are rendered as parameters and must not be `null`. `WhereBetweenIf(...)` and `OrWhereBetweenIf(...)` are available for optional range filters.
 
 ## `IN` Subqueries
 

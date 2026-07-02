@@ -7,10 +7,10 @@
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>Db4Net</PackageId>
-    <Version>0.1.0-alpha.5</Version>
+    <Version>0.1.0-alpha.6</Version>
     <Authors>IceCoffee1024</Authors>
     <Description>Safe, SQL-shaped fluent query and command builder for Dapper.</Description>
-    <PackageReleaseNotes>0.1.0-alpha.5 adds conditional filtering for read-only SELECT builders and runtime ORDER BY direction overloads.</PackageReleaseNotes>
+    <PackageReleaseNotes>0.1.0-alpha.6 adds scalar ExecuteScalar terminals, BETWEEN / NOT LIKE / NOT IN filters, range-specific command filters, and MySQL 8.0.19+ row-alias upsert SQL.</PackageReleaseNotes>
     <PackageTags>dapper;sql;fluent;query-builder</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

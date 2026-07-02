@@ -53,7 +53,7 @@ internal sealed class SelectSqlRenderer
             throw new InvalidOperationException("Offset requires Limit before rendering SELECT SQL.");
         }
 
-        if (_dialect is SqlServerDialect && model.Limit is not null && model.Orders.Count == 0)
+        if (_dialect.RequiresOrderByForPaging && model.Limit is not null && model.Orders.Count == 0)
         {
             throw new InvalidOperationException("SQL Server SELECT paging requires ORDER BY when Limit or Offset is used.");
         }

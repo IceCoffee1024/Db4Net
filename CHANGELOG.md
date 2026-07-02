@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.0-alpha.6 - 2026-07-02
+
+### Added
+
+- Scalar SELECT terminal methods now use explicit `ExecuteScalar(...)` / `ExecuteScalarAsync(...)` names on `SelectCountFrom<T>()`, `SelectExistsFrom<T>()`, and `SelectAggregateFrom<T>()`.
+- Filter operators `Op.NotLike` and `Op.NotIn`.
+- `WhereBetween(...)`, `OrWhereBetween(...)`, `WhereBetweenIf(...)`, and `OrWhereBetweenIf(...)` on SELECT builders, scalar SELECT builders, filter groups, and `UPDATE` / `DELETE` builders.
+- SQL dialect-owned conflict insert rendering through `ISqlDialect.RenderConflictInsert(...)`.
+
+### Changed
+
+- Breaking change: scalar SELECT builders no longer use `Execute(...)` / `ExecuteAsync(...)`; use `ExecuteScalar(...)` / `ExecuteScalarAsync(...)` instead.
+- MySQL `InsertOrUpdate(...)` now renders MySQL 8.0.19+ row-alias syntax, for example `INSERT ... VALUES (...) AS _new ON DUPLICATE KEY UPDATE col = _new.col`. This follows the MySQL 8+ replacement for deprecated `VALUES(col)` references, but it is not compatible with MySQL 5.7, MySQL 8.0.0-8.0.18, or MariaDB.
+- Metadata initialization now wraps model metadata failures with clearer type-specific context.
+- `QueryPage(...)` documentation now clarifies that it executes one count query and one page query; use a transaction when both queries must share a consistent snapshot.
+
 ## 0.1.0-alpha.5 - 2026-07-01
 
 ### Added

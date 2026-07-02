@@ -91,6 +91,7 @@ public sealed class Db4NetTransaction : IDisposable
             return;
         }
 
+        _disposed = true;
         try
         {
             if (!_completed)
@@ -101,7 +102,6 @@ public sealed class Db4NetTransaction : IDisposable
         finally
         {
             _transaction.Dispose();
-            _disposed = true;
         }
     }
 

@@ -287,7 +287,7 @@ public sealed class DialectRenderingTests
             .ToCommand();
 
         Assert.Equal("INSERT IGNORE INTO `Users` (`Id`, `Name`) VALUES (@p0, @p1)", ignore.Sql);
-        Assert.Equal("INSERT INTO `Users` (`Id`, `Name`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`)", update.Sql);
+        Assert.Equal("INSERT INTO `Users` (`Id`, `Name`) VALUES (@p0, @p1) AS _new ON DUPLICATE KEY UPDATE `Name` = _new.`Name`", update.Sql);
     }
 
     [Fact]
@@ -300,7 +300,7 @@ public sealed class DialectRenderingTests
             .Update(u => u.Name)
             .ToCommand();
 
-        Assert.Equal("INSERT INTO `Users` (`Id`, `Email`, `Name`) VALUES (@p0, @p1, @p2) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`)", command.Sql);
+        Assert.Equal("INSERT INTO `Users` (`Id`, `Email`, `Name`) VALUES (@p0, @p1, @p2) AS _new ON DUPLICATE KEY UPDATE `Name` = _new.`Name`", command.Sql);
         Assert.DoesNotContain("Email) ON DUPLICATE", command.Sql);
     }
 
