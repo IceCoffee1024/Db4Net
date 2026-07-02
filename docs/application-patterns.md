@@ -8,9 +8,12 @@ This page shows practical composition patterns for applications that need reposi
 
 Use this split as the default:
 
+- Controller: handles HTTP input, output, status codes, and model binding. It should not compose queries or control transactions.
+- Service: owns business use cases, validation, orchestration across repositories, and transaction boundaries.
 - Repository: data access methods such as `FindByIdAsync`, `ExistsByEmailAsync`, `DisableAsync`, and report queries. Keep Db4Net builders inside the repository.
-- Service: business use cases, validation, orchestration across repositories, and transaction boundaries.
 - Unit of Work: optional application helper that starts a transaction and creates transaction-bound repositories.
+- Request-scoped application: usually registers `DbConnection`, `Db4NetDatabase`, repositories, and services as scoped services.
+- Singleton or background worker: must not capture scoped repositories. Create a scope per operation and resolve the service or repository inside that scope.
 
 Do not make repositories guess an ambient transaction. When a repository must run inside a transaction, create it from the transaction-bound `Db4NetDatabase`.
 
@@ -354,6 +357,10 @@ Register `TransactionRunner` as scoped as well. This avoids a large repository f
 
 In request-scoped applications that use `Microsoft.Extensions.DependencyInjection`, register the connection and `Db4NetDatabase` as scoped services. Register the repository factory as singleton because it does not capture a connection.
 
+For ordinary non-transactional queries, prefer registering a scoped connection that is not opened yet. Dapper opens the connection when it executes a command and closes it again when Dapper was the code that opened it. When a use case needs a transaction, explicitly open the connection at the unit-of-work or transaction boundary before calling `BeginTransaction()`.
+
+Separate connection object ownership from open-state ownership: a scoped connection object created by DI should ultimately be disposed by the DI scope, so a unit of work should not dispose it. If the unit of work opens a closed connection, it may close that connection when the unit of work ends. If the connection was already opened in the scoped factory, the unit of work should only dispose the transaction and leave the connection open for the owner scope.
+
 ```csharp
 using System.Data.Common;
 using Db4Net;
@@ -367,7 +374,6 @@ services.AddScoped<DbConnection>(sp =>
         .GetConnectionString("Default")!;
 
     var connection = new SqliteConnection(connectionString);
-    connection.Open();
     return connection;
 });
 
@@ -400,6 +406,381 @@ public sealed class UsersController
     }
 }
 ```
+
+If the request scope intentionally represents a unit of work, or nearly every scoped operation immediately starts a transaction, opening the connection in the scoped factory is also valid. It does not conflict with Dapper, but it should not be the default for every ordinary query.
+
+## ASP.NET Web API 2 on OWIN
+
+ASP.NET Web API 2 on .NET Framework does not have built-in `Microsoft.Extensions.DependencyInjection` integration. Add a small `HttpConfiguration.DependencyResolver` adapter so Web API creates a DI scope per request. The example below uses SQL Server; for SQLite, PostgreSQL, or MySQL, replace the provider connection and `Db4NetOptions`.
+
+Start with entities and repositories. Repositories depend only on `Db4NetDatabase`; ordinary queries do not open or close the connection.
+
+```csharp
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Threading;
+using System.Threading.Tasks;
+using Db4Net;
+
+[Table("Users")]
+public sealed class User
+{
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public string Email { get; set; } = string.Empty;
+
+    public bool IsActive { get; set; }
+}
+
+[Table("AuditLogs")]
+public sealed class AuditLog
+{
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long Id { get; set; }
+
+    public string EventName { get; set; } = string.Empty;
+
+    public long EntityId { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class UserRepository
+{
+    private readonly Db4NetDatabase _db;
+
+    public UserRepository(Db4NetDatabase db)
+    {
+        _db = db;
+    }
+
+    public Task<User?> FindByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefaultAsync(cancellationToken: cancellationToken);
+    }
+
+    public Task<int> DisableAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _db
+            .Update<User>()
+            .Set(u => u.IsActive, false)
+            .Where(u => u.Id, Op.Eq, id)
+            .ExecuteAsync(cancellationToken: cancellationToken);
+    }
+}
+
+public sealed class AuditRepository
+{
+    private readonly Db4NetDatabase _db;
+
+    public AuditRepository(Db4NetDatabase db)
+    {
+        _db = db;
+    }
+
+    public Task<int> WriteAsync(
+        string eventName,
+        long entityId,
+        CancellationToken cancellationToken = default)
+    {
+        return _db
+            .Insert(new AuditLog
+            {
+                EventName = eventName,
+                EntityId = entityId,
+                CreatedAt = DateTime.UtcNow
+            })
+            .ExecuteAsync(cancellationToken: cancellationToken);
+    }
+}
+```
+
+The service or unit of work controls transactions. The factory below opens the connection at the transaction boundary. If it opened the connection, it closes it when the unit of work ends, so ordinary requests still keep connection usage short. The unit of work does not take a `DbConnection` constructor parameter; it captures the associated connection from `Db4NetTransaction.Connection`. It only closes connections it opened, and never disposes the scoped connection object owned by DI.
+
+```csharp
+using System;
+using System.Data;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
+using Db4Net;
+using Microsoft.Extensions.DependencyInjection;
+
+public sealed class Db4NetUnitOfWorkFactory
+{
+    private readonly DbConnection _connection;
+    private readonly Db4NetDatabase _db;
+    private readonly IServiceProvider _services;
+
+    public Db4NetUnitOfWorkFactory(
+        DbConnection connection,
+        Db4NetDatabase db,
+        IServiceProvider services)
+    {
+        _connection = connection;
+        _db = db;
+        _services = services;
+    }
+
+    public async Task<Db4NetUnitOfWork> BeginAsync(CancellationToken cancellationToken = default)
+    {
+        var closeConnectionOnDispose = false;
+
+        if (_connection.State != ConnectionState.Open)
+        {
+            await _connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            closeConnectionOnDispose = true;
+        }
+
+        return new Db4NetUnitOfWork(
+            _db.BeginTransaction(),
+            _services,
+            closeConnectionOnDispose);
+    }
+}
+
+public sealed class Db4NetUnitOfWork : IDisposable
+{
+    private readonly Db4NetTransaction _tx;
+    private readonly IDbConnection _connection;
+    private readonly IServiceProvider _services;
+    private readonly bool _closeConnectionOnDispose;
+
+    public Db4NetUnitOfWork(
+        Db4NetTransaction tx,
+        IServiceProvider services,
+        bool closeConnectionOnDispose)
+    {
+        _tx = tx;
+        _connection = tx.Connection;
+        _services = services;
+        _closeConnectionOnDispose = closeConnectionOnDispose;
+    }
+
+    public TRepository Repository<TRepository>()
+        where TRepository : class
+    {
+        return ActivatorUtilities.CreateInstance<TRepository>(
+            _services,
+            _tx.Database);
+    }
+
+    public void Commit()
+    {
+        _tx.Commit();
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            _tx.Dispose();
+        }
+        finally
+        {
+            if (_closeConnectionOnDispose && _connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+}
+```
+
+The service owns the use case. Single-repository reads can use the injected repository directly; multi-repository atomic operations create transaction-bound repositories through the unit of work.
+
+```csharp
+public sealed class UserService
+{
+    private readonly UserRepository _users;
+    private readonly Db4NetUnitOfWorkFactory _unitOfWorkFactory;
+
+    public UserService(
+        UserRepository users,
+        Db4NetUnitOfWorkFactory unitOfWorkFactory)
+    {
+        _users = users;
+        _unitOfWorkFactory = unitOfWorkFactory;
+    }
+
+    public Task<User?> FindAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _users.FindByIdAsync(id, cancellationToken);
+    }
+
+    public async Task DisableAsync(long id, CancellationToken cancellationToken = default)
+    {
+        using (var uow = await _unitOfWorkFactory.BeginAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var users = uow.Repository<UserRepository>();
+            var audit = uow.Repository<AuditRepository>();
+
+            await users.DisableAsync(id, cancellationToken).ConfigureAwait(false);
+            await audit.WriteAsync("UserDisabled", id, cancellationToken).ConfigureAwait(false);
+
+            uow.Commit();
+        }
+    }
+}
+```
+
+Web API 2 needs an `IDependencyResolver` adapter so controllers resolve from Microsoft DI.
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Web.Http.Dependencies;
+using Microsoft.Extensions.DependencyInjection;
+
+public sealed class MsDiWebApiDependencyResolver : IDependencyResolver
+{
+    private readonly IServiceProvider _root;
+
+    public MsDiWebApiDependencyResolver(IServiceProvider root)
+    {
+        _root = root;
+    }
+
+    public object GetService(Type serviceType)
+    {
+        return _root.GetService(serviceType);
+    }
+
+    public IEnumerable<object> GetServices(Type serviceType)
+    {
+        return _root.GetServices(serviceType);
+    }
+
+    public IDependencyScope BeginScope()
+    {
+        return new Scope(_root.CreateScope());
+    }
+
+    public void Dispose()
+    {
+        var disposable = _root as IDisposable;
+        disposable?.Dispose();
+    }
+
+    private sealed class Scope : IDependencyScope
+    {
+        private readonly IServiceScope _scope;
+
+        public Scope(IServiceScope scope)
+        {
+            _scope = scope;
+        }
+
+        public object GetService(Type serviceType)
+        {
+            return _scope.ServiceProvider.GetService(serviceType);
+        }
+
+        public IEnumerable<object> GetServices(Type serviceType)
+        {
+            return _scope.ServiceProvider.GetServices(serviceType);
+        }
+
+        public void Dispose()
+        {
+            _scope.Dispose();
+        }
+    }
+}
+```
+
+Register the scoped connection, Db4Net facade, repositories, service, and controller during OWIN startup.
+
+```csharp
+using System.Configuration;
+using System.Data.Common;
+using System.Web.Http;
+using Db4Net;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
+using Owin;
+
+public sealed class Startup
+{
+    public void Configuration(IAppBuilder app)
+    {
+        var config = new HttpConfiguration();
+        var services = new ServiceCollection();
+
+        var connectionString = ConfigurationManager
+            .ConnectionStrings["Default"]
+            .ConnectionString;
+
+        services.AddScoped<DbConnection>(_ => new SqlConnection(connectionString));
+
+        services.AddScoped(sp =>
+        {
+            var connection = sp.GetRequiredService<DbConnection>();
+            return connection.UseDb4Net(Db4NetOptions.SqlServer);
+        });
+
+        services.AddScoped<UserRepository>();
+        services.AddScoped<AuditRepository>();
+        services.AddScoped<Db4NetUnitOfWorkFactory>();
+        services.AddScoped<UserService>();
+        services.AddTransient<UsersController>();
+
+        var provider = services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateScopes = true });
+
+        config.DependencyResolver = new MsDiWebApiDependencyResolver(provider);
+        config.MapHttpAttributeRoutes();
+
+        app.UseWebApi(config);
+    }
+}
+```
+
+The controller only handles HTTP and does not control the transaction.
+
+```csharp
+using System.Threading;
+using System.Threading.Tasks;
+using System.Web.Http;
+
+[RoutePrefix("api/users")]
+public sealed class UsersController : ApiController
+{
+    private readonly UserService _users;
+
+    public UsersController(UserService users)
+    {
+        _users = users;
+    }
+
+    [HttpGet]
+    [Route("{id:long}")]
+    public async Task<IHttpActionResult> Get(long id, CancellationToken cancellationToken)
+    {
+        var user = await _users.FindAsync(id, cancellationToken);
+        return user == null ? (IHttpActionResult)NotFound() : Ok(user);
+    }
+
+    [HttpPost]
+    [Route("{id:long}/disable")]
+    public async Task<IHttpActionResult> Disable(long id, CancellationToken cancellationToken)
+    {
+        await _users.DisableAsync(id, cancellationToken);
+        return Ok();
+    }
+}
+```
+
+The important rule is that ordinary repositories use the request-scoped `Db4NetDatabase`, while repositories inside a transaction must be created from `tx.Database`. Do not put scoped repositories, `Db4NetDatabase`, or `DbConnection` into a singleton.
 
 ## Singleton and Background Jobs
 

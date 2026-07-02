@@ -8,9 +8,12 @@ Db4Net 专注于 query 和 command builder。仓储、service、后台任务和 
 
 默认可以按下面方式拆分：
 
-- Repository：封装 `FindByIdAsync`、`ExistsByEmailAsync`、`DisableAsync`、报表查询等数据访问方法。Db4Net builder 留在仓储内部。
+- Controller：只处理 HTTP 输入输出、状态码和模型绑定，不直接拼查询，也不控制事务。
 - Service：负责业务用例、校验、跨仓储编排和事务边界。
+- Repository：封装 `FindByIdAsync`、`ExistsByEmailAsync`、`DisableAsync`、报表查询等数据访问方法。Db4Net builder 留在仓储内部。
 - Unit of Work：可选的应用层辅助对象，用于开启事务并创建事务绑定的仓储。
+- 请求级应用：`DbConnection`、`Db4NetDatabase`、repository 和 service 通常注册为 scoped。
+- Singleton 或后台任务：不要捕获 scoped repository；每次操作创建 scope，再解析 service 或 repository。
 
 不要让仓储猜测是否存在 ambient transaction。仓储需要进入事务时，用事务绑定的 `Db4NetDatabase` 创建它。
 
@@ -354,6 +357,10 @@ public sealed class TransactionRunner
 
 使用 `Microsoft.Extensions.DependencyInjection` 的请求级应用中，把连接和 `Db4NetDatabase` 注册为 scoped service。`RepositoryFactory` 不捕获连接，可以注册为 singleton。
 
+普通非事务查询推荐注册一个尚未打开的 scoped connection。Dapper 会在执行命令时打开连接，并在它自己打开连接的情况下关闭连接。需要事务时，在 unit-of-work 或事务入口显式打开连接，再调用 `BeginTransaction()`。
+
+区分 connection 对象所有权和打开状态所有权：由 DI 创建的 scoped connection 对象应由 DI scope 最终 dispose，unit of work 不要 dispose 它；如果 unit of work 自己把一个 closed connection 打开了，可以在 unit of work 结束时 close；如果 connection 在 scoped factory 中已经打开，unit of work 只释放事务，不要关闭连接。
+
 ```csharp
 using System.Data.Common;
 using Db4Net;
@@ -367,7 +374,6 @@ services.AddScoped<DbConnection>(sp =>
         .GetConnectionString("Default")!;
 
     var connection = new SqliteConnection(connectionString);
-    connection.Open();
     return connection;
 });
 
@@ -400,6 +406,381 @@ public sealed class UsersController
     }
 }
 ```
+
+如果你的应用把一个 request scope 明确当成一个工作单元，或者几乎所有 scoped 操作都会立刻进入事务，也可以在 scoped factory 中打开连接；这种做法不会和 Dapper 冲突，但不应该作为所有普通查询的默认选择。
+
+## ASP.NET Web API 2 on OWIN
+
+.NET Framework 的 ASP.NET Web API 2 没有内置 `Microsoft.Extensions.DependencyInjection` 集成。可以通过 `HttpConfiguration.DependencyResolver` 接入一个小的 adapter，让 Web API 每个请求创建一个 DI scope。下面示例使用 SQL Server；换成 SQLite、PostgreSQL 或 MySQL 时，只需要替换 provider connection 和 `Db4NetOptions`。
+
+先定义实体和仓储。仓储只依赖 `Db4NetDatabase`，普通查询不负责打开或关闭连接。
+
+```csharp
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Threading;
+using System.Threading.Tasks;
+using Db4Net;
+
+[Table("Users")]
+public sealed class User
+{
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public string Email { get; set; } = string.Empty;
+
+    public bool IsActive { get; set; }
+}
+
+[Table("AuditLogs")]
+public sealed class AuditLog
+{
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long Id { get; set; }
+
+    public string EventName { get; set; } = string.Empty;
+
+    public long EntityId { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+}
+
+public sealed class UserRepository
+{
+    private readonly Db4NetDatabase _db;
+
+    public UserRepository(Db4NetDatabase db)
+    {
+        _db = db;
+    }
+
+    public Task<User?> FindByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _db
+            .SelectFrom<User>()
+            .Where(u => u.Id, Op.Eq, id)
+            .QuerySingleOrDefaultAsync(cancellationToken: cancellationToken);
+    }
+
+    public Task<int> DisableAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _db
+            .Update<User>()
+            .Set(u => u.IsActive, false)
+            .Where(u => u.Id, Op.Eq, id)
+            .ExecuteAsync(cancellationToken: cancellationToken);
+    }
+}
+
+public sealed class AuditRepository
+{
+    private readonly Db4NetDatabase _db;
+
+    public AuditRepository(Db4NetDatabase db)
+    {
+        _db = db;
+    }
+
+    public Task<int> WriteAsync(
+        string eventName,
+        long entityId,
+        CancellationToken cancellationToken = default)
+    {
+        return _db
+            .Insert(new AuditLog
+            {
+                EventName = eventName,
+                EntityId = entityId,
+                CreatedAt = DateTime.UtcNow
+            })
+            .ExecuteAsync(cancellationToken: cancellationToken);
+    }
+}
+```
+
+事务由 service 或 unit-of-work 控制。下面的 factory 在事务入口打开连接；如果它自己打开了连接，也会在 unit of work 结束时关闭连接，让普通请求仍然保持最小连接占用。unit of work 不接收 `DbConnection` 构造参数，而是从 `Db4NetTransaction.Connection` 捕获关联连接；它只 close 自己打开的连接，不 dispose 由 DI 管理的 scoped connection 对象。
+
+```csharp
+using System;
+using System.Data;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
+using Db4Net;
+using Microsoft.Extensions.DependencyInjection;
+
+public sealed class Db4NetUnitOfWorkFactory
+{
+    private readonly DbConnection _connection;
+    private readonly Db4NetDatabase _db;
+    private readonly IServiceProvider _services;
+
+    public Db4NetUnitOfWorkFactory(
+        DbConnection connection,
+        Db4NetDatabase db,
+        IServiceProvider services)
+    {
+        _connection = connection;
+        _db = db;
+        _services = services;
+    }
+
+    public async Task<Db4NetUnitOfWork> BeginAsync(CancellationToken cancellationToken = default)
+    {
+        var closeConnectionOnDispose = false;
+
+        if (_connection.State != ConnectionState.Open)
+        {
+            await _connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            closeConnectionOnDispose = true;
+        }
+
+        return new Db4NetUnitOfWork(
+            _db.BeginTransaction(),
+            _services,
+            closeConnectionOnDispose);
+    }
+}
+
+public sealed class Db4NetUnitOfWork : IDisposable
+{
+    private readonly Db4NetTransaction _tx;
+    private readonly IDbConnection _connection;
+    private readonly IServiceProvider _services;
+    private readonly bool _closeConnectionOnDispose;
+
+    public Db4NetUnitOfWork(
+        Db4NetTransaction tx,
+        IServiceProvider services,
+        bool closeConnectionOnDispose)
+    {
+        _tx = tx;
+        _connection = tx.Connection;
+        _services = services;
+        _closeConnectionOnDispose = closeConnectionOnDispose;
+    }
+
+    public TRepository Repository<TRepository>()
+        where TRepository : class
+    {
+        return ActivatorUtilities.CreateInstance<TRepository>(
+            _services,
+            _tx.Database);
+    }
+
+    public void Commit()
+    {
+        _tx.Commit();
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            _tx.Dispose();
+        }
+        finally
+        {
+            if (_closeConnectionOnDispose && _connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+}
+```
+
+Service 负责业务用例。单仓储查询可以直接使用注入的仓储；多仓储原子操作通过 unit of work 获取事务绑定的仓储。
+
+```csharp
+public sealed class UserService
+{
+    private readonly UserRepository _users;
+    private readonly Db4NetUnitOfWorkFactory _unitOfWorkFactory;
+
+    public UserService(
+        UserRepository users,
+        Db4NetUnitOfWorkFactory unitOfWorkFactory)
+    {
+        _users = users;
+        _unitOfWorkFactory = unitOfWorkFactory;
+    }
+
+    public Task<User?> FindAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _users.FindByIdAsync(id, cancellationToken);
+    }
+
+    public async Task DisableAsync(long id, CancellationToken cancellationToken = default)
+    {
+        using (var uow = await _unitOfWorkFactory.BeginAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var users = uow.Repository<UserRepository>();
+            var audit = uow.Repository<AuditRepository>();
+
+            await users.DisableAsync(id, cancellationToken).ConfigureAwait(false);
+            await audit.WriteAsync("UserDisabled", id, cancellationToken).ConfigureAwait(false);
+
+            uow.Commit();
+        }
+    }
+}
+```
+
+Web API 2 需要一个 `IDependencyResolver` adapter，让 controller 从 Microsoft DI 中解析。
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Web.Http.Dependencies;
+using Microsoft.Extensions.DependencyInjection;
+
+public sealed class MsDiWebApiDependencyResolver : IDependencyResolver
+{
+    private readonly IServiceProvider _root;
+
+    public MsDiWebApiDependencyResolver(IServiceProvider root)
+    {
+        _root = root;
+    }
+
+    public object GetService(Type serviceType)
+    {
+        return _root.GetService(serviceType);
+    }
+
+    public IEnumerable<object> GetServices(Type serviceType)
+    {
+        return _root.GetServices(serviceType);
+    }
+
+    public IDependencyScope BeginScope()
+    {
+        return new Scope(_root.CreateScope());
+    }
+
+    public void Dispose()
+    {
+        var disposable = _root as IDisposable;
+        disposable?.Dispose();
+    }
+
+    private sealed class Scope : IDependencyScope
+    {
+        private readonly IServiceScope _scope;
+
+        public Scope(IServiceScope scope)
+        {
+            _scope = scope;
+        }
+
+        public object GetService(Type serviceType)
+        {
+            return _scope.ServiceProvider.GetService(serviceType);
+        }
+
+        public IEnumerable<object> GetServices(Type serviceType)
+        {
+            return _scope.ServiceProvider.GetServices(serviceType);
+        }
+
+        public void Dispose()
+        {
+            _scope.Dispose();
+        }
+    }
+}
+```
+
+OWIN 启动时注册 scoped 连接、Db4Net facade、仓储、service 和 controller。
+
+```csharp
+using System.Configuration;
+using System.Data.Common;
+using System.Web.Http;
+using Db4Net;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
+using Owin;
+
+public sealed class Startup
+{
+    public void Configuration(IAppBuilder app)
+    {
+        var config = new HttpConfiguration();
+        var services = new ServiceCollection();
+
+        var connectionString = ConfigurationManager
+            .ConnectionStrings["Default"]
+            .ConnectionString;
+
+        services.AddScoped<DbConnection>(_ => new SqlConnection(connectionString));
+
+        services.AddScoped(sp =>
+        {
+            var connection = sp.GetRequiredService<DbConnection>();
+            return connection.UseDb4Net(Db4NetOptions.SqlServer);
+        });
+
+        services.AddScoped<UserRepository>();
+        services.AddScoped<AuditRepository>();
+        services.AddScoped<Db4NetUnitOfWorkFactory>();
+        services.AddScoped<UserService>();
+        services.AddTransient<UsersController>();
+
+        var provider = services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateScopes = true });
+
+        config.DependencyResolver = new MsDiWebApiDependencyResolver(provider);
+        config.MapHttpAttributeRoutes();
+
+        app.UseWebApi(config);
+    }
+}
+```
+
+Controller 只处理 HTTP，不直接控制事务。
+
+```csharp
+using System.Threading;
+using System.Threading.Tasks;
+using System.Web.Http;
+
+[RoutePrefix("api/users")]
+public sealed class UsersController : ApiController
+{
+    private readonly UserService _users;
+
+    public UsersController(UserService users)
+    {
+        _users = users;
+    }
+
+    [HttpGet]
+    [Route("{id:long}")]
+    public async Task<IHttpActionResult> Get(long id, CancellationToken cancellationToken)
+    {
+        var user = await _users.FindAsync(id, cancellationToken);
+        return user == null ? (IHttpActionResult)NotFound() : Ok(user);
+    }
+
+    [HttpPost]
+    [Route("{id:long}/disable")]
+    public async Task<IHttpActionResult> Disable(long id, CancellationToken cancellationToken)
+    {
+        await _users.DisableAsync(id, cancellationToken);
+        return Ok();
+    }
+}
+```
+
+这个模式的关键点是：普通仓储使用请求级 `Db4NetDatabase`；事务内仓储必须由 `tx.Database` 创建。不要把 scoped repository、`Db4NetDatabase` 或 `DbConnection` 放进 singleton。
 
 ## Singleton 和后台任务
 

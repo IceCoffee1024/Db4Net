@@ -110,7 +110,9 @@ Keep Db4Net execution names such as `Query*` and `Execute*` inside the repositor
 
 A repository that stores a `Db4NetDatabase` should follow the lifetime of the connection or transaction bound to that facade. In request-scoped applications that use `Microsoft.Extensions.DependencyInjection`, register the connection, `Db4NetDatabase`, and repositories as scoped services. See [Application Patterns](./application-patterns.md#request-scoped-di) for the complete DI setup.
 
-Opening the connection in the scoped factory does not conflict with Dapper. Dapper uses an already-open connection and leaves it open; the DI scope disposes the connection at the end of the request.
+For ordinary non-transactional queries, the scoped connection can remain closed and Dapper can open and close it at execution time. When a use case needs a transaction, open the connection at the service, unit-of-work, or session-factory transaction boundary before calling `BeginTransaction()`. If the request scope itself intentionally represents a unit of work, opening the connection in the scoped factory is also valid. It does not conflict with Dapper, but it should not be the default for every ordinary query.
+
+If DI created the connection object, the unit of work should not dispose that connection object; the DI scope owns final disposal. The unit of work should only close a connection that it opened from the closed state. If the connection was already opened in the scoped factory, the unit of work should only dispose the transaction and leave the connection open.
 
 ## Multiple Databases
 
@@ -197,16 +199,26 @@ public sealed class ReportRepository
         _db = db;
     }
 
-    public Task<IEnumerable<UserActivityRow>> GetUserActivityAsync()
+    public Task<IEnumerable<UserActivityRow>> GetUserActivityAsync(
+        long? userId = null,
+        CancellationToken cancellationToken = default)
     {
         return _db.Connection.QueryAsync<UserActivityRow>(
-            """
-            SELECT u.Id, u.Name, COUNT(a.Id) AS ActivityCount
-            FROM Users u
-            LEFT JOIN Activities a ON a.UserId = u.Id
-            GROUP BY u.Id, u.Name
-            ORDER BY ActivityCount DESC
-            """);
+            new CommandDefinition(
+                """
+                SELECT
+                    u.Id,
+                    u.Name,
+                    COUNT(a.Id) AS ActivityCount
+                FROM Users u
+                LEFT JOIN Activities a ON a.UserId = u.Id
+                WHERE (@UserId IS NULL OR u.Id = @UserId)
+                GROUP BY u.Id, u.Name
+                ORDER BY ActivityCount DESC
+                """,
+                new { UserId = userId },
+                transaction: _db.DbTransaction,
+                cancellationToken: cancellationToken));
     }
 
     public Task<User?> FindByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -221,7 +233,7 @@ public sealed class ReportRepository
 
 For keyed database registrations, inject or resolve the matching keyed `Db4NetDatabase`; its `Connection` exposes the matching borrowed connection context. Do not close, dispose, or open that connection inside repositories.
 
-When raw Dapper SQL and Db4Net commands must share a Db4Net-owned transaction, use `_db.Connection` and pass `transaction: _db.DbTransaction` explicitly from a repository created with the transaction-bound `tx.Database` facade. `DbTransaction` is `null` when no transaction is active.
+When raw Dapper SQL and Db4Net commands must share a Db4Net-owned transaction, use `_db.Connection` and pass `transaction: _db.DbTransaction` explicitly from a repository created with the transaction-bound `tx.Database` facade. `DbTransaction` is `null` when no transaction is active, so the same repository method runs as an ordinary non-transactional query.
 
 ```csharp
 using var tx = _db.BeginTransaction();

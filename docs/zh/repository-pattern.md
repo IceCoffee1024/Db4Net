@@ -110,7 +110,9 @@ Db4Net 的 `Query*`、`Execute*` 这类执行命名建议留在仓储内部。Se
 
 持有 `Db4NetDatabase` 的仓储应该跟随该 facade 绑定的连接或事务生命周期。对于使用 `Microsoft.Extensions.DependencyInjection` 的请求级应用，推荐把连接、`Db4NetDatabase` 和仓储都注册为 scoped service。完整 DI 配置见[应用模式](./application-patterns.md#请求级-di)。
 
-在 scoped factory 中打开连接不会和 Dapper 冲突。Dapper 会使用已经打开的连接，并保持它打开；请求 scope 结束时 DI 容器会释放连接。
+普通非事务查询可以让 scoped connection 保持未打开状态，由 Dapper 在执行时打开并关闭。需要事务时，在 service、unit-of-work 或 session factory 的事务边界打开连接，再调用 `BeginTransaction()`。如果你的 request scope 本身就是一个明确的工作单元，也可以在 scoped factory 中打开连接；这种做法不会和 Dapper 冲突，但不应作为所有普通查询的默认选择。
+
+如果 connection 对象由 DI 创建，unit of work 不应 dispose 这个 connection 对象；对象最终由 DI scope 释放。unit of work 只应该 close 自己从 closed 状态打开的连接。如果连接在 scoped factory 中已经打开，unit of work 只释放事务，不关闭连接。
 
 ## 多数据库
 
@@ -197,16 +199,26 @@ public sealed class ReportRepository
         _db = db;
     }
 
-    public Task<IEnumerable<UserActivityRow>> GetUserActivityAsync()
+    public Task<IEnumerable<UserActivityRow>> GetUserActivityAsync(
+        long? userId = null,
+        CancellationToken cancellationToken = default)
     {
         return _db.Connection.QueryAsync<UserActivityRow>(
-            """
-            SELECT u.Id, u.Name, COUNT(a.Id) AS ActivityCount
-            FROM Users u
-            LEFT JOIN Activities a ON a.UserId = u.Id
-            GROUP BY u.Id, u.Name
-            ORDER BY ActivityCount DESC
-            """);
+            new CommandDefinition(
+                """
+                SELECT
+                    u.Id,
+                    u.Name,
+                    COUNT(a.Id) AS ActivityCount
+                FROM Users u
+                LEFT JOIN Activities a ON a.UserId = u.Id
+                WHERE (@UserId IS NULL OR u.Id = @UserId)
+                GROUP BY u.Id, u.Name
+                ORDER BY ActivityCount DESC
+                """,
+                new { UserId = userId },
+                transaction: _db.DbTransaction,
+                cancellationToken: cancellationToken));
     }
 
     public Task<User?> FindByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -221,7 +233,7 @@ public sealed class ReportRepository
 
 如果使用 keyed database 注册，请注入或解析匹配的 keyed `Db4NetDatabase`；它的 `Connection` 暴露匹配的借用连接上下文。不要在 repository 中 close、dispose 或 open 这个连接。
 
-当 Dapper 原生 SQL 和 Db4Net 命令需要共用 Db4Net 创建的事务时，在用事务绑定 `tx.Database` facade 创建的仓储里使用 `_db.Connection`，并显式传入 `transaction: _db.DbTransaction`。没有事务时，`DbTransaction` 为 `null`。
+当 Dapper 原生 SQL 和 Db4Net 命令需要共用 Db4Net 创建的事务时，在用事务绑定 `tx.Database` facade 创建的仓储里使用 `_db.Connection`，并显式传入 `transaction: _db.DbTransaction`。没有事务时，`DbTransaction` 为 `null`，同一个仓储方法会按普通非事务查询执行。
 
 ```csharp
 using var tx = _db.BeginTransaction();
