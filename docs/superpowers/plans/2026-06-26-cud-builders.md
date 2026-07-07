@@ -17,7 +17,7 @@
 - Modify: `tests/Db4Net.Tests/SqliteIntegrationTests.cs`
 - Modify: `README.md`
 - Modify: `src/Db4Net/README.md`
-- Modify: `engineering/decisions/2026-06-26-project-direction.md`
+- Modify: `docs/engineering/decisions/2026-06-26-project-direction.md`
 
 - [x] Remove `SelectQueryBuilder.Execute(...)` and `SelectQueryBuilder.ExecuteAsync(...)`.
 - [x] Remove SQLite integration tests that assert `Execute` on SELECT returns `-1`.
@@ -88,7 +88,7 @@
 **Files:**
 - Modify: `README.md`
 - Modify: `src/Db4Net/README.md`
-- Modify: `engineering/decisions/2026-06-26-project-direction.md`
+- Modify: `docs/engineering/decisions/2026-06-26-project-direction.md`
 
 - [x] Document Insert/Update/Delete examples.
 - [x] Document that `Execute` is for command builders, not SELECT builders.

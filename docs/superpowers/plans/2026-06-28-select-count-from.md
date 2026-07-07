@@ -134,8 +134,8 @@ Run the same filtered command. Expected: selected tests pass.
 **Files:**
 - Modify: `README.md`
 - Modify: `src/Db4Net/README.md`
-- Modify: `docs/querying.md`
-- Modify: `docs/zh/querying.md`
+- Modify: `docs/vitepress/querying.md`
+- Modify: `docs/vitepress/zh/querying.md`
 - Modify: `CHANGELOG.md`
 
 - [ ] **Step 1: Document the API**

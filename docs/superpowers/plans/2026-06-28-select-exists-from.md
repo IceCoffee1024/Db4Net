@@ -141,8 +141,8 @@ Run the same filtered command. Expected: selected tests pass.
 **Files:**
 - Modify: `README.md`
 - Modify: `src/Db4Net/README.md`
-- Modify: `docs/select.md`
-- Modify: `docs/zh/select.md`
+- Modify: `docs/vitepress/select.md`
+- Modify: `docs/vitepress/zh/select.md`
 - Modify: `CHANGELOG.md`
 - Modify: `src/Db4Net/Db4Net.csproj`
 - Modify: `tests/Db4Net.Tests/PackageMetadataTests.cs`

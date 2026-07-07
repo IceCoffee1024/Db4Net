@@ -13,16 +13,16 @@ Use this checklist before publishing a Db4Net prerelease or stable package.
 
 - [ ] Update root `CHANGELOG.md`.
   - This is the authoritative changelog for release preparation, GitHub, and NuGet package contents.
-- [ ] Sync `docs/changelog.md`.
+- [ ] Sync `docs/vitepress/changelog.md`.
   - Keep it suitable for the English VitePress documentation site.
-- [ ] Sync `docs/zh/changelog.md`.
+- [ ] Sync `docs/vitepress/zh/changelog.md`.
   - Keep it suitable for the Chinese VitePress documentation site.
 
 ## 3. Readme And Documentation
 
 - [ ] Update root `README.md`.
 - [ ] Update package README at `src/Db4Net/README.md`.
-- [ ] Update affected VitePress pages under `docs/` and `docs/zh/`.
+- [ ] Update affected VitePress pages under `docs/vitepress/` and `docs/vitepress/zh/`.
 - [ ] Check that examples use the current public API names.
 - [ ] Check that provider-specific caveats are documented when SQL differs by database.
 

@@ -70,12 +70,12 @@ Run the same targeted test command and expect passing results.
 ### Task 3: Document QueryPage
 
 **Files:**
-- Modify: `docs/select.md`
-- Modify: `docs/zh/select.md`
-- Modify: `docs/ordering-and-paging.md`
-- Modify: `docs/zh/ordering-and-paging.md`
-- Modify: `docs/complete-example.md`
-- Modify: `docs/zh/complete-example.md`
+- Modify: `docs/vitepress/select.md`
+- Modify: `docs/vitepress/zh/select.md`
+- Modify: `docs/vitepress/ordering-and-paging.md`
+- Modify: `docs/vitepress/zh/ordering-and-paging.md`
+- Modify: `docs/vitepress/complete-example.md`
+- Modify: `docs/vitepress/zh/complete-example.md`
 - Modify: `README.md`
 - Modify: `src/Db4Net/README.md`
 - Modify: `CHANGELOG.md`

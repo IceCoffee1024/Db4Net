@@ -53,4 +53,4 @@ Use only `SelectAggregateScalarQueryBuilder<T>` for aggregate scalar builders. T
 
 ## Testing
 
-Cover SQL rendering, API contract shape, SQLite execution, empty-set null results, explicit result type reads, and docs/package metadata updates.
+Cover SQL rendering, API contract shape, SQLite execution, empty-set null results, explicit result type reads, and docs/vitepress/package metadata updates.

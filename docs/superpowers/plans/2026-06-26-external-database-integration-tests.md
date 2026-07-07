@@ -276,6 +276,6 @@ Expected: tests pass with external tests skipped when env vars are absent, relea
 Run:
 
 ```powershell
-git add tests/Db4Net.Tests/Db4Net.Tests.csproj tests/Db4Net.Tests/ExternalDatabaseTestSupport.cs tests/Db4Net.Tests/PostgreSqlIntegrationTests.cs tests/Db4Net.Tests/MySqlIntegrationTests.cs tests/Db4Net.Tests/SqlServerIntegrationTests.cs src/Db4Net/README.md engineering/superpowers/plans/2026-06-26-external-database-integration-tests.md
+git add tests/Db4Net.Tests/Db4Net.Tests.csproj tests/Db4Net.Tests/ExternalDatabaseTestSupport.cs tests/Db4Net.Tests/PostgreSqlIntegrationTests.cs tests/Db4Net.Tests/MySqlIntegrationTests.cs tests/Db4Net.Tests/SqlServerIntegrationTests.cs src/Db4Net/README.md docs/superpowers/plans/2026-06-26-external-database-integration-tests.md
 git commit -m "test: add optional external database integration tests"
 ```

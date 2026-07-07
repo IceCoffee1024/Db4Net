@@ -81,12 +81,12 @@ create table generated_users_staging (Id integer primary key autoincrement, Name
 **Files:**
 - Modify: `README.md`
 - Modify: `src/Db4Net/README.md`
-- Modify: `docs/insert.md`
-- Modify: `docs/zh/insert.md`
-- Modify: `docs/entity-convenience.md`
-- Modify: `docs/zh/entity-convenience.md`
-- Modify: `docs/mapping.md`
-- Modify: `docs/zh/mapping.md`
+- Modify: `docs/vitepress/insert.md`
+- Modify: `docs/vitepress/zh/insert.md`
+- Modify: `docs/vitepress/entity-convenience.md`
+- Modify: `docs/vitepress/zh/entity-convenience.md`
+- Modify: `docs/vitepress/mapping.md`
+- Modify: `docs/vitepress/zh/mapping.md`
 - Modify: `CHANGELOG.md`
 - Modify: `src/Db4Net/Db4Net.csproj`
 - Modify: `tests/Db4Net.Tests/PackageMetadataTests.cs`

@@ -2,14 +2,14 @@
 
 ## Goal
 
-Build a public, bilingual VitePress documentation site for Db4Net under `docs/`, with English as the root language and Simplified Chinese under `docs/zh/`.
+Build a public, bilingual VitePress documentation site for Db4Net under `docs/vitepress/`, with English as the root language and Simplified Chinese under `docs/vitepress/zh/`.
 
 ## Context
 
-`docs/` now belongs to public user documentation. Internal analysis notes, design records, and superpowers plans/specs live under `engineering/`. The VitePress site was initialized with:
+`docs/vitepress/` now belongs to public user documentation. AI/superpowers plans and specs live under `docs/superpowers/`. Internal engineering decisions and release process notes live under `docs/engineering/`. The VitePress site was initialized with:
 
-- Site root: `docs`
-- Config: `docs/.vitepress/config.mts`
+- Site root: `docs/vitepress`
+- Config: `docs/vitepress/.vitepress/config.mts`
 - npm scripts: `docs:dev`, `docs:build`, `docs:preview`
 - Package manager: `pnpm`
 
@@ -30,15 +30,15 @@ The design follows these VitePress documents requested for this work:
 
 Use VitePress' file-based routing:
 
-- English pages live directly under `docs/`.
-- Chinese pages live under `docs/zh/`.
-- `docs/index.md` is the English home page.
-- `docs/zh/index.md` is the Chinese home page.
+- English pages live directly under `docs/vitepress/`.
+- Chinese pages live under `docs/vitepress/zh/`.
+- `docs/vitepress/index.md` is the English home page.
+- `docs/vitepress/zh/index.md` is the Chinese home page.
 
 The initial page set is intentionally task-oriented instead of source-module-oriented:
 
 ```text
-docs/
+docs/vitepress/
   index.md
   getting-started.md
   select.md
@@ -115,8 +115,8 @@ This keeps the site aligned with how users discover a SQL builder: install, quer
 - Use fenced C# and SQL code blocks for examples.
 - Use VitePress containers such as `::: tip` and `::: warning` for safety rules and limitations.
 - Do not add custom Vue components in the first pass.
-- If assets are needed later, put public assets under `docs/public/`.
-- Keep `docs/.vitepress/dist/` and `docs/.vitepress/cache/` ignored by git.
+- If assets are needed later, put public assets under `docs/vitepress/public/`.
+- Keep `docs/vitepress/.vitepress/dist/` and `docs/vitepress/.vitepress/cache/` ignored by git.
 
 ## Out Of Scope For This Pass
 

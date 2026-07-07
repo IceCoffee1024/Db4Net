@@ -6,7 +6,7 @@ Define Db4Net's initial product direction and v1 boundaries before individual fe
 
 Db4Net is a lightweight fluent SQL builder for Dapper. It helps developers compose safe, parameterized, SQL-shaped queries and commands without turning into an ORM, a LINQ provider, or a change-tracking data access framework.
 
-This spec summarizes the intended direction. The longer historical analysis is preserved in `engineering/decisions/2026-06-26-project-direction.md`.
+This spec summarizes the intended direction. The longer historical analysis is preserved in `docs/engineering/decisions/2026-06-26-project-direction.md`.
 
 ## Product Positioning
 
@@ -87,15 +87,15 @@ Current public behavior is documented in:
 
 - `README.md`
 - `src/Db4Net/README.md`
-- `docs/`
+- `docs/vitepress/`
 - `CHANGELOG.md`
 - tests
 
 Engineering context is documented in:
 
-- `engineering/decisions/`
-- `engineering/superpowers/specs/`
-- `engineering/superpowers/plans/`
-- `engineering/release-checklist.md`
+- `docs/engineering/decisions/`
+- `docs/superpowers/specs/`
+- `docs/superpowers/plans/`
+- `docs/engineering/release-checklist.md`
 
 Historical decision notes are useful context, but they are not the source of truth for the current API surface.
