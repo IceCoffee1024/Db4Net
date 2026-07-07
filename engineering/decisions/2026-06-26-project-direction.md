@@ -1,5 +1,8 @@
 # Fluent Dapper Query Builder：v1 方向与当前状态
 
+> Historical decision note.
+> This document records the initial project direction and v1 scope. It is useful for understanding why Db4Net was shaped as a SQL builder for Dapper rather than an ORM or LINQ provider. For current public API behavior, use `README.md`, `src/Db4Net/README.md`, `docs/`, `CHANGELOG.md`, and tests as the source of truth.
+
 最后更新：2026-06-27
 
 ## 目标
